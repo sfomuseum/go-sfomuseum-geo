@@ -1,0 +1,33 @@
+{
+  "type": "Feature",
+  "properties": {
+    "angle": 60.975016733273264,
+    "bearing": -15.37617921357767,
+    "distance": 78.42929920238107
+  },
+  "geometry": {
+    "type": "GeometryCollection",
+    "geometries": [
+      {
+        "type": "Point",
+        "coordinates": [
+          -122.38340377807619,
+          37.61678098755535
+        ]
+      },
+      {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.38414514322554,
+            37.6173507814666
+          ],
+          [
+            -122.38313448021721,
+            37.61757093376433
+          ]
+        ]
+      }
+    ]
+  }
+}

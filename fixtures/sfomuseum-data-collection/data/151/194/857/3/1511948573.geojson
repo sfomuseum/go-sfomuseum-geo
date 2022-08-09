@@ -1,0 +1,108 @@
+{
+  "id": 1511948573,
+  "type": "Feature",
+  "properties": {
+    "date:cessation_lower": "1970-01-01",
+    "date:cessation_upper": "1970-12-31",
+    "date:inception_lower": "1970-01-01",
+    "date:inception_upper": "1970-12-31",
+    "edtf:cessation": "1970~",
+    "edtf:date": "1970~",
+    "edtf:inception": "1970~",
+    "geom:area": 0,
+    "geom:bbox": "-122.386155,37.616357,-122.386155,37.616357",
+    "geom:latitude": 37.616357,
+    "geom:longitude": -122.386155,
+    "iso:country": "XX",
+    "millsfield:airport_id": [
+      102527513
+    ],
+    "millsfield:category_id": 1511214209,
+    "millsfield:collection_id": 1511214207,
+    "millsfield:images": [
+      1527827539
+    ],
+    "millsfield:primary_image": 1527827539,
+    "millsfield:subcategory_id": 1511213801,
+    "mz:hierarchy_label": 1,
+    "mz:is_current": 1,
+    "sfomuseum:accession_number": "2011.032.2318",
+    "sfomuseum:airport": "San Francisco International Airport",
+    "sfomuseum:airport_id": [
+      121
+    ],
+    "sfomuseum:category": "Photograph",
+    "sfomuseum:classification_id": 518,
+    "sfomuseum:collection": "Aviation Archive",
+    "sfomuseum:creditline": "Transfer from San Francisco International Airport",
+    "sfomuseum:date": "c. 1970",
+    "sfomuseum:date_acquired": "2011-03-02",
+    "sfomuseum:daterange_end": "1975-12-31",
+    "sfomuseum:daterange_start": "1965-01-01",
+    "sfomuseum:description": "Color photographic negative depicting interior view of Pancake Palace restaurant, Central Terminal (Terminal 2), San Francisco International Airport (SFO).",
+    "sfomuseum:dimensions": "1 x 1 1/2 inches (2.5 x 3.8 cm)",
+    "sfomuseum:media_ids": [
+      1527827539
+    ],
+    "sfomuseum:medium": "negative",
+    "sfomuseum:object_id": 116871,
+    "sfomuseum:placetype": "object",
+    "sfomuseum:primary_media_id": 1527827539,
+    "sfomuseum:publication": ": , c. 1970.",
+    "sfomuseum:subcategory": "Negative",
+    "src:geom": "unknown",
+    "wof:belongsto": [
+      1511214209,
+      102527513,
+      102191575,
+      85633793,
+      1511213801,
+      85922583,
+      102087579,
+      1511214277,
+      1511214207,
+      85688637
+    ],
+    "wof:breaches": [],
+    "wof:country": "XX",
+    "wof:created": 1579906668,
+    "wof:depicts": [
+      102527513
+    ],
+    "wof:geomhash": "30c8a918561c84bb2daa2b97fc7c5353",
+    "wof:hierarchy": [
+      {
+        "arcade_id": 1511213801,
+        "building_id": 1511214277,
+        "campus_id": 102527513,
+        "concourse_id": 1511214209,
+        "continent_id": 102191575,
+        "country_id": 85633793,
+        "county_id": 102087579,
+        "locality_id": 85922583,
+        "neighbourhood_id": -1,
+        "object_id": 1511948573,
+        "region_id": 85688637,
+        "venue_id": 1511948573,
+        "wing_id": 1511214207
+      }
+    ],
+    "wof:id": 1511948573,
+    "wof:lastmodified": 1642729198,
+    "wof:name": "negative: San Francisco International Airport (SFO), Pancake Palace restaurant",
+    "wof:parent_id": 1159162825,
+    "wof:placetype": "custom",
+    "wof:placetype_alt": "object",
+    "wof:repo": "sfomuseum-data-collection",
+    "wof:superseded_by": [],
+    "wof:supersedes": [],
+    "wof:tags": []
+  },
+  "bbox": [
+    -122.386155,
+    37.616357,
+    -122.386155,
+    37.616357
+  ],
+  "geometry": {"coordinates":[-122.386155,37.616357],"type":"Point"}
+}
