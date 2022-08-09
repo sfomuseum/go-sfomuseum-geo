@@ -8,18 +8,6 @@ import (
 // Subject: place depicted by object
 // Parent: the parent (ID) of the subject
 
-const DEFAULT_DEPICTION_READER_URI string = "github://sfomuseum-data/sfomuseum-data-media-collection?branch=%main"
-const DEFAULT_DEPICTION_WRITER_URI string = "githubapi://sfomuseum-data/sfomuseum-data-media-collection?access_token=&branch=main&prefix=data/"
-
-const DEFAULT_SUBJECT_READER_URI string = "github://sfomuseum-data/sfomuseum-data-collection?branch=%main"
-const DEFAULT_SUBJECT_WRITER_URI string = "githubapi://sfomuseum-data/sfomuseum-data-collection?access_token=&branch=main&prefix=data/"
-
-// This needs to be updated to pull from the SFOM findingaid because the parent might be the SFO campus
-// or some other WOF feature off-campus. Was previously "github://sfomuseum-data/sfomuseum-data-architecture?branch=%main"
-
-// DEFAULT_PARENT_READER_URI is the whosonfirst/go-reader.Reader URI used to retrieve parent records for geotagged features.
-const DEFAULT_PARENT_READER_URI string = "https://static.sfomuseum.org/geojson"
-
 // GEOTAG_NS is the prefix (namespace) to assign to geotagging specific properties.
 const GEOTAG_NS string = "geotag"
 

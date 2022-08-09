@@ -51,13 +51,13 @@ func main() {
 
 	fs := flagset.NewFlagSet("geotag")
 
-	img_reader_uri := fs.String("depiction-reader-uri", geotag.DEFAULT_DEPICTION_READER_URI, "A valid whosonfirst/go-reader URI.")
-	img_writer_uri := fs.String("depiction-writer-uri", geotag.DEFAULT_DEPICTION_WRITER_URI, "A valid whosonfirst/go-writer URI.")
+	img_reader_uri := fs.String("depiction-reader-uri", "", "A valid whosonfirst/go-reader URI.")
+	img_writer_uri := fs.String("depiction-writer-uri", "", "A valid whosonfirst/go-writer URI.")
 
-	obj_reader_uri := fs.String("subject-reader-uri", geotag.DEFAULT_SUBJECT_READER_URI, "A valid whosonfirst/go-reader URI.")
-	obj_writer_uri := fs.String("subject-writer-uri", geotag.DEFAULT_SUBJECT_WRITER_URI, "A valid whosonfirst/go-writer URI.")
+	obj_reader_uri := fs.String("subject-reader-uri", "", "A valid whosonfirst/go-reader URI.")
+	obj_writer_uri := fs.String("subject-writer-uri", "", "A valid whosonfirst/go-writer URI.")
 
-	parent_reader_uri := fs.String("parent-reader-uri", geotag.DEFAULT_PARENT_READER_URI, "A valid whosonfirst/go-reader URI.")
+	parent_reader_uri := fs.String("parent-reader-uri", "", "A valid whosonfirst/go-reader URI.")
 
 	access_token_uri := fs.String("access-token", "", "A valid gocloud.dev/runtimevar URI")
 
