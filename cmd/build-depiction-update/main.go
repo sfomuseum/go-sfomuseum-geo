@@ -1,14 +1,15 @@
 // build-update emits a JSON-encoded `geotag.Depiction` struct to STDOUT derived from command-line flags and a "geotag"
 // GeoJSON Feature read from STDIN.
+//
 //	$> cat fixtures/geotag/1527827539.geojson | bin/build-depiction-update -depiction-id 1527827539 -parent-id 1159396131 | jq
 package main
 
 import (
-	geotag "github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"encoding/json"
 	"flag"
 	"fmt"
 	geojson "github.com/sfomuseum/go-geojson-geotag"
+	geotag "github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"log"
 	"os"
 )

@@ -1,6 +1,6 @@
 // update-depiction is a command-tool for applying geotagging updates to one or more depictions. For example:
 //
-// 	$> cat fixtures/geotag/1527827539.geojson | bin/update-depiction \
+//	$> cat fixtures/geotag/1527827539.geojson | bin/update-depiction \
 //		-depiction-id 1527827539 -parent-id 1159396131 \
 //		-depiction-reader-uri repo:///usr/local/sfomuseum/go-sfomuseum-geotag/fixtures/sfomuseum-data-media-collection \
 //		-subject-reader-uri repo:///usr/local/sfomuseum/go-sfomuseum-geotag/fixtures/sfomuseum-data-collection \
@@ -8,12 +8,13 @@
 //
 // Or, reading from the default remote endpoints and updating local data:
 //
-// 	$> cat fixtures/geotag/1527827539.geojson | bin/update-depiction \
+//	$> cat fixtures/geotag/1527827539.geojson | bin/update-depiction \
 //		-depiction-id 1527827539 -parent-id 1159396131 \
 //		-depiction-writer-uri repo:///usr/local/data/sfomuseum-data-media-collection \
 //		-subject-writer-uri repo:///usr/local/data/sfomuseum-data-collection
 //
 // Or, reading and writing to the default remote endpoints:
+//
 //	$> cat fixtures/geotag/1527827539.geojson | bin/update-depiction \
 //		-depiction-id 1527827539 -parent-id 1159396131 \
 //		-access-token 'file:///usr/local/sfomuseum/lockedbox/github/geotag'
@@ -33,16 +34,16 @@ import (
 )
 
 import (
-	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
 	geojson "github.com/sfomuseum/go-geojson-geotag"
+	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"github.com/whosonfirst/go-reader"
+	gh_writer "github.com/whosonfirst/go-writer-github/v2"
 	"github.com/whosonfirst/go-writer/v2"
-	gh_writer "github.com/whosonfirst/go-writer-github/v2"	
 	"log"
 	"os"
 )

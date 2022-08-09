@@ -1,12 +1,12 @@
 package geotag
 
 import (
-	"github.com/sfomuseum/go-sfomuseum-geo/alt"	
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v2"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"

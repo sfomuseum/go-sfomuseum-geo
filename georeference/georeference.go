@@ -4,12 +4,13 @@ package georeference
 // but not today...
 
 import (
-	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/go-sfomuseum-geo/alt"
+	"github.com/sfomuseum/go-sfomuseum-geo/github"
 	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v2"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader"
@@ -19,7 +20,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer/v2"
 	_ "log"
-	"net/url"
 	"sync"
 )
 
@@ -54,82 +54,26 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, wof_id
 		return nil, fmt.Errorf("Unabled to derive wof:repo, %w", err)
 	}
 
-	// START OF to be removed once the go-writer/v2 interface is complete
+	// START OF to be removed once the go-writer/v3 (Clone) interface is complete
 
-	wr_u, err := url.Parse(opts.SFOMuseumWriterURI)
+	update_opts := &github.UpdateWriterURIOptions{
+		WhosOnFirstId: wof_id,
+		Author:        opts.Author,
+	}
+
+	wr_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.SFOMuseumWriterURI)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse URI, %w", err)
+		return nil, fmt.Errorf("Failed to update writer URI, %w", err)
 	}
 
-	switch wr_u.Scheme {
-
-	case "githubapi":
-
-		update_msg := fmt.Sprintf("[%s] updated georeferences for ", opts.Author)
-		update_msg = update_msg + "%s" // I wish I knew how to include a literal '%s' in fmt.Sprintf...
-
-		wr_q := wr_u.Query()
-
-		wr_q.Del("new")
-		wr_q.Del("update")
-
-		wr_q.Set("new", update_msg)
-		wr_q.Set("update", update_msg)
-
-		// branch...
-		wr_u.RawQuery = wr_q.Encode()
-
-	case "githubapi-pr":
-
-		title := fmt.Sprintf("[%s] update georeferences for %d", opts.Author, wof_id)
-		description := title
-
-		branch := fmt.Sprintf("%s-%d", opts.Author, wof_id)
-
-		wr_q := wr_u.Query()
-
-		wr_q.Del("pr-branch")
-		wr_q.Del("pr-title")
-		wr_q.Del("pr-description")
-
-		wr_q.Set("pr-branch", branch)
-		wr_q.Set("pr-title", title)
-		wr_q.Set("pr-description", description)
-
-		// branch...
-		wr_u.RawQuery = wr_q.Encode()
-	}
-
-	wr, err := writer.NewWriter(ctx, wr_u.String())
+	wr, err := writer.NewWriter(ctx, wr_uri)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to update writer, %w", err)
 	}
 
-	// END OF to be removed once the go-writer/v2 interface is complete
-
-	// START OF use this once the go-writer/v2 interface is complete
-	// To do: Update to account for githubapi-pr writer scheme (see above)
-
-	/*
-
-		wr_u := new(url.URL)
-		wr_q := wr_q.Query()
-
-		wr_q.Set("new", update_msg)
-		wr_q.Set("update", update_msg)
-
-		wr_u.RawQuery = wr_q.Encode()
-
-		wr, err := opts.SFOMWriter.Clone(ctx, wr_u.String())
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create new writer, %w", err)
-		}
-	*/
-
-	// END OF use this once the go-writer/v2 interface is complete
+	// END OF to be removed once the go-writer/v3 (Clone) interface is complete
 
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
