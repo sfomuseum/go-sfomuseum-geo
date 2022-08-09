@@ -17,6 +17,16 @@ import (
 	"github.com/whosonfirst/go-writer"
 )
 
+// type Depiction is a struct definining properties for updating geotagging information in an depiction and its parent subject.
+type Depiction struct {
+	// The unique numeric identifier of the depiction being geotagged
+	DepictionId int64 `json:"depiction_id"`
+	// The unique numeric identifier of the Who's On First feature that parents the subject being geotagged
+	ParentId int64 `json:"parent_id,omitempty"`
+	// The GeoJSON Feature containing geotagging information
+	Feature *geojson.GeotagFeature `json:"feature"`
+}
+
 // UpdateDepictionOptions defines a struct for reading/writing options when updating geotagging information in depictions.
 type UpdateDepictionOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
@@ -147,9 +157,6 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	camera_coords := pov.Coordinates
 	target_coords := target.Coordinates
 
-	// START OF new geometry stuff
-	// This remains untested and undocumented (20220308/thisisaaronland)
-
 	camera_coord := []float64{
 		camera_coords[0],
 		camera_coords[1],
@@ -198,59 +205,6 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	subject_updates["geometry.type"] = "MultiPoint"
 	subject_updates["geometry.coordinates"] = coords
-
-	// END OF new geometry stuff
-
-	// START OF existing geometry stuff
-	/*
-
-		geom_rsp := gjson.GetBytes(subject_f, "geometry")
-		type_rsp := geom_rsp.Get("type")
-
-		switch type_rsp.String() {
-		case "MultiPoint":
-
-			tmp := make(map[string][]float64)
-
-			k := fmt.Sprintf("%v,%v", camera_coords[0], camera_coords[1])
-			tmp[k] = []float64{camera_coords[0], camera_coords[1]}
-
-			coords_rsp := geom_rsp.Get("coordinates")
-
-			for _, c := range coords_rsp.Array() {
-
-				pt := make([]float64, 0)
-
-				for _, v := range c.Array() {
-					pt = append(pt, v.Float())
-				}
-
-				k := fmt.Sprintf("%v,%v", pt[0], pt[1])
-				tmp[k] = pt
-			}
-
-			coords := make([][]float64, 0)
-
-			for _, pt := range tmp {
-				coords = append(coords, pt)
-			}
-
-			subject_updates["geometry.coordinates"] = coords
-
-		case "Point":
-
-			subject_updates["geometry.type"] = "MultiPoint"
-
-			subject_updates["geometry.coordinates"] = [][]float64{
-				[]float64{camera_coords[0], camera_coords[1]},
-			}
-
-		default:
-			return fmt.Errorf("Unsupported geometry type (%s) for subject record", type_rsp.String())
-		}
-
-	*/
-	// END OF existing geometry stuff
 
 	// Update the parent ID and hierarchy for the subject
 

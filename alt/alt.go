@@ -1,3 +1,4 @@
+// Package alt provides methods for formatting Who's On First alternate geometry files.
 package alt
 
 import (

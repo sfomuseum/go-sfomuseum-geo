@@ -1,3 +1,4 @@
+// Package geotag provides methods for updating SFO Museum Who's On First records with geotagging depictions.
 package geotag
 
 import (
@@ -16,13 +17,3 @@ const GEOTAG_SRC string = "geotag"
 
 // GEOTAG_LABEL is the Who's On First alternate geometry label for the "field of view" alternate geometry record
 const GEOTAG_LABEL string = "geotag-fov" // field of view
-
-// type Depiction is a struct definining properties for updating geotagging information in an depiction and its parent subject.
-type Depiction struct {
-	// The unique numeric identifier of the depiction being geotagged
-	DepictionId int64 `json:"depiction_id"`
-	// The unique numeric identifier of the Who's On First feature that parents the subject being geotagged
-	ParentId int64 `json:"parent_id,omitempty"`
-	// The GeoJSON Feature containing geotagging information
-	Feature *geojson.GeotagFeature `json:"feature"`
-}
