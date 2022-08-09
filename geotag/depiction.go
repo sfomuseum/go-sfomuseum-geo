@@ -1,7 +1,7 @@
 package geotag
 
 import (
-	"bitbucket.org/flysfo/www-sfomuseum-update/alt"
+	"github.com/sfomuseum/go-sfomuseum-geo/alt"	
 	"bytes"
 	"context"
 	"encoding/json"

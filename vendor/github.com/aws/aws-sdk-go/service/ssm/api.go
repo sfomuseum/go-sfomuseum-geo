@@ -59,13 +59,13 @@ func (c *SSM) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 // AddTagsToResource API operation for Amazon Simple Systems Manager (SSM).
 //
 // Adds or overwrites one or more tags for the specified resource. Tags are
-// metadata that you can assign to your automations, documents, managed nodes,
-// maintenance windows, Parameter Store parameters, and patch baselines. Tags
-// enable you to categorize your resources in different ways, for example, by
-// purpose, owner, or environment. Each tag consists of a key and an optional
-// value, both of which you define. For example, you could define a set of tags
-// for your account's managed nodes that helps you track each node's owner and
-// stack level. For example:
+// metadata that you can assign to your documents, managed nodes, maintenance
+// windows, Parameter Store parameters, and patch baselines. Tags enable you
+// to categorize your resources in different ways, for example, by purpose,
+// owner, or environment. Each tag consists of a key and an optional value,
+// both of which you define. For example, you could define a set of tags for
+// your account's managed nodes that helps you track each node's owner and stack
+// level. For example:
 //
 //    * Key=Owner,Value=DbAdmin
 //
@@ -79,8 +79,7 @@ func (c *SSM) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 //
 //    * Key=Stack,Value=Test
 //
-// Most resources can have a maximum of 50 tags. Automations can have a maximum
-// of 5 tags.
+// Each resource can have a maximum of 50 tags.
 //
 // We recommend that you devise a set of tag keys that meets your needs for
 // each resource type. Using a consistent set of tag keys makes it easier for
@@ -638,9 +637,6 @@ func (c *SSM) CreateAssociationRequest(input *CreateAssociationInput) (req *requ
 //   * InvalidSchedule
 //   The schedule is invalid. Verify your cron or rate expression and try again.
 //
-//   * InvalidTargetMaps
-//   TargetMap parameter isn't valid.
-//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/CreateAssociation
 func (c *SSM) CreateAssociation(input *CreateAssociationInput) (*CreateAssociationOutput, error) {
 	req, out := c.CreateAssociationRequest(input)
@@ -773,9 +769,6 @@ func (c *SSM) CreateAssociationBatchRequest(input *CreateAssociationBatchInput) 
 //
 //   * InvalidSchedule
 //   The schedule is invalid. Verify your cron or rate expression and try again.
-//
-//   * InvalidTargetMaps
-//   TargetMap parameter isn't valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/CreateAssociationBatch
 func (c *SSM) CreateAssociationBatch(input *CreateAssociationBatchInput) (*CreateAssociationBatchOutput, error) {
@@ -12251,7 +12244,7 @@ func (c *SSM) PutComplianceItemsRequest(input *PutComplianceItemsInput) (req *re
 //    * Status: The status of the compliance item. For example, approved for
 //    patches, or Failed for associations.
 //
-//    * Severity: A patch severity. For example, Critical.
+//    * Severity: A patch severity. For example, critical.
 //
 //    * DocumentName: An SSM document name. For example, AWS-RunPatchBaseline.
 //
@@ -14279,9 +14272,6 @@ func (c *SSM) UpdateAssociationRequest(input *UpdateAssociationInput) (req *requ
 //   You have reached the maximum number versions allowed for an association.
 //   Each association has a limit of 1,000 versions.
 //
-//   * InvalidTargetMaps
-//   TargetMap parameter isn't valid.
-//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/UpdateAssociation
 func (c *SSM) UpdateAssociation(input *UpdateAssociationInput) (*UpdateAssociationOutput, error) {
 	req, out := c.UpdateAssociationRequest(input)
@@ -15783,8 +15773,6 @@ type AddTagsToResourceInput struct {
 	//
 	// PatchBaseline: pb-012345abcde
 	//
-	// Automation: example-c160-4567-8519-012345abcde
-	//
 	// OpsMetadata object: ResourceID for tagging is created from the Amazon Resource
 	// Name (ARN) for the object. Specifically, ResourceID is created from the strings
 	// that come after the word opsmetadata in the ARN. For example, an OpsMetadata
@@ -16207,13 +16195,6 @@ type Association struct {
 	// schedule runs in Coordinated Universal Time (UTC).
 	ScheduleExpression *string `min:"1" type:"string"`
 
-	// Number of days to wait after the scheduled day to run an association.
-	ScheduleOffset *int64 `min:"1" type:"integer"`
-
-	// A key-value mapping of document parameters to target resources. Both Targets
-	// and TargetMaps can't be specified together.
-	TargetMaps []map[string][]*string `type:"list"`
-
 	// The managed nodes targeted by the request to create an association. You can
 	// target all managed nodes in an Amazon Web Services account by specifying
 	// the InstanceIds key with a value of *.
@@ -16289,18 +16270,6 @@ func (s *Association) SetOverview(v *AssociationOverview) *Association {
 // SetScheduleExpression sets the ScheduleExpression field's value.
 func (s *Association) SetScheduleExpression(v string) *Association {
 	s.ScheduleExpression = &v
-	return s
-}
-
-// SetScheduleOffset sets the ScheduleOffset field's value.
-func (s *Association) SetScheduleOffset(v int64) *Association {
-	s.ScheduleOffset = &v
-	return s
-}
-
-// SetTargetMaps sets the TargetMaps field's value.
-func (s *Association) SetTargetMaps(v []map[string][]*string) *Association {
-	s.TargetMaps = v
 	return s
 }
 
@@ -16471,9 +16440,6 @@ type AssociationDescription struct {
 	// A cron expression that specifies a schedule when the association runs.
 	ScheduleExpression *string `min:"1" type:"string"`
 
-	// Number of days to wait after the scheduled day to run an association.
-	ScheduleOffset *int64 `min:"1" type:"integer"`
-
 	// The association status.
 	Status *AssociationStatus `type:"structure"`
 
@@ -16494,10 +16460,6 @@ type AssociationDescription struct {
 	// The combination of Amazon Web Services Regions and Amazon Web Services accounts
 	// where you want to run the association.
 	TargetLocations []*TargetLocation `min:"1" type:"list"`
-
-	// A key-value mapping of document parameters to target resources. Both Targets
-	// and TargetMaps can't be specified together.
-	TargetMaps []map[string][]*string `type:"list"`
 
 	// The managed nodes targeted by the request.
 	Targets []*Target `type:"list"`
@@ -16641,12 +16603,6 @@ func (s *AssociationDescription) SetScheduleExpression(v string) *AssociationDes
 	return s
 }
 
-// SetScheduleOffset sets the ScheduleOffset field's value.
-func (s *AssociationDescription) SetScheduleOffset(v int64) *AssociationDescription {
-	s.ScheduleOffset = &v
-	return s
-}
-
 // SetStatus sets the Status field's value.
 func (s *AssociationDescription) SetStatus(v *AssociationStatus) *AssociationDescription {
 	s.Status = v
@@ -16662,12 +16618,6 @@ func (s *AssociationDescription) SetSyncCompliance(v string) *AssociationDescrip
 // SetTargetLocations sets the TargetLocations field's value.
 func (s *AssociationDescription) SetTargetLocations(v []*TargetLocation) *AssociationDescription {
 	s.TargetLocations = v
-	return s
-}
-
-// SetTargetMaps sets the TargetMaps field's value.
-func (s *AssociationDescription) SetTargetMaps(v []map[string][]*string) *AssociationDescription {
-	s.TargetMaps = v
 	return s
 }
 
@@ -17496,9 +17446,6 @@ type AssociationVersionInfo struct {
 	// version was created.
 	ScheduleExpression *string `min:"1" type:"string"`
 
-	// Number of days to wait after the scheduled day to run an association.
-	ScheduleOffset *int64 `min:"1" type:"integer"`
-
 	// The mode for generating association compliance. You can specify AUTO or MANUAL.
 	// In AUTO mode, the system uses the status of the association execution to
 	// determine the compliance status. If the association execution runs successfully,
@@ -17517,10 +17464,6 @@ type AssociationVersionInfo struct {
 	// where you wanted to run the association when this association version was
 	// created.
 	TargetLocations []*TargetLocation `min:"1" type:"list"`
-
-	// A key-value mapping of document parameters to target resources. Both Targets
-	// and TargetMaps can't be specified together.
-	TargetMaps []map[string][]*string `type:"list"`
 
 	// The targets specified for the association when the association version was
 	// created.
@@ -17629,12 +17572,6 @@ func (s *AssociationVersionInfo) SetScheduleExpression(v string) *AssociationVer
 	return s
 }
 
-// SetScheduleOffset sets the ScheduleOffset field's value.
-func (s *AssociationVersionInfo) SetScheduleOffset(v int64) *AssociationVersionInfo {
-	s.ScheduleOffset = &v
-	return s
-}
-
 // SetSyncCompliance sets the SyncCompliance field's value.
 func (s *AssociationVersionInfo) SetSyncCompliance(v string) *AssociationVersionInfo {
 	s.SyncCompliance = &v
@@ -17644,12 +17581,6 @@ func (s *AssociationVersionInfo) SetSyncCompliance(v string) *AssociationVersion
 // SetTargetLocations sets the TargetLocations field's value.
 func (s *AssociationVersionInfo) SetTargetLocations(v []*TargetLocation) *AssociationVersionInfo {
 	s.TargetLocations = v
-	return s
-}
-
-// SetTargetMaps sets the TargetMaps field's value.
-func (s *AssociationVersionInfo) SetTargetMaps(v []map[string][]*string) *AssociationVersionInfo {
-	s.TargetMaps = v
 	return s
 }
 
@@ -19368,11 +19299,9 @@ type Command struct {
 	// The number of targets for which the status is Failed or Execution Timed Out.
 	ErrorCount *int64 `type:"integer"`
 
-	// If a command expires, it changes status to DeliveryTimedOut for all invocations
-	// that have the status InProgress, Pending, or Delayed. ExpiresAfter is calculated
-	// based on the total timeout for the overall command. For more information,
-	// see Understanding command timeout values (https://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-commands.html?icmpid=docs_ec2_console#monitor-about-status-timeouts)
-	// in the Amazon Web Services Systems Manager User Guide.
+	// If this time is reached and the command hasn't already started running, it
+	// won't run. Calculated based on the ExpiresAfter user input provided as part
+	// of the SendCommand API operation.
 	ExpiresAfter *time.Time `type:"timestamp"`
 
 	// The managed node IDs against which this command was requested.
@@ -19463,9 +19392,6 @@ type Command struct {
 	//    * Rate Exceeded: The number of managed nodes targeted by the command exceeded
 	//    the account limit for pending invocations. The system has canceled the
 	//    command before running it on any managed node. This is a terminal state.
-	//
-	//    * Delayed: The system attempted to send the command to the managed node
-	//    but wasn't successful. The system retries again.
 	StatusDetails *string `type:"string"`
 
 	// The number of targets for the command.
@@ -19849,9 +19775,6 @@ type CommandInvocation struct {
 	//
 	//    * Terminated: The parent command exceeded its MaxErrors limit and subsequent
 	//    command invocations were canceled by the system. This is a terminal state.
-	//
-	//    * Delayed: The system attempted to send the command to the managed node
-	//    but wasn't successful. The system retries again.
 	StatusDetails *string `type:"string"`
 
 	// Gets the trace output sent by the agent.
@@ -21082,9 +21005,6 @@ type CreateAssociationBatchRequestEntry struct {
 	// A cron expression that specifies a schedule when the association runs.
 	ScheduleExpression *string `min:"1" type:"string"`
 
-	// Number of days to wait after the scheduled day to run an association.
-	ScheduleOffset *int64 `min:"1" type:"integer"`
-
 	// The mode for generating association compliance. You can specify AUTO or MANUAL.
 	// In AUTO mode, the system uses the status of the association execution to
 	// determine the compliance status. If the association execution runs successfully,
@@ -21102,10 +21022,6 @@ type CreateAssociationBatchRequestEntry struct {
 	// Use this action to create an association in multiple Regions and multiple
 	// accounts.
 	TargetLocations []*TargetLocation `min:"1" type:"list"`
-
-	// A key-value mapping of document parameters to target resources. Both Targets
-	// and TargetMaps can't be specified together.
-	TargetMaps []map[string][]*string `type:"list"`
 
 	// The managed nodes targeted by the request.
 	Targets []*Target `type:"list"`
@@ -21146,9 +21062,6 @@ func (s *CreateAssociationBatchRequestEntry) Validate() error {
 	}
 	if s.ScheduleExpression != nil && len(*s.ScheduleExpression) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ScheduleExpression", 1))
-	}
-	if s.ScheduleOffset != nil && *s.ScheduleOffset < 1 {
-		invalidParams.Add(request.NewErrParamMinValue("ScheduleOffset", 1))
 	}
 	if s.TargetLocations != nil && len(s.TargetLocations) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("TargetLocations", 1))
@@ -21263,12 +21176,6 @@ func (s *CreateAssociationBatchRequestEntry) SetScheduleExpression(v string) *Cr
 	return s
 }
 
-// SetScheduleOffset sets the ScheduleOffset field's value.
-func (s *CreateAssociationBatchRequestEntry) SetScheduleOffset(v int64) *CreateAssociationBatchRequestEntry {
-	s.ScheduleOffset = &v
-	return s
-}
-
 // SetSyncCompliance sets the SyncCompliance field's value.
 func (s *CreateAssociationBatchRequestEntry) SetSyncCompliance(v string) *CreateAssociationBatchRequestEntry {
 	s.SyncCompliance = &v
@@ -21278,12 +21185,6 @@ func (s *CreateAssociationBatchRequestEntry) SetSyncCompliance(v string) *Create
 // SetTargetLocations sets the TargetLocations field's value.
 func (s *CreateAssociationBatchRequestEntry) SetTargetLocations(v []*TargetLocation) *CreateAssociationBatchRequestEntry {
 	s.TargetLocations = v
-	return s
-}
-
-// SetTargetMaps sets the TargetMaps field's value.
-func (s *CreateAssociationBatchRequestEntry) SetTargetMaps(v []map[string][]*string) *CreateAssociationBatchRequestEntry {
-	s.TargetMaps = v
 	return s
 }
 
@@ -21405,18 +21306,6 @@ type CreateAssociationInput struct {
 	// A cron expression when the association will be applied to the target(s).
 	ScheduleExpression *string `min:"1" type:"string"`
 
-	// Number of days to wait after the scheduled day to run an association. For
-	// example, if you specified a cron schedule of cron(0 0 ? * THU#2 *), you could
-	// specify an offset of 3 to run the association each Sunday after the second
-	// Thursday of the month. For more information about cron schedules for associations,
-	// see Reference: Cron and rate expressions for Systems Manager (https://docs.aws.amazon.com/systems-manager/latest/userguide/reference-cron-and-rate-expressions.html)
-	// in the Amazon Web Services Systems Manager User Guide.
-	//
-	// To use offsets, you must specify the ApplyOnlyAtCronInterval parameter. This
-	// option tells the system not to run an association immediately after you create
-	// it.
-	ScheduleOffset *int64 `min:"1" type:"integer"`
-
 	// The mode for generating association compliance. You can specify AUTO or MANUAL.
 	// In AUTO mode, the system uses the status of the association execution to
 	// determine the compliance status. If the association execution runs successfully,
@@ -21435,10 +21324,6 @@ type CreateAssociationInput struct {
 	// Services accounts where you want to run the association. Use this action
 	// to create an association in multiple Regions and multiple accounts.
 	TargetLocations []*TargetLocation `min:"1" type:"list"`
-
-	// A key-value mapping of document parameters to target resources. Both Targets
-	// and TargetMaps can't be specified together.
-	TargetMaps []map[string][]*string `type:"list"`
 
 	// The targets for the association. You can target managed nodes by using tags,
 	// Amazon Web Services resource groups, all managed nodes in an Amazon Web Services
@@ -21485,9 +21370,6 @@ func (s *CreateAssociationInput) Validate() error {
 	}
 	if s.ScheduleExpression != nil && len(*s.ScheduleExpression) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ScheduleExpression", 1))
-	}
-	if s.ScheduleOffset != nil && *s.ScheduleOffset < 1 {
-		invalidParams.Add(request.NewErrParamMinValue("ScheduleOffset", 1))
 	}
 	if s.TargetLocations != nil && len(s.TargetLocations) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("TargetLocations", 1))
@@ -21602,12 +21484,6 @@ func (s *CreateAssociationInput) SetScheduleExpression(v string) *CreateAssociat
 	return s
 }
 
-// SetScheduleOffset sets the ScheduleOffset field's value.
-func (s *CreateAssociationInput) SetScheduleOffset(v int64) *CreateAssociationInput {
-	s.ScheduleOffset = &v
-	return s
-}
-
 // SetSyncCompliance sets the SyncCompliance field's value.
 func (s *CreateAssociationInput) SetSyncCompliance(v string) *CreateAssociationInput {
 	s.SyncCompliance = &v
@@ -21617,12 +21493,6 @@ func (s *CreateAssociationInput) SetSyncCompliance(v string) *CreateAssociationI
 // SetTargetLocations sets the TargetLocations field's value.
 func (s *CreateAssociationInput) SetTargetLocations(v []*TargetLocation) *CreateAssociationInput {
 	s.TargetLocations = v
-	return s
-}
-
-// SetTargetMaps sets the TargetMaps field's value.
-func (s *CreateAssociationInput) SetTargetMaps(v []map[string][]*string) *CreateAssociationInput {
-	s.TargetMaps = v
 	return s
 }
 
@@ -21746,8 +21616,8 @@ type CreateDocumentInput struct {
 	TargetType *string `type:"string"`
 
 	// An optional field specifying the version of the artifact you are creating
-	// with the document. For example, Release12.1. This value is unique across
-	// all versions of a document, and can't be changed.
+	// with the document. For example, "Release 12, Update 6". This value is unique
+	// across all versions of a document, and can't be changed.
 	VersionName *string `type:"string"`
 }
 
@@ -30818,16 +30688,18 @@ type GetCommandInvocationInput struct {
 	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
 
-	// The name of the step for which you want detailed results. If the document
-	// contains only one step, you can omit the name and details for that step.
-	// If the document contains more than one step, you must specify the name of
-	// the step for which you want to view details. Be sure to specify the name
-	// of the step, not the name of a plugin like aws:RunShellScript.
+	// The name of the plugin for which you want detailed results. If the document
+	// contains only one plugin, you can omit the name and details for that plugin.
+	// If the document contains more than one plugin, you must specify the name
+	// of the plugin for which you want to view details.
+	//
+	// Plugin names are also referred to as step names in Systems Manager documents
+	// (SSM documents). For example, aws:RunShellScript is a plugin.
 	//
 	// To find the PluginName, check the document content and find the name of the
-	// step you want details for. Alternatively, use ListCommandInvocations with
-	// the CommandId and Details parameters. The PluginName is the Name attribute
-	// of the CommandPlugin object in the CommandPlugins list.
+	// plugin. Alternatively, use ListCommandInvocations with the CommandId and
+	// Details parameters. The PluginName is the Name attribute of the CommandPlugin
+	// object in the CommandPlugins list.
 	PluginName *string `min:"4" type:"string"`
 }
 
@@ -34217,13 +34089,11 @@ type GetServiceSettingInput struct {
 	//
 	//    * /ssm/documents/console/public-sharing-permission
 	//
-	//    * /ssm/managed-instance/activation-tier
-	//
-	//    * /ssm/opsinsights/opscenter
-	//
 	//    * /ssm/parameter-store/default-parameter-tier
 	//
 	//    * /ssm/parameter-store/high-throughput-enabled
+	//
+	//    * /ssm/managed-instance/activation-tier
 	//
 	// SettingId is a required field
 	SettingId *string `min:"1" type:"string" required:"true"`
@@ -38650,70 +38520,6 @@ func (s *InvalidTarget) StatusCode() int {
 
 // RequestID returns the service's response RequestID for request.
 func (s *InvalidTarget) RequestID() string {
-	return s.RespMetadata.RequestID
-}
-
-// TargetMap parameter isn't valid.
-type InvalidTargetMaps struct {
-	_            struct{}                  `type:"structure"`
-	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
-
-	Message_ *string `locationName:"Message" type:"string"`
-}
-
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
-func (s InvalidTargetMaps) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
-func (s InvalidTargetMaps) GoString() string {
-	return s.String()
-}
-
-func newErrorInvalidTargetMaps(v protocol.ResponseMetadata) error {
-	return &InvalidTargetMaps{
-		RespMetadata: v,
-	}
-}
-
-// Code returns the exception type name.
-func (s *InvalidTargetMaps) Code() string {
-	return "InvalidTargetMaps"
-}
-
-// Message returns the exception's message.
-func (s *InvalidTargetMaps) Message() string {
-	if s.Message_ != nil {
-		return *s.Message_
-	}
-	return ""
-}
-
-// OrigErr always returns nil, satisfies awserr.Error interface.
-func (s *InvalidTargetMaps) OrigErr() error {
-	return nil
-}
-
-func (s *InvalidTargetMaps) Error() string {
-	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
-}
-
-// Status code returns the HTTP status code for the request's response error.
-func (s *InvalidTargetMaps) StatusCode() int {
-	return s.RespMetadata.StatusCode
-}
-
-// RequestID returns the service's response RequestID for request.
-func (s *InvalidTargetMaps) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
@@ -49856,8 +49662,6 @@ type RemoveTagsFromResourceInput struct {
 	//
 	// MaintenanceWindow: mw-012345abcde
 	//
-	// Automation: example-c160-4567-8519-012345abcde
-	//
 	// PatchBaseline: pb-012345abcde
 	//
 	// OpsMetadata object: ResourceID for tagging is created from the Amazon Resource
@@ -49980,13 +49784,11 @@ type ResetServiceSettingInput struct {
 	//
 	//    * /ssm/documents/console/public-sharing-permission
 	//
-	//    * /ssm/managed-instance/activation-tier
-	//
-	//    * /ssm/opsinsights/opscenter
-	//
 	//    * /ssm/parameter-store/default-parameter-tier
 	//
 	//    * /ssm/parameter-store/high-throughput-enabled
+	//
+	//    * /ssm/managed-instance/activation-tier
 	//
 	// SettingId is a required field
 	SettingId *string `min:"1" type:"string" required:"true"`
@@ -51533,10 +51335,6 @@ type Runbook struct {
 	// accounts targeted by the current Runbook operation.
 	TargetLocations []*TargetLocation `min:"1" type:"list"`
 
-	// A key-value mapping of runbook parameters to target resources. Both Targets
-	// and TargetMaps can't be specified together.
-	TargetMaps []map[string][]*string `type:"list"`
-
 	// The name of the parameter used as the target resource for the rate-controlled
 	// runbook workflow. Required if you specify Targets.
 	TargetParameterName *string `min:"1" type:"string"`
@@ -51645,12 +51443,6 @@ func (s *Runbook) SetParameters(v map[string][]*string) *Runbook {
 // SetTargetLocations sets the TargetLocations field's value.
 func (s *Runbook) SetTargetLocations(v []*TargetLocation) *Runbook {
 	s.TargetLocations = v
-	return s
-}
-
-// SetTargetMaps sets the TargetMaps field's value.
-func (s *Runbook) SetTargetMaps(v []map[string][]*string) *Runbook {
-	s.TargetMaps = v
 	return s
 }
 
@@ -52672,7 +52464,7 @@ type SeveritySummary struct {
 	_ struct{} `type:"structure"`
 
 	// The total number of resources or compliance items that have a severity level
-	// of Critical. Critical severity is determined by the organization that published
+	// of critical. Critical severity is determined by the organization that published
 	// the compliance items.
 	CriticalCount *int64 `type:"integer"`
 
@@ -52885,7 +52677,7 @@ type StartAutomationExecutionInput struct {
 	//
 	//    * Key=OS,Value=Windows
 	//
-	// To add tags to an existing automation, use the AddTagsToResource operation.
+	// To add tags to an existing patch baseline, use the AddTagsToResource operation.
 	Tags []*Tag `type:"list"`
 
 	// A location is a combination of Amazon Web Services Regions and/or Amazon
@@ -53335,12 +53127,11 @@ func (s *StartChangeRequestExecutionOutput) SetAutomationExecutionId(v string) *
 type StartSessionInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the SSM document you want to use to define the type of session,
-	// input parameters, or preferences for the session. For example, SSM-SessionManagerRunShell.
-	// You can call the GetDocument API to verify the document exists before attempting
-	// to start a session. If no document name is provided, a shell to the managed
-	// node is launched by default. For more information, see Start a session (https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html)
-	// in the Amazon Web Services Systems Manager User Guide.
+	// The name of the SSM document to define the parameters and plugin settings
+	// for the session. For example, SSM-SessionManagerRunShell. You can call the
+	// GetDocument API to verify the document exists before attempting to start
+	// a session. If no document name is provided, a shell to the managed node is
+	// launched by default.
 	DocumentName *string `type:"string"`
 
 	// The values you want to specify for the parameters defined in the Session
@@ -55376,18 +55167,6 @@ type UpdateAssociationInput struct {
 	// The cron expression used to schedule the association that you want to update.
 	ScheduleExpression *string `min:"1" type:"string"`
 
-	// Number of days to wait after the scheduled day to run an association. For
-	// example, if you specified a cron schedule of cron(0 0 ? * THU#2 *), you could
-	// specify an offset of 3 to run the association each Sunday after the second
-	// Thursday of the month. For more information about cron schedules for associations,
-	// see Reference: Cron and rate expressions for Systems Manager (https://docs.aws.amazon.com/systems-manager/latest/userguide/reference-cron-and-rate-expressions.html)
-	// in the Amazon Web Services Systems Manager User Guide.
-	//
-	// To use offsets, you must specify the ApplyOnlyAtCronInterval parameter. This
-	// option tells the system not to run an association immediately after you create
-	// it.
-	ScheduleOffset *int64 `min:"1" type:"integer"`
-
 	// The mode for generating association compliance. You can specify AUTO or MANUAL.
 	// In AUTO mode, the system uses the status of the association execution to
 	// determine the compliance status. If the association execution runs successfully,
@@ -55406,10 +55185,6 @@ type UpdateAssociationInput struct {
 	// Services accounts where you want to run the association. Use this action
 	// to update an association in multiple Regions and multiple accounts.
 	TargetLocations []*TargetLocation `min:"1" type:"list"`
-
-	// A key-value mapping of document parameters to target resources. Both Targets
-	// and TargetMaps can't be specified together.
-	TargetMaps []map[string][]*string `type:"list"`
 
 	// The targets of the association.
 	Targets []*Target `type:"list"`
@@ -55450,9 +55225,6 @@ func (s *UpdateAssociationInput) Validate() error {
 	}
 	if s.ScheduleExpression != nil && len(*s.ScheduleExpression) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ScheduleExpression", 1))
-	}
-	if s.ScheduleOffset != nil && *s.ScheduleOffset < 1 {
-		invalidParams.Add(request.NewErrParamMinValue("ScheduleOffset", 1))
 	}
 	if s.TargetLocations != nil && len(s.TargetLocations) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("TargetLocations", 1))
@@ -55573,12 +55345,6 @@ func (s *UpdateAssociationInput) SetScheduleExpression(v string) *UpdateAssociat
 	return s
 }
 
-// SetScheduleOffset sets the ScheduleOffset field's value.
-func (s *UpdateAssociationInput) SetScheduleOffset(v int64) *UpdateAssociationInput {
-	s.ScheduleOffset = &v
-	return s
-}
-
 // SetSyncCompliance sets the SyncCompliance field's value.
 func (s *UpdateAssociationInput) SetSyncCompliance(v string) *UpdateAssociationInput {
 	s.SyncCompliance = &v
@@ -55588,12 +55354,6 @@ func (s *UpdateAssociationInput) SetSyncCompliance(v string) *UpdateAssociationI
 // SetTargetLocations sets the TargetLocations field's value.
 func (s *UpdateAssociationInput) SetTargetLocations(v []*TargetLocation) *UpdateAssociationInput {
 	s.TargetLocations = v
-	return s
-}
-
-// SetTargetMaps sets the TargetMaps field's value.
-func (s *UpdateAssociationInput) SetTargetMaps(v []map[string][]*string) *UpdateAssociationInput {
-	s.TargetMaps = v
 	return s
 }
 
@@ -58073,19 +57833,23 @@ type UpdateServiceSettingInput struct {
 	//
 	//    * /ssm/documents/console/public-sharing-permission
 	//
-	//    * /ssm/managed-instance/activation-tier
-	//
-	//    * /ssm/opsinsights/opscenter
-	//
 	//    * /ssm/parameter-store/default-parameter-tier
 	//
 	//    * /ssm/parameter-store/high-throughput-enabled
+	//
+	//    * /ssm/managed-instance/activation-tier
 	//
 	// SettingId is a required field
 	SettingId *string `min:"1" type:"string" required:"true"`
 
 	// The new value to specify for the service setting. The following list specifies
 	// the available values for each setting.
+	//
+	//    * /ssm/parameter-store/default-parameter-tier: Standard, Advanced, Intelligent-Tiering
+	//
+	//    * /ssm/parameter-store/high-throughput-enabled: true or false
+	//
+	//    * /ssm/managed-instance/activation-tier: true or false
 	//
 	//    * /ssm/automation/customer-script-log-destination: CloudWatch
 	//
@@ -58095,12 +57859,6 @@ type UpdateServiceSettingInput struct {
 	//    * /ssm/documents/console/public-sharing-permission: Enable or Disable
 	//
 	//    * /ssm/managed-instance/activation-tier: standard or advanced
-	//
-	//    * /ssm/opsinsights/opscenter: Enabled or Disabled
-	//
-	//    * /ssm/parameter-store/default-parameter-tier: Standard, Advanced, Intelligent-Tiering
-	//
-	//    * /ssm/parameter-store/high-throughput-enabled: true or false
 	//
 	// SettingValue is a required field
 	SettingValue *string `min:"1" type:"string" required:"true"`
