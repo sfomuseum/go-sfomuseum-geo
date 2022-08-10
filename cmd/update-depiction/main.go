@@ -135,7 +135,7 @@ func main() {
 	opts := &geotag.UpdateDepictionOptions{
 		DepictionReader:    img_reader,
 		DepictionWriter:    img_writer,
-		DecpitionWriterURI: *img_writer_uri, // to be remove post writer/v3 (Clone) release
+		DepictionWriterURI: *img_writer_uri, // to be remove post writer/v3 (Clone) release
 		SubjectReader:      obj_reader,
 		SubjectWriter:      obj_writer,
 		SubjectWriterURI:   *obj_writer_uri, // to be remove post writer/v3 (Clone) release

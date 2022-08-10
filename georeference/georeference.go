@@ -59,6 +59,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, wof_id
 	update_opts := &github.UpdateWriterURIOptions{
 		WhosOnFirstId: wof_id,
 		Author:        opts.Author,
+		Action:        github.GeoreferenceAction,
 	}
 
 	wr_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.SFOMuseumWriterURI)

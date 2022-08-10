@@ -4,11 +4,32 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"time"
+)
+
+type Action int
+
+func (a Action) String() string {
+
+	switch a {
+	case GeoreferenceAction:
+		return "georeference"
+	case GeotagAction:
+		return "geotag"
+	default:
+		return ""
+	}
+}
+
+const (
+	GeoreferenceAction = Action(iota)
+	GeotagAction
 )
 
 type UpdateWriterURIOptions struct {
 	WhosOnFirstId int64
 	Author        string
+	Action        Action
 }
 
 func UpdateWriterURI(ctx context.Context, opts *UpdateWriterURIOptions, writer_uri string) (string, error) {
@@ -23,7 +44,7 @@ func UpdateWriterURI(ctx context.Context, opts *UpdateWriterURIOptions, writer_u
 
 	case "githubapi":
 
-		update_msg := fmt.Sprintf("[%s] updated georeferences for ", opts.Author)
+		update_msg := fmt.Sprintf("[%s] update %s data for ", opts.Author, opts.Action)
 		update_msg = update_msg + "%s" // I wish I knew how to include a literal '%s' in fmt.Sprintf...
 
 		wr_q := wr_u.Query()
@@ -39,10 +60,13 @@ func UpdateWriterURI(ctx context.Context, opts *UpdateWriterURIOptions, writer_u
 
 	case "githubapi-pr":
 
-		title := fmt.Sprintf("[%s] update georeferences for %d", opts.Author, opts.WhosOnFirstId)
+		title := fmt.Sprintf("[%s] update %s data for %d", opts.Author, opts.Action, opts.WhosOnFirstId)
 		description := title
 
-		branch := fmt.Sprintf("%s-%d", opts.Author, opts.WhosOnFirstId)
+		now := time.Now()
+		ts := now.Unix()
+
+		branch := fmt.Sprintf("%s-%d-%s-%d", opts.Author, ts, opts.Action, opts.WhosOnFirstId)
 
 		wr_q := wr_u.Query()
 

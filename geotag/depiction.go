@@ -85,7 +85,11 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	// START OF
 
-	update_opts := &github.UpdateWriterURIOptions{}
+	update_opts := &github.UpdateWriterURIOptions{
+		WhosOnFirstId: depiction_id,
+		Author:        opts.Author,
+		Action:        github.GeotagAction,
+	}
 
 	depiction_writer_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.DepictionWriterURI)
 
