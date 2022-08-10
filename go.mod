@@ -18,7 +18,6 @@ require (
 	github.com/whosonfirst/go-whosonfirst-format v0.4.1
 	github.com/whosonfirst/go-whosonfirst-reader v1.0.1
 	github.com/whosonfirst/go-whosonfirst-uri v1.2.0
-	github.com/whosonfirst/go-writer v1.0.1
 	github.com/whosonfirst/go-writer-github/v2 v2.1.0
 	github.com/whosonfirst/go-writer/v2 v2.0.0
 	gocloud.dev v0.26.0
@@ -75,6 +74,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-log v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-writer/v2 v2.0.2 // indirect
+	github.com/whosonfirst/go-writer v1.0.1 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/ratelimit v0.2.0 // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
