@@ -1,10 +1,6 @@
 // Package geotag provides methods for updating SFO Museum Who's On First records with geotagging depictions.
 package geotag
 
-import (
-	geojson "github.com/sfomuseum/go-geojson-geotag"
-)
-
 // Depiction: object
 // Subject: place depicted by object
 // Parent: the parent (ID) of the subject

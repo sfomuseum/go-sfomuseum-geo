@@ -133,11 +133,13 @@ func main() {
 	}
 
 	opts := &geotag.UpdateDepictionOptions{
-		DepictionReader: img_reader,
-		DepictionWriter: img_writer,
-		SubjectReader:   obj_reader,
-		SubjectWriter:   obj_writer,
-		ParentReader:    parent_reader,
+		DepictionReader:    img_reader,
+		DepictionWriter:    img_writer,
+		DecpitionWriterURI: *img_writer_uri, // to be remove post writer/v3 (Clone) release
+		SubjectReader:      obj_reader,
+		SubjectWriter:      obj_writer,
+		SubjectWriterURI:   *obj_writer_uri, // to be remove post writer/v3 (Clone) release
+		ParentReader:       parent_reader,
 	}
 
 	for _, depiction_id := range depictions {
@@ -148,7 +150,7 @@ func main() {
 			Feature:     f,
 		}
 
-		err := geotag.UpdateDepiction(ctx, opts, update)
+		_, err := geotag.UpdateDepiction(ctx, opts, update)
 
 		if err != nil {
 			log.Fatalf("Failed to update depiction %d, %v", depiction_id, err)

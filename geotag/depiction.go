@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/go-geojson-geotag"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
+	"github.com/sfomuseum/go-sfomuseum-geo/github"
 	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v2"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"
@@ -24,7 +26,7 @@ type Depiction struct {
 	// The unique numeric identifier of the Who's On First feature that parents the subject being geotagged
 	ParentId int64 `json:"parent_id,omitempty"`
 	// The GeoJSON Feature containing geotagging information
-	Feature *geojson.GeotagFeature `json:"feature"`
+	Feature *geotag.GeotagFeature `json:"feature"`
 }
 
 // UpdateDepictionOptions defines a struct for reading/writing options when updating geotagging information in depictions.
@@ -34,11 +36,14 @@ type UpdateDepictionOptions struct {
 	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
 	DepictionWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading subject features.
-	SubjectReader reader.Reader
+	DepictionWriterURI string
+	SubjectReader      reader.Reader
 	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
-	SubjectWriter writer.Writer
+	SubjectWriter    writer.Writer
+	SubjectWriterURI string
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	ParentReader reader.Reader
+	Author       string
 }
 
 // UpdateDepiction will update the geometries and relevant properties for SFOM/WOF records 'depiction_id' and 'subject_id' using
@@ -72,22 +77,52 @@ type UpdateDepictionOptions struct {
 // - Its geometry is assigned the field of view (line string) of the 'geotag_f' feature.
 //
 // Finally the alternate geometry is exported and written (to `opts.DepictionWriter`).
-func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *Depiction) error {
+func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *Depiction) ([]byte, error) {
 
 	depiction_id := update.DepictionId
 	parent_id := update.ParentId
 	geotag_f := update.Feature
 
+	// START OF
+
+	update_opts := &github.UpdateWriterURIOptions{}
+
+	depiction_writer_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.DepictionWriterURI)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to update depiction writer URI, %w", err)
+	}
+
+	subject_writer_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.SubjectWriterURI)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to update subject writer URI, %w", err)
+	}
+
+	depiction_writer, err := writer.NewWriter(ctx, depiction_writer_uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create new depiction writer for '%s', %w", depiction_writer_uri, err)
+	}
+
+	subject_writer, err := writer.NewWriter(ctx, subject_writer_uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create new subject writer for '%s', %w", subject_writer_uri, err)
+	}
+
+	// END OF
+
 	depiction_f, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
 	if err != nil {
-		return fmt.Errorf("Failed to load depiction record %d, %w", depiction_id, err)
+		return nil, fmt.Errorf("Failed to load depiction record %d, %w", depiction_id, err)
 	}
 
 	parent_rsp := gjson.GetBytes(depiction_f, "properties.wof:parent_id")
 
 	if !parent_rsp.Exists() {
-		return fmt.Errorf("Failed to determine wof:parent_id for depiction")
+		return nil, fmt.Errorf("Failed to determine wof:parent_id for depiction")
 	}
 
 	subject_id := parent_rsp.Int()
@@ -95,7 +130,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	subject_f, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
 
 	if err != nil {
-		return fmt.Errorf("Failed to load subject record %d, %w", subject_id, err)
+		return nil, fmt.Errorf("Failed to load subject record %d, %w", subject_id, err)
 	}
 
 	var parent_f []byte
@@ -105,7 +140,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, parent_id)
 
 		if err != nil {
-			return fmt.Errorf("Failed to load parent record %d, %w", parent_id, err)
+			return nil, fmt.Errorf("Failed to load parent record %d, %w", parent_id, err)
 		}
 
 		parent_f = f
@@ -143,7 +178,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	pov, err := geotag_f.PointOfView()
 
 	if err != nil {
-		return fmt.Errorf("Unable to derive camera point of view, %w", err)
+		return nil, fmt.Errorf("Unable to derive camera point of view, %w", err)
 	}
 
 	// TO DO: REMOVE mz:is_approximate if present
@@ -151,7 +186,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	target, err := geotag_f.Target()
 
 	if err != nil {
-		return fmt.Errorf("Unable to derive camera target, %w", err)
+		return nil, fmt.Errorf("Unable to derive camera target, %w", err)
 	}
 
 	camera_coords := pov.Coordinates
@@ -178,7 +213,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		other_f, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, other_id)
 
 		if err != nil {
-			return fmt.Errorf("Failed to load depiction record %d, %w", other_id, err)
+			return nil, fmt.Errorf("Failed to load depiction record %d, %w", other_id, err)
 		}
 
 		// TBD: Does this really need to throw a "fatal" error? Is it okay to skip records
@@ -188,11 +223,11 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		lon_rsp := gjson.GetBytes(other_f, "properties.geotag:camera_longitude")
 
 		if !lat_rsp.Exists() {
-			return fmt.Errorf("Depiction record %d is missing geotag:camera_latitude property", other_id)
+			return nil, fmt.Errorf("Depiction record %d is missing geotag:camera_latitude property", other_id)
 		}
 
 		if !lon_rsp.Exists() {
-			return fmt.Errorf("Depiction record %d is missing geotag:camera_longitude property", other_id)
+			return nil, fmt.Errorf("Depiction record %d is missing geotag:camera_longitude property", other_id)
 		}
 
 		other_coord := []float64{
@@ -228,15 +263,15 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
 
 	if err != nil {
-		return fmt.Errorf("Failed to update subject record %d, %w", subject_id, err)
+		return nil, fmt.Errorf("Failed to update subject record %d, %w", subject_id, err)
 	}
 
 	if subject_changed {
 
-		_, err := sfom_writer.WriteBytes(ctx, opts.SubjectWriter, subject_f)
+		_, err := sfom_writer.WriteBytes(ctx, subject_writer, subject_f)
 
 		if err != nil {
-			return fmt.Errorf("Failed to write subject record %d, %w", subject_id, err)
+			return nil, fmt.Errorf("Failed to write subject record %d, %w", subject_id, err)
 		}
 	}
 
@@ -291,15 +326,15 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	depiction_changed, depiction_f, err := export.AssignPropertiesIfChanged(ctx, depiction_f, depiction_updates)
 
 	if err != nil {
-		return fmt.Errorf("Failed to update depiction record %d, %w", depiction_id, err)
+		return nil, fmt.Errorf("Failed to update depiction record %d, %w", depiction_id, err)
 	}
 
 	if depiction_changed {
 
-		_, err := sfom_writer.WriteBytes(ctx, opts.DepictionWriter, depiction_f)
+		_, err := sfom_writer.WriteBytes(ctx, depiction_writer, depiction_f)
 
 		if err != nil {
-			return fmt.Errorf("Failed to write depiction record %d, %w", depiction_id, err)
+			return nil, fmt.Errorf("Failed to write depiction record %d, %w", depiction_id, err)
 		}
 	}
 
@@ -317,19 +352,19 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	fov_geom, err := geotag_f.FieldOfView()
 
 	if err != nil {
-		return fmt.Errorf("Failed to derive field of view geometry, %w", err)
+		return nil, fmt.Errorf("Failed to derive field of view geometry, %w", err)
 	}
 
 	enc_fov, err := json.Marshal(fov_geom)
 
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("Failed to marshal field of view geometry, %w", err)
 	}
 
 	geojson_geom, err := geojson.UnmarshalGeometry(enc_fov)
 
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("Failed to unmarshal field of view geometry, %w", err)
 	}
 
 	alt_feature := &alt.WhosOnFirstAltFeature{
@@ -342,7 +377,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	alt_body, err := alt.FormatAltFeature(alt_feature)
 
 	if err != nil {
-		return fmt.Errorf("Failed to format alt feature, %w", err)
+		return nil, fmt.Errorf("Failed to format alt feature, %w", err)
 	}
 
 	alt_uri_geom := &uri.AltGeom{
@@ -357,23 +392,33 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	alt_uri, err := uri.Id2RelPath(depiction_id, alt_uri_args)
 
 	if err != nil {
-		return fmt.Errorf("Failed to derive rel path for alt file, %w", err)
+		return nil, fmt.Errorf("Failed to derive rel path for alt file, %w", err)
 	}
 
 	alt_br := bytes.NewReader(alt_body)
 	alt_fh, err := ioutil.NewReadSeekCloser(alt_br)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create new ReadSeekCloser, %w", err)
+		return nil, fmt.Errorf("Failed to create new ReadSeekCloser, %w", err)
 	}
 
-	_, err = opts.DepictionWriter.Write(ctx, alt_uri, alt_fh)
+	_, err = depiction_writer.Write(ctx, alt_uri, alt_fh)
 
 	if err != nil {
-		return fmt.Errorf("Failed to write alt file %s, %w", alt_uri, err)
+		return nil, fmt.Errorf("Failed to write alt file %s, %w", alt_uri, err)
 	}
 
-	//
+	err = depiction_writer.Close(ctx)
 
-	return nil
+	if err != nil {
+		return nil, fmt.Errorf("Failed to close depiction writer, %w", err)
+	}
+
+	err = subject_writer.Close(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
+	}
+
+	return depiction_f, nil
 }

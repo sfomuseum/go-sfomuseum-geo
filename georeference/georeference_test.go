@@ -1,4 +1,4 @@
-package geoference
+package georeference
 
 import (
 	"testing"
