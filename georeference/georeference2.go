@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
+	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
 	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v2"
 	"github.com/tidwall/gjson"
@@ -449,12 +450,22 @@ func AssignReferences2(ctx context.Context, opts *UpdateDepictionOptions, depict
 
 	// START OF derive geometry from depictions (media/image files)
 
+	geom_ids := make([]int64, 0)
+
 	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
 
-		// GET GEOM HERE
-
+		id := k.(int64)
+		geom_ids = append(geom_ids, id)
 		return true
 	})
+
+	geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.DepictionReader, geom_ids...)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
+	}
+
+	subject_updates["geometry"] = geom
 
 	// END OF derive geometry from depictions (media/image files)
 
