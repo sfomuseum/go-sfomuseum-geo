@@ -1,52 +1,46 @@
 package id
 
+// The two import statements to ensure that packages are loaded
+// in the correct order.
+
 import (
-	"context"
-	_ "github.com/aaronland/go-brooklynintegers-api"
-	"github.com/aaronland/go-uid"
-	"github.com/aaronland/go-uid-artisanal"
-	"strconv"
+	_ "github.com/aaronland/go-uid-whosonfirst"
 )
 
+import (
+	"context"
+	"fmt"
+	"github.com/aaronland/go-uid"
+	_ "github.com/aaronland/go-uid-proxy"
+)
+
+// type Provider is an interface for providing uniquer identifiers.
 type Provider interface {
-	NewID() (int64, error)
+	// NewID returns a new unique 64-bit integers.
+	NewID(context.Context) (int64, error)
 }
 
+// WOFProvider implements the Provider interface for generating unique Who's On First identifiers.
 type WOFProvider struct {
 	Provider
 	uid_provider uid.Provider
 }
 
+// NweProvider returns a new `WOFProvider` instance configured with default
+// settings.
 func NewProvider(ctx context.Context) (Provider, error) {
-
-	opts := &artisanal.ArtisanalProviderURIOptions{
-		Pool:    "memory://",
-		Minimum: 0,
-		Clients: []string{
-			"brooklynintegers://",
-		},
-	}
-
-	uri, err := artisanal.NewArtisanalProviderURI(opts)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// str_uri ends up looking like this:
-	// artisanal:?client=brooklynintegers%3A%2F%2F&minimum=5&pool=memory%3A%2F%2F
-
-	str_uri := uri.String()
-
-	return NewProviderWithURI(ctx, str_uri)
+	uri := "proxy://?provider=whosonfirst://"
+	return NewProviderWithURI(ctx, uri)
 }
 
+// NewProviderWithURI returns a new `WOFProvider` instance configured by
+// 'uri' which is expected to be a valid `aaronland/go-uid-proxy` URI.
 func NewProviderWithURI(ctx context.Context, uri string) (Provider, error) {
 
 	uid_pr, err := uid.NewProvider(ctx, uri)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to create new provider, %w", err)
 	}
 
 	wof_pr := &WOFProvider{
@@ -56,14 +50,20 @@ func NewProviderWithURI(ctx context.Context, uri string) (Provider, error) {
 	return wof_pr, nil
 }
 
-func (wof_pr *WOFProvider) NewID() (int64, error) {
+// NewID returns a new Who's On First identifier.
+func (wof_pr *WOFProvider) NewID(ctx context.Context) (int64, error) {
 
-	uid, err := wof_pr.uid_provider.UID()
+	v, err := wof_pr.uid_provider.UID(ctx)
 
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("Failed to generate ID, %w", err)
 	}
 
-	str_id := uid.String()
-	return strconv.ParseInt(str_id, 10, 64)
+	id, ok := uid.AsInt64(v)
+
+	if !ok {
+		return -1, fmt.Errorf("Provider return invalid value")
+	}
+
+	return id, nil
 }

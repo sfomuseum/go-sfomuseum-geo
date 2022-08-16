@@ -31,7 +31,7 @@ type GitHubAPIBranchWriter struct {
 	commit_email       string
 	commit_description string
 	commit_entries     []github.TreeEntry
-	merge_branch bool
+	merge_branch       bool
 	remove_branch      bool
 	prefix             string
 	client             *github.Client
@@ -106,7 +106,7 @@ func NewGitHubAPIBranchWriter(ctx context.Context, uri string) (wof_writer.Write
 	if to_branch == base_branch {
 		return nil, fmt.Errorf("Commit branch can not be the same as base branch")
 	}
-	
+
 	commit_branch := to_branch
 
 	commit_description := q.Get("description")
@@ -138,7 +138,7 @@ func NewGitHubAPIBranchWriter(ctx context.Context, uri string) (wof_writer.Write
 
 	str_merge := q.Get("merge")
 	str_remove := q.Get("remove-on-merge")
-	
+
 	if str_merge != "" {
 
 		merge, err := strconv.ParseBool(str_merge)
@@ -181,7 +181,7 @@ func NewGitHubAPIBranchWriter(ctx context.Context, uri string) (wof_writer.Write
 		prefix:             prefix,
 		logger:             logger,
 		mutex:              mutex,
-		merge_branch: merge_branch,
+		merge_branch:       merge_branch,
 		remove_branch:      remove_branch,
 	}
 
@@ -216,10 +216,13 @@ func (wr *GitHubAPIBranchWriter) Write(ctx context.Context, uri string, r io.Rea
 
 func (wr *GitHubAPIBranchWriter) Flush(ctx context.Context) error {
 
+	wr.logger.Printf("Flush %d entries for %s %s\n", len(wr.commit_entries), wr.commit_repo, wr.commit_branch)
+
 	wr.mutex.Lock()
 	defer wr.mutex.Unlock()
 
 	if len(wr.commit_entries) == 0 {
+		wr.logger.Printf("No entries to flush for %s @%s\n", wr.commit_repo, wr.commit_branch)
 		return nil
 	}
 
@@ -259,7 +262,7 @@ func (wr *GitHubAPIBranchWriter) Close(ctx context.Context) error {
 	if !wr.merge_branch {
 		return nil
 	}
-	
+
 	err = wr.mergeBranch(ctx)
 
 	if err != nil {
@@ -269,9 +272,9 @@ func (wr *GitHubAPIBranchWriter) Close(ctx context.Context) error {
 	if !wr.remove_branch {
 		return nil
 	}
-	
+
 	err = wr.removeBranch(ctx)
-	
+
 	if err != nil {
 		return fmt.Errorf("Failed to remove branch, %w", err)
 	}
@@ -322,7 +325,7 @@ func (wr *GitHubAPIBranchWriter) getRef(ctx context.Context) (*github.Reference,
 	commit_ref, _, err = wr.client.Git.CreateRef(ctx, wr.commit_owner, wr.commit_repo, new_ref)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create new ref, %w")
+		return nil, fmt.Errorf("Failed to create new ref, %w", err)
 	}
 
 	return commit_ref, err
@@ -330,6 +333,8 @@ func (wr *GitHubAPIBranchWriter) getRef(ctx context.Context) (*github.Reference,
 
 // pushCommit creates the commit in the given reference using the given branch.
 func (wr *GitHubAPIBranchWriter) pushCommit(ctx context.Context, ref *github.Reference, tree *github.Tree) error {
+
+	wr.logger.Printf("Push commit for %s @%s\n", wr.commit_repo, wr.commit_branch)
 
 	// Get the parent commit to attach the commit to.
 
@@ -404,7 +409,7 @@ func (wr *GitHubAPIBranchWriter) mergeBranch(ctx context.Context) error {
 func (wr *GitHubAPIBranchWriter) removeBranch(ctx context.Context) error {
 
 	ref := fmt.Sprintf("heads/%s", wr.commit_branch)
-	
+
 	wr.logger.Printf("Remove %s\n", ref)
 
 	_, err := wr.client.Git.DeleteRef(ctx, wr.base_owner, wr.base_repo, ref)

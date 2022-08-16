@@ -168,6 +168,7 @@ githubapi-tree://sfomuseum-data/sfomuseum-data-collection \
 	?access_token={access_token} \
 	&branch=main \
 	&prefix=data/ \
+	&to-branch=testing \
 	&description=testing \
 	&email=aaron@localhost 
 ```
@@ -208,6 +209,7 @@ githubapi-branch://sfomuseum-data/sfomuseum-data-collection \
 	&prefix=data/ \
 	&description=testing \
 	&email=aaron@localhost \
+	&to-commit=testing \
 	&merge=true \
 	&remove-on-merge=true
 ```

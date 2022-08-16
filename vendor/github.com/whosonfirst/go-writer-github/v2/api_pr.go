@@ -271,7 +271,7 @@ func (wr *GitHubAPIPullRequestWriter) Flush(ctx context.Context) error {
 }
 
 func (wr *GitHubAPIPullRequestWriter) Close(ctx context.Context) error {
-	
+
 	err := wr.Flush(ctx)
 
 	if err != nil {
@@ -370,7 +370,7 @@ func (wr *GitHubAPIPullRequestWriter) getRef(ctx context.Context) (*github.Refer
 	pr_ref, _, err = wr.client.Git.CreateRef(ctx, wr.pr_owner, wr.pr_repo, new_ref)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create new ref, %w")
+		return nil, fmt.Errorf("Failed to create new ref, %w", err)
 	}
 
 	return pr_ref, err

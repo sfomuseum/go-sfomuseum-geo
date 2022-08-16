@@ -2,14 +2,16 @@ package uid
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"log"
 	"net/url"
 )
 
+const STRING_SCHEME string = "string"
+
 func init() {
 	ctx := context.Background()
-	pr := NewStringProvider()
-	RegisterProvider(ctx, "string", pr)
+	RegisterProvider(ctx, STRING_SCHEME, NewStringProvider)
 }
 
 type StringProvider struct {
@@ -22,35 +24,37 @@ type StringUID struct {
 	string string
 }
 
-func NewStringProvider() Provider {
-	pr := &StringProvider{}
-	return pr
-}
-
-func (pr *StringProvider) Open(ctx context.Context, uri string) error {
+func NewStringProvider(ctx context.Context, uri string) (Provider, error) {
 
 	u, err := url.Parse(uri)
 
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("Failed to parse string, %w", err)
 	}
 
 	q := u.Query()
 	s := q.Get("string")
 
 	if s == "" {
-		return errors.New("Empty string")
+		return nil, fmt.Errorf("Empty string")
 	}
 
-	pr.string = s
+	pr := &StringProvider{
+		string: s,
+	}
+
+	return pr, nil
+}
+
+func (pr *StringProvider) SetLogger(ctx context.Context, logger *log.Logger) error {
 	return nil
 }
 
-func (pr *StringProvider) UID(...interface{}) (UID, error) {
-	return NewStringUID(pr.string)
+func (pr *StringProvider) UID(ctx context.Context, args ...interface{}) (UID, error) {
+	return NewStringUID(ctx, pr.string)
 }
 
-func NewStringUID(s string) (UID, error) {
+func NewStringUID(ctx context.Context, s string) (UID, error) {
 
 	u := StringUID{
 		string: s,
@@ -59,8 +63,10 @@ func NewStringUID(s string) (UID, error) {
 	return &u, nil
 }
 
-// where is UID() ?
+func (u *StringUID) Value() any {
+	return u.string
+}
 
 func (u *StringUID) String() string {
-	return u.string
+	return fmt.Sprintf("%v", u.Value())
 }

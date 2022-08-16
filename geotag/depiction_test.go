@@ -19,7 +19,7 @@ func TestUpdateDepiction(t *testing.T) {
 
 	ctx := context.Background()
 
-	path_fixtures, err := filepath.Abs("./fixtures")
+	path_fixtures, err := filepath.Abs("../fixtures")
 
 	if err != nil {
 		t.Fatalf("Failed to derive absolute path, %v", err)
@@ -93,14 +93,16 @@ func TestUpdateDepiction(t *testing.T) {
 	}
 
 	opts := &UpdateDepictionOptions{
-		DepictionReader: img_reader,
-		DepictionWriter: img_writer,
-		SubjectReader:   obj_reader,
-		SubjectWriter:   obj_writer,
-		ParentReader:    arch_reader,
+		DepictionReader:    img_reader,
+		DepictionWriter:    img_writer,
+		SubjectReader:      obj_reader,
+		SubjectWriter:      obj_writer,
+		ParentReader:       arch_reader,
+		DepictionWriterURI: img_writer_uri,
+		SubjectWriterURI:   obj_writer_uri,
 	}
 
-	err = UpdateDepiction(ctx, opts, update)
+	_, err = UpdateDepiction(ctx, opts, update)
 
 	if err != nil {
 		t.Fatalf("Failed to update depiction, %v", err)

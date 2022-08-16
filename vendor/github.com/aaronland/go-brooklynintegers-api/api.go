@@ -2,42 +2,30 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/aaronland/go-artisanal-integers"
+	"github.com/aaronland/go-artisanal-integers/client"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/tidwall/gjson"
 	"go.uber.org/ratelimit"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"github.com/cenkalti/backoff/v4"
 )
 
 func init() {
 	ctx := context.Background()
-	cl := NewAPIClient()
-	artisanalinteger.RegisterClient(ctx, "brooklynintegers", cl)
-}
-
-// this is basically just so we can preserve backwards compatibility
-// even though the artisanalinteger.Client interface is the new new
-// (20181210/thisisaaronland)
-
-type BrooklynIntegersClient interface {
-	CreateInteger() (int64, error)
-	ExecuteMethod(string, *url.Values) (*APIResponse, error)
+	client.RegisterClient(ctx, "brooklynintegers", NewAPIClient)
 }
 
 type APIClient struct {
-	artisanalinteger.Client
-	BrooklynIntegersClient // see above
-	isa                    string
-	http_client            *http.Client
-	Scheme                 string
-	Host                   string
-	Endpoint               string
-	rate_limiter           ratelimit.Limiter
+	client.Client
+	isa          string
+	http_client  *http.Client
+	Scheme       string
+	Host         string
+	Endpoint     string
+	rate_limiter ratelimit.Limiter
 }
 
 type APIError struct {
@@ -58,7 +46,7 @@ func (rsp *APIResponse) Int() (int64, error) {
 	ints := gjson.GetBytes(rsp.raw, "integers.0.integer")
 
 	if !ints.Exists() {
-		return -1, errors.New("Failed to generate any integers")
+		return -1, fmt.Errorf("Failed to generate any integers")
 	}
 
 	i := ints.Int()
@@ -93,11 +81,11 @@ func (rsp *APIResponse) Error() error {
 	m := gjson.GetBytes(rsp.raw, "error.message")
 
 	if !c.Exists() {
-		return errors.New("Failed to parse error code")
+		return fmt.Errorf("Failed to parse error code")
 	}
 
 	if !m.Exists() {
-		return errors.New("Failed to parse error message")
+		return fmt.Errorf("Failed to parse error message")
 	}
 
 	err := APIError{
@@ -108,25 +96,23 @@ func (rsp *APIResponse) Error() error {
 	return &err
 }
 
-func NewAPIClient() artisanalinteger.Client {
+func NewAPIClient(ctx context.Context, uri string) (client.Client, error) {
 
 	http_client := &http.Client{}
-	rl := ratelimit.New(10)		// please make this configurable
+	rl := ratelimit.New(10) // please make this configurable
 
-	return &APIClient{
+	cl := &APIClient{
 		Scheme:       "https",
 		Host:         "api.brooklynintegers.com",
 		Endpoint:     "rest/",
 		http_client:  http_client,
 		rate_limiter: rl,
 	}
+
+	return cl, nil
 }
 
-func (client *APIClient) CreateInteger() (int64, error) {
-	return client.NextInt()
-}
-
-func (client *APIClient) NextInt() (int64, error) {
+func (client *APIClient) NextInt(ctx context.Context) (int64, error) {
 
 	params := url.Values{}
 	method := "brooklyn.integers.create"
@@ -135,14 +121,14 @@ func (client *APIClient) NextInt() (int64, error) {
 
 	cb := func() error {
 
-		rsp, err := client.ExecuteMethod(method, &params)
+		rsp, err := client.executeMethod(ctx, method, &params)
 
 		if err != nil {
 			return err
 		}
 
 		i, err := rsp.Int()
-		
+
 		if err != nil {
 			log.Println(err)
 			return err
@@ -153,17 +139,17 @@ func (client *APIClient) NextInt() (int64, error) {
 	}
 
 	bo := backoff.NewExponentialBackOff()
-	
+
 	err := backoff.Retry(cb, bo)
 
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("Failed to execute method (%s), %w", method, err)
 	}
 
 	return next_id, nil
 }
 
-func (client *APIClient) ExecuteMethod(method string, params *url.Values) (*APIResponse, error) {
+func (client *APIClient) executeMethod(ctx context.Context, method string, params *url.Values) (*APIResponse, error) {
 
 	client.rate_limiter.Take()
 
@@ -171,10 +157,10 @@ func (client *APIClient) ExecuteMethod(method string, params *url.Values) (*APIR
 
 	params.Set("method", method)
 
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to create request (%s), %w", url, err)
 	}
 
 	req.URL.RawQuery = (*params).Encode()
@@ -184,15 +170,15 @@ func (client *APIClient) ExecuteMethod(method string, params *url.Values) (*APIR
 	rsp, err := client.http_client.Do(req)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to create request (%s), %w", url, err)
 	}
 
 	defer rsp.Body.Close()
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	body, err := io.ReadAll(rsp.Body)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to read response, %w", err)
 	}
 
 	r := APIResponse{

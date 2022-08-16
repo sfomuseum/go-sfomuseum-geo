@@ -2,31 +2,28 @@ package uid
 
 import (
 	"context"
+	"fmt"
 	"github.com/aaronland/go-string/random"
+	"log"
 )
 
+const RANDOM_SCHEME string = "random"
+
 func init() {
-	ctx := context.Background()	
-	pr := NewRandomProvider()
-	RegisterProvider(ctx, "random", pr)
+	ctx := context.Background()
+	RegisterProvider(ctx, RANDOM_SCHEME, NewRandomProvider)
 }
 
 type RandomProvider struct {
 	Provider
 }
 
-// type RandomUID is a type StringUID
-
-func NewRandomProvider() Provider {
+func NewRandomProvider(ctx context.Context, uri string) (Provider, error) {
 	pr := &RandomProvider{}
-	return pr
+	return pr, nil
 }
 
-func (pr *RandomProvider) Open(ctx context.Context, uri string) error {
-	return nil
-}
-
-func (pr *RandomProvider) UID(...interface{}) (UID, error) {
+func (pr *RandomProvider) UID(ctx context.Context, args ...interface{}) (UID, error) {
 
 	opts := random.DefaultOptions()
 	opts.Length = 16
@@ -37,8 +34,12 @@ func (pr *RandomProvider) UID(...interface{}) (UID, error) {
 	s, err := random.String(opts)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to generate random string, %w", err)
 	}
 
-	return NewStringUID(s)
+	return NewStringUID(ctx, s)
+}
+
+func (pr *RandomProvider) SetLogger(ctx context.Context, logger *log.Logger) error {
+	return nil
 }

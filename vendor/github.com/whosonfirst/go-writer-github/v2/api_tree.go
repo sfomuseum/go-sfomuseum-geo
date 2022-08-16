@@ -260,7 +260,7 @@ func (wr *GitHubAPITreeWriter) getRef(ctx context.Context) (*github.Reference, e
 	commit_ref, _, err = wr.client.Git.CreateRef(ctx, wr.commit_owner, wr.commit_repo, new_ref)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create new ref, %w")
+		return nil, fmt.Errorf("Failed to create new ref, %w", err)
 	}
 
 	return commit_ref, err

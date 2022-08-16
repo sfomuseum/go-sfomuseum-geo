@@ -2,15 +2,9 @@
 
 Go package for the Brooklyn Integers API.
 
-## Install
+## Documentation
 
-You will need to have both `Go` and the `make` programs installed on your computer. Assuming you do just type:
-
-```
-make tools
-```
-
-All of this package's dependencies are bundled with the code in the `vendor` directory.
+Documentation is incomplete at this time.
 
 ## Usage
 

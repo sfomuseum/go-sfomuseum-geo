@@ -1,7 +1,2 @@
-fmt:
-	go fmt cmd/*.go
-	go fmt *.go
-
-
-tools:
+cli:
 	go build -o bin/uid cmd/uid/main.go

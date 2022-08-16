@@ -9,7 +9,7 @@ import (
 
 func TestGeotagDepiction(t *testing.T) {
 
-	rel_path := "fixtures/geotag/1527827539.geojson"
+	rel_path := "../fixtures/geotag/1527827539.geojson"
 
 	r, err := os.Open(rel_path)
 
