@@ -6,11 +6,16 @@ import (
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/planar"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 )
 
+// DeriveMultiPointFromIds generates a new `geojson.Geometry` MultiPoint instance derived from the (planar)
+// centroids of the geometries associated with 'ids'. If a feature associated with an ID has either "lbl:" or
+// "geotag:" latitude and longitude properties those will be used in place of a centroid derived from the
+// features geometry.
 func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64) (*geojson.Geometry, error) {
 
 	done_ch := make(chan bool)
@@ -32,6 +37,27 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 				return
 			}
 
+			prefixes := []string{
+				"geotag",
+				"lbl",
+			}
+
+			for _, prefix := range prefixes {
+
+				lat_path := fmt.Sprintf("properties.%s:latitude", prefix)
+				lon_path := fmt.Sprintf("properties.%s:longitude", prefix)
+
+				lat_rsp := gjson.GetBytes(body, lat_path)
+				lon_rsp := gjson.GetBytes(body, lon_path)
+
+				if lat_rsp.Exists() && lon_rsp.Exists() {
+
+					pt := orb.Point{lon_rsp.Float(), lat_rsp.Float()}
+					centroid_ch <- pt
+					return
+				}
+			}
+
 			geom, err := geometry.Geometry(body)
 
 			if err != nil {
@@ -40,9 +66,19 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 			}
 
 			orb_geom := geom.Geometry()
-			pt, _ := planar.CentroidArea(orb_geom)
 
-			centroid_ch <- pt
+			switch orb_geom.GeoJSONType() {
+			case "MultiPoint":
+
+				for _, pt := range orb_geom.(orb.MultiPoint) {
+					centroid_ch <- pt
+				}
+
+			default:
+				pt, _ := planar.CentroidArea(orb_geom)
+				centroid_ch <- pt
+			}
+
 			return
 		}(id)
 
