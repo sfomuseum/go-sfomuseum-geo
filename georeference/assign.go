@@ -14,7 +14,7 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
 	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v2"
 	"github.com/tidwall/gjson"
-	// "github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
@@ -24,7 +24,26 @@ import (
 	"sync"
 )
 
-func AssignReferences2(ctx context.Context, opts *UpdateDepictionOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
+// AssignReferencesOptions defines a struct for reading/writing options when updating geo-related information in depictions.
+// A depiction is assumed to be the record for an image or some other piece of media. A subject is assumed to be
+// the record for an object.
+type AssignReferencesOptions struct {
+	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
+	DepictionReader reader.Reader
+	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
+	DepictionWriter writer.Writer
+	// A valid whosonfirst/go-reader.Reader instance for reading subject features.
+	SubjectReader reader.Reader
+	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
+	SubjectWriter writer.Writer
+	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
+	WhosOnFirstReader  reader.Reader
+	Author             string
+	DepictionWriterURI string // To be removed with the go-writer/v3 (clone) release
+	SubjectWriterURI   string // To be removed with the go-writer/v3 (clone) release
+}
+
+func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

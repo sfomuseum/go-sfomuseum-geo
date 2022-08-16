@@ -13,9 +13,13 @@ import (
 )
 
 // DeriveMultiPointFromIds generates a new `geojson.Geometry` MultiPoint instance derived from the (planar)
-// centroids of the geometries associated with 'ids'. If a feature associated with an ID has either "lbl:" or
-// "geotag:" latitude and longitude properties those will be used in place of a centroid derived from the
-// features geometry.
+// centroids of the geometries associated with 'ids'.
+//
+// If a feature associated with an ID has a 'MultiPoint' geometry each of those points will be assign to the
+// final geometry (rather than deriving a centroid).
+//
+// If a feature associated with an ID has either "lbl:" or "geotag:" latitude and longitude properties those
+// will be used in place of a centroid derived from the features geometry.
 func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64) (*geojson.Geometry, error) {
 
 	done_ch := make(chan bool)
