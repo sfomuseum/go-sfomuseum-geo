@@ -415,7 +415,48 @@ func AssignReferences2(ctx context.Context, opts *UpdateDepictionOptions, depict
 
 	subject_updates["properties.wof:references"] = subject_references
 
-	// Something something something geometry here...
+	//
+
+	geoms_lookup := new(sync.Map)
+	georefs_lookup := new(sync.Map)
+
+	geotag_depictions_rsp := gjson.GetBytes(subject_body, "properties.geotag:depictions")
+
+	for _, r := range geotag_depictions_rsp.Array() {
+		id := r.Int()
+		geoms_lookup.Store(id, true)
+	}
+
+	georefs_lookup.Store(depiction_id, true)
+
+	georefs_depictions_rsp := gjson.GetBytes(subject_body, "properties.georeference:depictions")
+
+	for _, r := range georefs_depictions_rsp.Array() {
+		id := r.Int()
+		geoms_lookup.Store(id, true)
+		georefs_lookup.Store(id, true)
+	}
+
+	georeferences := make([]int64, 0)
+
+	georefs_lookup.Range(func(k interface{}, v interface{}) bool {
+		id := k.(int64)
+		georeferences = append(georeferences, id)
+		return true
+	})
+
+	subject_updates["properties.georeference:depictions"] = georeferences
+
+	// START OF derive geometry from depictions (media/image files)
+
+	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
+
+		// GET GEOM HERE
+
+		return true
+	})
+
+	// END OF derive geometry from depictions (media/image files)
 
 	has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
