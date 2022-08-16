@@ -83,7 +83,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	parent_id := update.ParentId
 	geotag_f := update.Feature
 
-	// START OF
+	// START OF to refactor with go-writer/v3 (clone) release
 
 	update_opts := &github.UpdateWriterURIOptions{
 		WhosOnFirstId: depiction_id,
@@ -115,7 +115,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		return nil, fmt.Errorf("Failed to create new subject writer for '%s', %w", subject_writer_uri, err)
 	}
 
-	// END OF
+	// END OF to refactor with go-writer/v3 (clone) release
 
 	depiction_f, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
