@@ -35,6 +35,12 @@ github.com/aaronland/go-uid-whosonfirst
 # github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129
 ## explicit
 github.com/andres-erbsen/clock
+# github.com/aws/aws-lambda-go v1.9.0
+## explicit
+github.com/aws/aws-lambda-go/lambda
+github.com/aws/aws-lambda-go/lambda/handlertrace
+github.com/aws/aws-lambda-go/lambda/messages
+github.com/aws/aws-lambda-go/lambdacontext
 # github.com/aws/aws-sdk-go v1.44.11
 ## explicit; go 1.11
 github.com/aws/aws-sdk-go/aws

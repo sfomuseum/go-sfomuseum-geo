@@ -35,125 +35,17 @@ import (
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"github.com/sfomuseum/go-flags/flagset"
-	"github.com/sfomuseum/go-flags/multi"
-	geojson "github.com/sfomuseum/go-geojson-geotag"
-	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
-	"github.com/whosonfirst/go-reader"
-	gh_writer "github.com/whosonfirst/go-writer-github/v2"
-	"github.com/whosonfirst/go-writer/v2"
+	"github.com/sfomuseum/go-sfomuseum-geo/app/geotag/update"
 	"log"
-	"os"
 )
 
 func main() {
 
-	fs := flagset.NewFlagSet("geotag")
-
-	img_reader_uri := fs.String("depiction-reader-uri", "", "A valid whosonfirst/go-reader URI.")
-	img_writer_uri := fs.String("depiction-writer-uri", "", "A valid whosonfirst/go-writer URI.")
-
-	obj_reader_uri := fs.String("subject-reader-uri", "", "A valid whosonfirst/go-reader URI.")
-	obj_writer_uri := fs.String("subject-writer-uri", "", "A valid whosonfirst/go-writer URI.")
-
-	parent_reader_uri := fs.String("parent-reader-uri", "", "A valid whosonfirst/go-reader URI.")
-
-	access_token_uri := fs.String("access-token", "", "A valid gocloud.dev/runtimevar URI")
-
-	parent_id := fs.Int64("parent-id", -1, "A valid Who's On First ID of the record \"parenting\" the records being depicted.")
-
-	var depictions multi.MultiInt64
-
-	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
-
-	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "update-depiction is a command-tool for applying geotagging updates to one or more depictions.\n")
-		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options]\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Valid options are:\n")
-		fs.PrintDefaults()
-	}
-
-	flagset.Parse(fs)
-
 	ctx := context.Background()
 
-	var err error
-
-	*img_writer_uri, err = gh_writer.EnsureGitHubAccessToken(ctx, *img_writer_uri, *access_token_uri)
+	err := update.Run(ctx)
 
 	if err != nil {
-		log.Fatalf("Failed to ensure access token for depiction writer URI, %v", err)
-	}
-
-	*obj_writer_uri, err = gh_writer.EnsureGitHubAccessToken(ctx, *obj_writer_uri, *access_token_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to ensure access token for subject writer URI, %v", err)
-	}
-
-	img_reader, err := reader.NewReader(ctx, *img_reader_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create depiction reader, %v", err)
-	}
-
-	img_writer, err := writer.NewWriter(ctx, *img_writer_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create depiction writer, %v", err)
-	}
-
-	obj_reader, err := reader.NewReader(ctx, *obj_reader_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create subject reader, %v", err)
-	}
-
-	obj_writer, err := writer.NewWriter(ctx, *obj_writer_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create subject writer, %v", err)
-	}
-
-	parent_reader, err := reader.NewReader(ctx, *parent_reader_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create architecture reader, %v", err)
-	}
-
-	var f *geojson.GeotagFeature
-
-	dec := json.NewDecoder(os.Stdin)
-	err = dec.Decode(&f)
-
-	if err != nil {
-		log.Fatalf("Failed to decode geotag feature, %v", err)
-	}
-
-	opts := &geotag.UpdateDepictionOptions{
-		DepictionReader:    img_reader,
-		DepictionWriter:    img_writer,
-		DepictionWriterURI: *img_writer_uri, // to be remove post writer/v3 (Clone) release
-		SubjectReader:      obj_reader,
-		SubjectWriter:      obj_writer,
-		SubjectWriterURI:   *obj_writer_uri, // to be remove post writer/v3 (Clone) release
-		ParentReader:       parent_reader,
-	}
-
-	for _, depiction_id := range depictions {
-
-		update := &geotag.Depiction{
-			DepictionId: depiction_id,
-			ParentId:    *parent_id,
-			Feature:     f,
-		}
-
-		_, err := geotag.UpdateDepiction(ctx, opts, update)
-
-		if err != nil {
-			log.Fatalf("Failed to update depiction %d, %v", depiction_id, err)
-		}
+		log.Fatalf("Failed to update depiction, %v", err)
 	}
 }

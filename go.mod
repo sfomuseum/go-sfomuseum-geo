@@ -3,6 +3,7 @@ module github.com/sfomuseum/go-sfomuseum-geo
 go 1.19
 
 require (
+	github.com/aws/aws-lambda-go v1.9.0
 	github.com/paulmach/orb v0.7.1
 	github.com/sfomuseum/go-flags v0.8.3
 	github.com/sfomuseum/go-geojson-geotag v1.0.0
