@@ -297,7 +297,7 @@ github.com/whosonfirst/go-whosonfirst-flags/existential
 # github.com/whosonfirst/go-whosonfirst-format v0.4.1
 ## explicit; go 1.16
 github.com/whosonfirst/go-whosonfirst-format
-# github.com/whosonfirst/go-whosonfirst-id v1.0.0
+# github.com/whosonfirst/go-whosonfirst-id v1.1.0
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-id
 # github.com/whosonfirst/go-whosonfirst-reader v1.0.1

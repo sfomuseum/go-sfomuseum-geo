@@ -600,8 +600,8 @@ github.com/whosonfirst/go-whosonfirst-format v0.4.1 h1:TVSrbbB/sXhAgyaTenaS93lER
 github.com/whosonfirst/go-whosonfirst-format v0.4.1/go.mod h1:lMBIXCnD9ZA+wCNtu6XFYoq5DTfnEALO8k6OkEn11MM=
 github.com/whosonfirst/go-whosonfirst-github v0.5.0/go.mod h1:dHgQyw3iwitpEKy6NNmdiFhYSALyKu7hea1cz8ymxto=
 github.com/whosonfirst/go-whosonfirst-id v0.0.4/go.mod h1:APHWvXV+DOqANgD1Lq615oJpLtdRjKdVV5cV7OgzER0=
-github.com/whosonfirst/go-whosonfirst-id v1.0.0 h1:baJKZNykIvaLzxVwvzJc9RMLGdkt3FqWkTjWqWOLdYQ=
-github.com/whosonfirst/go-whosonfirst-id v1.0.0/go.mod h1:+kuvLrDIOdeGZETl4MUX4EOoHKCPlj18GO4pL3rSpko=
+github.com/whosonfirst/go-whosonfirst-id v1.1.0 h1:V0+M9hJEzdwQxh05SC5/7UAw6l69u9RLtqwd7kRLLU8=
+github.com/whosonfirst/go-whosonfirst-id v1.1.0/go.mod h1:+kuvLrDIOdeGZETl4MUX4EOoHKCPlj18GO4pL3rSpko=
 github.com/whosonfirst/go-whosonfirst-iterate-git/v2 v2.1.0/go.mod h1:okSGTdAZsnR1zvNow9VwtSn1hmbgEZhNc7EymHaEFRU=
 github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.0.1/go.mod h1:oGk1jhZiP1Hfe4QVQAMAVCkTTjxlr5/hrzk/xfxWVss=
 github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.0.2/go.mod h1:wkoAmndZ3l67zjUmjzw3Km8OzFt/TTJiVDSrYC8b9XY=

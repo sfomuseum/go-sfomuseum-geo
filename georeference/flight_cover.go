@@ -12,8 +12,8 @@ import (
 
 type FlightCoverReferences struct {
 	Id       int64 `json:"id"`
-	From     int64 `json:"from"`
-	To       int64 `json:"to"`
+	From     int64 `json:"from"` // This needs to support multiple IDs, for example: https://collection.sfomuseum.org/objects/1511954463/
+	To       int64 `json:"to"`   // This needs to support multiple IDs, see above
 	Sent     int64 `json:"sent"`
 	Received int64 `json:"received"`
 }

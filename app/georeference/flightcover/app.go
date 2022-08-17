@@ -9,36 +9,7 @@ import (
 	"github.com/whosonfirst/go-reader"
 	gh_writer "github.com/whosonfirst/go-writer-github/v2"
 	"github.com/whosonfirst/go-writer/v2"
-	"os"
 )
-
-func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
-
-	fs := flagset.NewFlagSet("geotag")
-
-	fs.StringVar(&mode, "mode", "cli", "Valid options are: cli, lambda.")
-
-	fs.StringVar(&depiction_reader_uri, "depiction-reader-uri", "", "A valid whosonfirst/go-reader URI.")
-	fs.StringVar(&depiction_writer_uri, "depiction-writer-uri", "", "A valid whosonfirst/go-writer URI.")
-
-	fs.StringVar(&subject_reader_uri, "subject-reader-uri", "", "A valid whosonfirst/go-reader URI.")
-	fs.StringVar(&subject_writer_uri, "subject-writer-uri", "", "A valid whosonfirst/go-writer URI.")
-
-	fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "", "A valid whosonfirst/go-reader URI.")
-
-	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
-
-	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
-
-	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "...\n")
-		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options]\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Valid options are:\n")
-		fs.PrintDefaults()
-	}
-
-	return fs
-}
 
 func Run(ctx context.Context) error {
 	fs := DefaultFlagSet(ctx)

@@ -428,7 +428,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	subject_references := make([]int64, 0)
 
 	references_lookup.Range(func(k interface{}, v interface{}) bool {
-		id := v.(int64)
+		id := k.(int64)
 		subject_references = append(subject_references, id)
 		return true
 	})
@@ -472,7 +472,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	geom_ids := make([]int64, 0)
 
 	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
-
 		id := k.(int64)
 		geom_ids = append(geom_ids, id)
 		return true
