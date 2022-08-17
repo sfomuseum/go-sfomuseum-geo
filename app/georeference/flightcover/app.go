@@ -1,5 +1,8 @@
 package flightcover
 
+// For example:
+// 	./bin/assign-flight-cover -depiction-id 1527853781 -sent 85632163 -to 85977539
+
 import (
 	"context"
 	"flag"
@@ -11,11 +14,13 @@ import (
 	"github.com/whosonfirst/go-writer/v2"
 )
 
+// Run executes the "assign flight cover georeferences" application with a default `flag.FlagSet` instance.
 func Run(ctx context.Context) error {
 	fs := DefaultFlagSet(ctx)
 	return RunWithFlagSet(ctx, fs)
 }
 
+// RunWithFlagSet executes the "assign flight cover georeferences" application with a `flag.FlagSet` instance defined by 'fs'.
 func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	flagset.Parse(fs)

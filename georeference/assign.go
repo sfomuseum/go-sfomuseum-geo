@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
@@ -99,6 +100,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	// END OF to be removed once the go-writer/v3 (Clone) interface is complete
+
+	// START OF update the depiction record
 
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
@@ -403,7 +406,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	// Update subject (parent) record
+	// END OF update the depiction record
+
+	// START OF update the subject (parent) record
 
 	subject_body, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
 
@@ -411,7 +416,19 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to load subject (parent) for depiction, %w", err)
 	}
 
-	subject_updates := make(map[string]interface{})
+	subject_updates := map[string]interface{}{
+		"properties.src:geom": "sfomuseum#derived-flightcover",
+	}
+
+	// Assign the reference pointers to the subject record
+	// This will probably need to be updated account for existing
+	// pointers (as in different pointers from multiple depictions
+
+	updates_map.Range(func(k interface{}, v interface{}) bool {
+		path := k.(string)
+		subject_updates[path] = v
+		return true
+	})
 
 	references_lookup := new(sync.Map)
 
@@ -440,6 +457,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	geoms_lookup := new(sync.Map)
 	georefs_lookup := new(sync.Map)
 
+	geoms_lookup.Store(depiction_id, true)
+
 	geotag_depictions_rsp := gjson.GetBytes(subject_body, "properties.geotag:depictions")
 
 	for _, r := range geotag_depictions_rsp.Array() {
@@ -447,7 +466,12 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		geoms_lookup.Store(id, true)
 	}
 
-	georefs_lookup.Store(depiction_id, true)
+	// The problem here is that we haven't written/published the geom changes so
+	// they won't be picked up by the depiction_reader passed to geometry.DeriveMultiPointFromIds
+	// below. Even if we have (written the changes) they won't be able to be read
+	// if we are using different readers/writers (for example repo:// and stdout://)
+
+	// georefs_lookup.Store(depiction_id, true)
 
 	georefs_depictions_rsp := gjson.GetBytes(subject_body, "properties.georeference:depictions")
 
@@ -473,17 +497,46 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
 		id := k.(int64)
-		geom_ids = append(geom_ids, id)
+
+		// Do not try to fetch the geometry for depiction ID from opts.DepictionReader
+		// because it hasn't been written/published yet and we will update things from
+		// memory below
+
+		if id != depiction_id {
+			geom_ids = append(geom_ids, id)
+		}
+
 		return true
 	})
 
-	geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.DepictionReader, geom_ids...)
+	if len(geom_ids) > 0 {
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
+		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.DepictionReader, geom_ids...)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
+		}
+
+		// Now append the geometry for the depiction
+
+		subject_orb_geom := geom.Geometry()
+		subject_points := subject_orb_geom.(orb.MultiPoint)
+
+		depiction_orb_geom := updates["geometry"].(*geojson.Geometry).Geometry()
+		depiction_points := depiction_orb_geom.(orb.MultiPoint)
+
+		for _, pt := range depiction_points {
+			subject_points = append(subject_points, pt)
+		}
+
+		new_mp := orb.MultiPoint(subject_points)
+		new_geom := geojson.NewGeometry(new_mp)
+
+		subject_updates["geometry"] = new_geom
+	} else {
+		// No other gemoetries so just append the geometry for the depiction
+		subject_updates["geometry"] = updates["geometry"]
 	}
-
-	subject_updates["geometry"] = geom
 
 	// END OF derive geometry from depictions (media/image files)
 
@@ -502,7 +555,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	// Wrap up
+	// END OF update the subject (parent) record
+
+	// Close the depiction and subject writers - this is a no-op for many writer but
+	// required for things like the githubapi-tree:// and githubapi-pr:// writers.
 
 	err = depiction_wr.Close(ctx)
 
