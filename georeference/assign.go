@@ -121,37 +121,45 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				done_ch <- true
 			}()
 
-			id := depiction_id
 			prop_label := r.Property
 			alt_label := r.AltLabel
 
-			body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
-
-			if err != nil {
-				err_ch <- fmt.Errorf("Failed to read body for %d, %w", id, err)
-				return
-			}
-
 			path := fmt.Sprintf("properties.%s", prop_label)
-			updates_map.Store(path, id)
+			updates_map.Store(path, r.Ids)
 
-			hiers := properties.Hierarchies(body)
+			count := len(r.Ids)
+			points := make([]orb.Point, count)
 
-			for _, h := range hiers {
+			for idx, id := range r.Ids {
 
-				for _, h_id := range h {
-					references_map.Store(h_id, true)
+				body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
+
+				if err != nil {
+					err_ch <- fmt.Errorf("Failed to read body for %d, %w", id, err)
+					return
 				}
+
+				hiers := properties.Hierarchies(body)
+
+				for _, h := range hiers {
+
+					for _, h_id := range h {
+						references_map.Store(h_id, true)
+					}
+				}
+
+				pt, _, err := properties.Centroid(body)
+
+				if err != nil {
+					err_ch <- fmt.Errorf("Failed to derive centroid for %d, %w", id, err)
+					return
+				}
+
+				points[idx] = *pt
 			}
 
-			pt, _, err := properties.Centroid(body)
-
-			if err != nil {
-				err_ch <- fmt.Errorf("Failed to derive centroid for %d, %w", id, err)
-				return
-			}
-
-			alt_geom := geojson.NewGeometry(pt)
+			mp := orb.MultiPoint(points)
+			alt_geom := geojson.NewGeometry(mp)
 
 			alt_props := map[string]interface{}{
 				"wof:id":        depiction_id,
@@ -160,9 +168,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				"src:geom":      "sfomuseum#derived-flightcover",
 			}
 
+			alt_props[prop_label] = r.Ids
+
 			alt_feature := &alt.WhosOnFirstAltFeature{
 				Type:       "Feature",
-				Id:         id,
+				Id:         depiction_id,
 				Properties: alt_props,
 				Geometry:   alt_geom,
 			}
@@ -188,7 +198,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	updates := map[string]interface{}{
+	depiction_updates := map[string]interface{}{
 		"properties.src:geom": "sfomuseum#georeference",
 	}
 
@@ -206,11 +216,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
-	updates["properties.wof:references"] = references
+	depiction_updates["properties.wof:references"] = references
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 		path := k.(string)
-		updates[path] = v
+		depiction_updates[path] = v
 		return true
 	})
 
@@ -336,7 +346,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		alt_geoms[idx] = label
 	}
 
-	updates["properties.src:geom_alt"] = alt_geoms
+	depiction_updates["properties.src:geom_alt"] = alt_geoms
 
 	// Derive a MultiPoint geometry
 
@@ -348,7 +358,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	mp_geojson_geom := geojson.NewGeometry(mp_geom)
 
-	updates["geometry"] = mp_geojson_geom
+	depiction_updates["geometry"] = mp_geojson_geom
 
 	// Now save the new alt files
 
@@ -391,7 +401,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF resolve alt files
 
-	has_changed, new_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, updates)
+	has_changed, new_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, depiction_updates)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to assign depiction properties, %w", err)
@@ -417,16 +427,46 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	subject_updates := map[string]interface{}{
-		"properties.src:geom": "sfomuseum#derived-flightcover",
+		"properties.src:geom": depiction_updates["properties.src:geom"],
 	}
 
 	// Assign the reference pointers to the subject record
-	// This will probably need to be updated account for existing
-	// pointers (as in different pointers from multiple depictions
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
+
 		path := k.(string)
-		subject_updates[path] = v
+
+		switch path {
+		case PROPERTY_FLIGHTCOVER_FROM, PROPERTY_FLIGHTCOVER_TO, PROPERTY_FLIGHTCOVER_SENT, PROPERTY_FLIGHTCOVER_RECEIVED:
+
+			lookup := new(sync.Map)
+
+			ids := v.([]int64)
+
+			for _, id := range ids {
+				lookup.Store(id, true)
+			}
+
+			subject_ids := gjson.GetBytes(subject_body, path)
+
+			for _, r := range subject_ids.Array() {
+				lookup.Store(r.Int(), true)
+			}
+
+			all_ids := make([]int64, 0)
+
+			lookup.Range(func(k interface{}, v interface{}) bool {
+				id := v.(int64)
+				all_ids = append(all_ids, id)
+				return true
+			})
+
+			subject_updates[path] = all_ids
+
+		default:
+			subject_updates[path] = v
+		}
+
 		return true
 	})
 
@@ -522,7 +562,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		subject_orb_geom := geom.Geometry()
 		subject_points := subject_orb_geom.(orb.MultiPoint)
 
-		depiction_orb_geom := updates["geometry"].(*geojson.Geometry).Geometry()
+		depiction_geom := depiction_updates["geometry"].(*geojson.Geometry)
+		depiction_orb_geom := depiction_geom.Geometry()
 		depiction_points := depiction_orb_geom.(orb.MultiPoint)
 
 		for _, pt := range depiction_points {
@@ -535,7 +576,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		subject_updates["geometry"] = new_geom
 	} else {
 		// No other gemoetries so just append the geometry for the depiction
-		subject_updates["geometry"] = updates["geometry"]
+		subject_updates["geometry"] = depiction_updates["geometry"]
 	}
 
 	// END OF derive geometry from depictions (media/image files)

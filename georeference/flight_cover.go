@@ -5,6 +5,18 @@ import (
 	"fmt"
 )
 
+const PROPERTY_FLIGHTCOVER_FROM string = "millsfield:flightcover_address_from"
+const ALTLABEL_FLIGHTCOVER_FROM string = "flightcover-address-from"
+
+const PROPERTY_FLIGHTCOVER_TO string = "millsfield:flightcover_address_to"
+const ALTLABEL_FLIGHTCOVER_TO string = "flightcover-address-to"
+
+const PROPERTY_FLIGHTCOVER_SENT string = "millsfield:flightcover_address_sent"
+const ALTLABEL_FLIGHTCOVER_SENT string = "flightcover-address-sent"
+
+const PROPERTY_FLIGHTCOVER_RECEIVED string = "millsfield:flightcover_address_received"
+const ALTLABEL_FLIGHTCOVER_RECEIVED string = "flightcover-address-received"
+
 type FlightCoverReferences struct {
 	Id       int64   `json:"id"`
 	From     []int64 `json:"from"`
@@ -21,8 +33,8 @@ func (flightcover_refs *FlightCoverReferences) References() []*Reference {
 
 		r := &Reference{
 			Ids:      flightcover_refs.From,
-			Property: "millsfield:flightcover_address_from",
-			AltLabel: "flightcover-address-from",
+			Property: PROPERTY_FLIGHTCOVER_FROM,
+			AltLabel: ALTLABEL_FLIGHTCOVER_FROM,
 		}
 
 		refs = append(refs, r)
@@ -32,8 +44,8 @@ func (flightcover_refs *FlightCoverReferences) References() []*Reference {
 
 		r := &Reference{
 			Ids:      flightcover_refs.To,
-			Property: "millsfield:flightcover_address_to",
-			AltLabel: "flightcover-address-to",
+			Property: PROPERTY_FLIGHTCOVER_TO,
+			AltLabel: ALTLABEL_FLIGHTCOVER_TO,
 		}
 
 		refs = append(refs, r)
@@ -43,8 +55,8 @@ func (flightcover_refs *FlightCoverReferences) References() []*Reference {
 
 		r := &Reference{
 			Ids:      flightcover_refs.Sent,
-			Property: "millsfield:flightcover_postmark_sent",
-			AltLabel: "flightcover-postmark-sent",
+			Property: PROPERTY_FLIGHTCOVER_SENT,
+			AltLabel: ALTLABEL_FLIGHTCOVER_SENT,
 		}
 
 		refs = append(refs, r)
@@ -54,8 +66,8 @@ func (flightcover_refs *FlightCoverReferences) References() []*Reference {
 
 		r := &Reference{
 			Ids:      flightcover_refs.Received,
-			Property: "millsfield:flightcover_postmark_received",
-			AltLabel: "flightcover-postmark-received",
+			Property: PROPERTY_FLIGHTCOVER_RECEIVED,
+			AltLabel: ALTLABEL_FLIGHTCOVER_RECEIVED,
 		}
 
 		refs = append(refs, r)
