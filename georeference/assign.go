@@ -110,6 +110,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	references_map := new(sync.Map)
 	updates_map := new(sync.Map)
 
+	// START OF create/update alt files for references
+
 	new_alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
 	other_alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
 
@@ -197,6 +199,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			new_alt_features = append(new_alt_features, alt_f)
 		}
 	}
+
+	// START OF create/update alt files for references
 
 	depiction_updates := map[string]interface{}{
 		"properties.src:geom": "sfomuseum#georeference",

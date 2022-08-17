@@ -51,21 +51,26 @@ func FormatAltFeature(f *WhosOnFirstAltFeature) ([]byte, error) {
 
 func DeriveMultiPointGeometry(ctx context.Context, features ...*WhosOnFirstAltFeature) (orb.MultiPoint, error) {
 
-	count := len(features)
-	points := make([]orb.Point, count)
+	points := make([]orb.Point, 0)
 
-	for idx, f := range features {
+	for _, f := range features {
 
 		geojson_geom := f.Geometry
 		orb_geom := geojson_geom.Geometry()
 
 		switch orb_geom.GeoJSONType() {
 		case "Point":
-			pt, _ := orb_geom.(*orb.Point)
-			points[idx] = *pt
+			pt, _ := orb_geom.(orb.Point)
+			points = append(points, pt)
+		case "MultiPoint":
+
+			for _, pt := range orb_geom.(orb.MultiPoint) {
+				points = append(points, pt)
+			}
+
 		default:
 			pt, _ := planar.CentroidArea(orb_geom)
-			points[idx] = pt
+			points = append(points, pt)
 		}
 	}
 
