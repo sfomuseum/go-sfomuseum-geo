@@ -160,6 +160,7 @@ github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
+github.com/aws/aws-lambda-go v1.9.0 h1:r9TWtk8ozLYdMW+aelUeWny8z2mjghJCMx6/uUwOLNo=
 github.com/aws/aws-lambda-go v1.9.0/go.mod h1:zUsUQhAUjYzR8AuduJPCfhBuKWUaDbQiPOG+ouzmE1A=
 github.com/aws/aws-sdk-go v1.15.27/go.mod h1:mFuSZ37Z9YOHbQEwBWztmVzqXrEkub65tZoCYDt7FT0=
 github.com/aws/aws-sdk-go v1.37.0/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
@@ -599,8 +600,8 @@ github.com/whosonfirst/go-whosonfirst-format v0.4.1 h1:TVSrbbB/sXhAgyaTenaS93lER
 github.com/whosonfirst/go-whosonfirst-format v0.4.1/go.mod h1:lMBIXCnD9ZA+wCNtu6XFYoq5DTfnEALO8k6OkEn11MM=
 github.com/whosonfirst/go-whosonfirst-github v0.5.0/go.mod h1:dHgQyw3iwitpEKy6NNmdiFhYSALyKu7hea1cz8ymxto=
 github.com/whosonfirst/go-whosonfirst-id v0.0.4/go.mod h1:APHWvXV+DOqANgD1Lq615oJpLtdRjKdVV5cV7OgzER0=
-github.com/whosonfirst/go-whosonfirst-id v1.0.0 h1:baJKZNykIvaLzxVwvzJc9RMLGdkt3FqWkTjWqWOLdYQ=
-github.com/whosonfirst/go-whosonfirst-id v1.0.0/go.mod h1:+kuvLrDIOdeGZETl4MUX4EOoHKCPlj18GO4pL3rSpko=
+github.com/whosonfirst/go-whosonfirst-id v1.1.0 h1:V0+M9hJEzdwQxh05SC5/7UAw6l69u9RLtqwd7kRLLU8=
+github.com/whosonfirst/go-whosonfirst-id v1.1.0/go.mod h1:+kuvLrDIOdeGZETl4MUX4EOoHKCPlj18GO4pL3rSpko=
 github.com/whosonfirst/go-whosonfirst-iterate-git/v2 v2.1.0/go.mod h1:okSGTdAZsnR1zvNow9VwtSn1hmbgEZhNc7EymHaEFRU=
 github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.0.1/go.mod h1:oGk1jhZiP1Hfe4QVQAMAVCkTTjxlr5/hrzk/xfxWVss=
 github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.0.2/go.mod h1:wkoAmndZ3l67zjUmjzw3Km8OzFt/TTJiVDSrYC8b9XY=

@@ -5,62 +5,69 @@ import (
 	"fmt"
 )
 
-// sfomuseum:mail_from = ID
-// sfomuseum:mail_to = ID
-// sfomuseum:postmark_sent = ID
-// sfomuseum:postmark_received = ID
+const PROPERTY_FLIGHTCOVER_FROM string = "millsfield:flightcover_address_from"
+const ALTLABEL_FLIGHTCOVER_FROM string = "flightcover-address-from"
+
+const PROPERTY_FLIGHTCOVER_TO string = "millsfield:flightcover_address_to"
+const ALTLABEL_FLIGHTCOVER_TO string = "flightcover-address-to"
+
+const PROPERTY_FLIGHTCOVER_SENT string = "millsfield:flightcover_address_sent"
+const ALTLABEL_FLIGHTCOVER_SENT string = "flightcover-address-sent"
+
+const PROPERTY_FLIGHTCOVER_RECEIVED string = "millsfield:flightcover_address_received"
+const ALTLABEL_FLIGHTCOVER_RECEIVED string = "flightcover-address-received"
 
 type FlightCoverReferences struct {
-	Id       int64 `json:"id"`
-	From     int64 `json:"from"`
-	To       int64 `json:"to"`
-	Sent     int64 `json:"sent"`
-	Received int64 `json:"received"`
+	Id       int64   `json:"id"`
+	From     []int64 `json:"from"`
+	To       []int64 `json:"to"`
+	Sent     []int64 `json:"sent"`
+	Received []int64 `json:"received"`
 }
 
 func (flightcover_refs *FlightCoverReferences) References() []*Reference {
 
 	refs := make([]*Reference, 0)
 
-	if flightcover_refs.From != 0 {
+	if len(flightcover_refs.From) > 0 {
 
 		r := &Reference{
-			Id:       flightcover_refs.From,
-			Property: "sfomuseum:flightcover_address_from",
-			AltLabel: "flightcover-address-from",
+			Ids:      flightcover_refs.From,
+			Property: PROPERTY_FLIGHTCOVER_FROM,
+			AltLabel: ALTLABEL_FLIGHTCOVER_FROM,
 		}
 
 		refs = append(refs, r)
 	}
 
-	if flightcover_refs.To != 0 {
+	if len(flightcover_refs.To) > 0 {
 
 		r := &Reference{
-			Id:       flightcover_refs.To,
-			Property: "sfomuseum:flightcover_address_to",
-			AltLabel: "flightcover-address-to",
+			Ids:      flightcover_refs.To,
+			Property: PROPERTY_FLIGHTCOVER_TO,
+			AltLabel: ALTLABEL_FLIGHTCOVER_TO,
 		}
 
 		refs = append(refs, r)
 	}
 
-	if flightcover_refs.Sent != 0 {
+	if len(flightcover_refs.Sent) > 0 {
 
 		r := &Reference{
-			Id:       flightcover_refs.Sent,
-			Property: "sfomuseum:flightcover_postmark_sent",
-			AltLabel: "flightcover-postmark-sent",
+			Ids:      flightcover_refs.Sent,
+			Property: PROPERTY_FLIGHTCOVER_SENT,
+			AltLabel: ALTLABEL_FLIGHTCOVER_SENT,
 		}
 
 		refs = append(refs, r)
 	}
 
-	if flightcover_refs.Received != 0 {
+	if len(flightcover_refs.Received) > 0 {
 
 		r := &Reference{
-			Id:       flightcover_refs.Received,
-			Property: "sfomuseum:flightcover_postmark_received",
-			AltLabel: "flightcover-postmark-received",
+			Ids:      flightcover_refs.Received,
+			Property: PROPERTY_FLIGHTCOVER_RECEIVED,
+			AltLabel: ALTLABEL_FLIGHTCOVER_RECEIVED,
 		}
 
 		refs = append(refs, r)

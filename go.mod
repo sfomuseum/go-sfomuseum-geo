@@ -3,6 +3,7 @@ module github.com/sfomuseum/go-sfomuseum-geo
 go 1.19
 
 require (
+	github.com/aws/aws-lambda-go v1.9.0
 	github.com/paulmach/orb v0.7.1
 	github.com/sfomuseum/go-flags v0.8.3
 	github.com/sfomuseum/go-geojson-geotag v1.0.0
@@ -71,7 +72,7 @@ require (
 	github.com/whosonfirst/go-reader-http v0.3.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-findingaid/v2 v2.5.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.4.4 // indirect
-	github.com/whosonfirst/go-whosonfirst-id v1.0.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-id v1.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-writer/v2 v2.0.2 // indirect
 	github.com/whosonfirst/go-writer v1.0.1 // indirect
