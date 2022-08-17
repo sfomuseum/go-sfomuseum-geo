@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
-	"github.com/whosonfirst/go-whosonfirst-id"
 	"os"
 )
 
@@ -22,16 +21,10 @@ var whosonfirst_reader_uri string
 
 var access_token_uri string
 
-var from_id int64
-var to_id int64
-
-var sent_id int64
-
-// var sent_id multi.MultiInt64
-
-var received_id int64
-
-// var received_id multi.MultiInt64
+var from_id multi.MultiInt64
+var to_id multi.MultiInt64
+var sent_id multi.MultiInt64
+var received_id multi.MultiInt64
 
 var depictions multi.MultiInt64
 
@@ -58,10 +51,10 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
-	fs.Int64Var(&from_id, "from", id.UNKNOWN, "A valid Who's On First ID")
-	fs.Int64Var(&to_id, "to", id.UNKNOWN, "A valid Who's On First ID")
-	fs.Int64Var(&received_id, "received", id.UNKNOWN, "A valid Who's On First ID")
-	fs.Int64Var(&sent_id, "sent", id.UNKNOWN, "A valid Who's On First ID")
+	fs.Var(&from_id, "from", "One or more valid Who's On First IDs representing the place a (flight cover) letter was sent from.")
+	fs.Var(&to_id, "to", "One or more valid Who's On First IDs representing the place a (flight cover) letter was sent to.")
+	fs.Var(&received_id, "received", "One or more valid Who's On First IDs representing the place a (flight cover) letter was postmarked as received.")
+	fs.Var(&sent_id, "sent", "One or more valid Who's On First IDs representing the place a (flight cover) letter was postmarked as sent.")
 
 	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
 

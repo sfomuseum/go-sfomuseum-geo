@@ -121,7 +121,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				done_ch <- true
 			}()
 
-			id := r.Id
+			id := depiction_id
 			prop_label := r.Property
 			alt_label := r.AltLabel
 

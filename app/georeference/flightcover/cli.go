@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
-	"github.com/whosonfirst/go-whosonfirst-id"
 )
 
 func runCommandLine(ctx context.Context, opts *georeference.AssignReferencesOptions) error {
@@ -21,19 +20,19 @@ func runCommandLine(ctx context.Context, opts *georeference.AssignReferencesOpti
 			Id: depiction_id,
 		}
 
-		if from_id != id.UNKNOWN {
+		if len(from_id) > 0 {
 			ref.From = from_id
 		}
 
-		if to_id != id.UNKNOWN {
+		if len(to_id) > 0 {
 			ref.To = to_id
 		}
 
-		if sent_id != id.UNKNOWN {
+		if len(sent_id) > 0 {
 			ref.Sent = sent_id
 		}
 
-		if received_id != id.UNKNOWN {
+		if len(received_id) > 0 {
 			ref.Received = received_id
 		}
 

@@ -5,61 +5,56 @@ import (
 	"fmt"
 )
 
-// sfomuseum:mail_from = ID
-// sfomuseum:mail_to = ID
-// sfomuseum:postmark_sent = ID
-// sfomuseum:postmark_received = ID
-
 type FlightCoverReferences struct {
-	Id       int64 `json:"id"`
-	From     int64 `json:"from"` // This needs to support multiple IDs, for example: https://collection.sfomuseum.org/objects/1511954463/
-	To       int64 `json:"to"`   // This needs to support multiple IDs, see above
-	Sent     int64 `json:"sent"`
-	Received int64 `json:"received"`
+	Id       int64   `json:"id"`
+	From     []int64 `json:"from"`
+	To       []int64 `json:"to"`
+	Sent     []int64 `json:"sent"`
+	Received []int64 `json:"received"`
 }
 
 func (flightcover_refs *FlightCoverReferences) References() []*Reference {
 
 	refs := make([]*Reference, 0)
 
-	if flightcover_refs.From != 0 {
+	if len(flightcover_refs.From) > 0 {
 
 		r := &Reference{
-			Id:       flightcover_refs.From,
-			Property: "sfomuseum:flightcover_address_from",
+			Ids:      flightcover_refs.From,
+			Property: "millsfield:flightcover_address_from",
 			AltLabel: "flightcover-address-from",
 		}
 
 		refs = append(refs, r)
 	}
 
-	if flightcover_refs.To != 0 {
+	if len(flightcover_refs.To) > 0 {
 
 		r := &Reference{
-			Id:       flightcover_refs.To,
-			Property: "sfomuseum:flightcover_address_to",
+			Ids:      flightcover_refs.To,
+			Property: "millsfield:flightcover_address_to",
 			AltLabel: "flightcover-address-to",
 		}
 
 		refs = append(refs, r)
 	}
 
-	if flightcover_refs.Sent != 0 {
+	if len(flightcover_refs.Sent) > 0 {
 
 		r := &Reference{
-			Id:       flightcover_refs.Sent,
-			Property: "sfomuseum:flightcover_postmark_sent",
+			Ids:      flightcover_refs.Sent,
+			Property: "millsfield:flightcover_postmark_sent",
 			AltLabel: "flightcover-postmark-sent",
 		}
 
 		refs = append(refs, r)
 	}
 
-	if flightcover_refs.Received != 0 {
+	if len(flightcover_refs.Received) > 0 {
 
 		r := &Reference{
-			Id:       flightcover_refs.Received,
-			Property: "sfomuseum:flightcover_postmark_received",
+			Ids:      flightcover_refs.Received,
+			Property: "millsfield:flightcover_postmark_received",
 			AltLabel: "flightcover-postmark-received",
 		}
 
