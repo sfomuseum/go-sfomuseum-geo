@@ -512,6 +512,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	geoms_lookup := new(sync.Map)
 	georefs_lookup := new(sync.Map)
 
+	georefs_lookup.Store(depiction_id, true)
 	geoms_lookup.Store(depiction_id, true)
 
 	geotag_depictions_rsp := gjson.GetBytes(subject_body, "properties.geotag:depictions")
@@ -525,8 +526,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// they won't be picked up by the depiction_reader passed to geometry.DeriveMultiPointFromIds
 	// below. Even if we have (written the changes) they won't be able to be read
 	// if we are using different readers/writers (for example repo:// and stdout://)
-
-	// georefs_lookup.Store(depiction_id, true)
 
 	georefs_depictions_rsp := gjson.GetBytes(subject_body, "properties.georeference:depictions")
 
