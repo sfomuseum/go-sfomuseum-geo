@@ -37,12 +37,14 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 	// Assumed to be something in sfomuseum-data-media-collection
 
 	fs.StringVar(&depiction_reader_uri, "depiction-reader-uri", "repo:///usr/local/data/sfomuseum-data-media-collection", "A valid whosonfirst/go-reader URI.")
-	fs.StringVar(&depiction_writer_uri, "depiction-writer-uri", "stdout://", "A valid whosonfirst/go-writer URI.")
+
+	fs.StringVar(&depiction_writer_uri, "depiction-writer-uri", "repo:///usr/local/data/sfomuseum-data-media-collection", "A valid whosonfirst/go-writer URI.")
 
 	// Assumed to be something in sfomuseum-data-collection
 
 	fs.StringVar(&subject_reader_uri, "subject-reader-uri", "repo:///usr/local/data/sfomuseum-data-collection", "A valid whosonfirst/go-reader URI.")
-	fs.StringVar(&subject_writer_uri, "subject-writer-uri", "stdout://", "A valid whosonfirst/go-writer URI.")
+
+	fs.StringVar(&subject_writer_uri, "subject-writer-uri", "repo:///usr/local/data/sfomuseum-data-collection", "A valid whosonfirst/go-writer URI.")
 
 	// Eventually something in the whosonfirst(.org) findingaid
 
