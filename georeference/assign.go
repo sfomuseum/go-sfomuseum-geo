@@ -38,16 +38,27 @@ type AssignReferencesOptions struct {
 	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
 	SubjectWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
-	WhosOnFirstReader  reader.Reader
-	Author             string
-	DepictionWriterURI string // To be removed with the go-writer/v3 (clone) release
-	SubjectWriterURI   string // To be removed with the go-writer/v3 (clone) release
+	WhosOnFirstReader reader.Reader
+	// Author is the name of a person to associate with commit messages if using a `githubapi://` writer
+	Author string
+	// SourceGeomSuffix is an additional suffix to append to 'src:geom' properties (default is "sfomuseum#geoference")
+	SourceGeomSuffix string
+	// DepictionWriterURI is the URI used to create `DepictionWriter`; it is a temporary necessity to be removed with the go-writer/v3 (clone) release
+	DepictionWriterURI string
+	// SubjectWriterURI is the URI used to create `SubjectWriter`; it is a temporary necessity to be removed with the go-writer/v3 (clone) release
+	SubjectWriterURI string
 }
 
 func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	src_geom := "sfomuseum#georeference"
+
+	if opts.SourceGeomSuffix != "" {
+		src_geom = fmt.Sprintf("%s-%s", src_geom, opts.SourceGeomSuffix)
+	}
 
 	depiction_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
@@ -167,7 +178,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				"wof:id":        depiction_id,
 				"wof:repo":      depiction_repo,
 				"src:alt_label": alt_label,
-				"src:geom":      "sfomuseum#derived-flightcover",
+				"src:geom":      src_geom,
 			}
 
 			alt_props[prop_label] = r.Ids
@@ -203,7 +214,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// START OF create/update alt files for references
 
 	depiction_updates := map[string]interface{}{
-		"properties.src:geom": "sfomuseum#georeference",
+		"properties.src:geom": src_geom,
 	}
 
 	references := make([]int64, 0)
