@@ -134,6 +134,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				done_ch <- true
 			}()
 
+			if len(r.Ids) == 0 {
+				return
+			}
+
 			prop_label := r.Property
 			alt_label := r.AltLabel
 
@@ -416,6 +420,24 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF resolve alt files
 
+	depiction_removals := make([]string, 0)
+
+	for _, r := range refs {
+		if len(r.Ids) == 0 {
+			path := fmt.Sprintf("properties.%s", r.Property)
+			depiction_removals = append(depiction_removals, path)
+		}
+	}
+
+	if len(depiction_removals) > 0 {
+
+		depiction_body, err = export.RemoveProperties(ctx, depiction_body, depiction_removals)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to remove depiction properties, %w", err)
+		}
+	}
+
 	has_changed, new_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, depiction_updates)
 
 	if err != nil {
@@ -594,6 +616,24 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	// END OF derive geometry from depictions (media/image files)
+
+	subject_removals := make([]string, 0)
+
+	for _, r := range refs {
+		if len(r.Ids) == 0 {
+			path := fmt.Sprintf("properties.%s", r.Property)
+			subject_removals = append(subject_removals, path)
+		}
+	}
+
+	if len(subject_removals) > 0 {
+
+		subject_body, err = export.RemoveProperties(ctx, subject_body, subject_removals)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to remove depiction properties, %w", err)
+		}
+	}
 
 	has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 

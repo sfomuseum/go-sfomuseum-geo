@@ -1,3 +1,6 @@
+vuln:
+	govulncheck ./...
+
 cli:
 	rm -f bin/*
 	go build -mod vendor -o bin/update-depiction cmd/update-depiction/main.go

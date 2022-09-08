@@ -35,50 +35,30 @@ type FlightCoverReferences struct {
 // References translates 'flightcover_refs' into a list of `Reference` instances.
 func (flightcover_refs *FlightCoverReferences) References() []*Reference {
 
-	refs := make([]*Reference, 0)
+	// Note that we are passing in all the flight covers because a zero-length
+	// entry signals that it should be removed.
 
-	if len(flightcover_refs.From) > 0 {
-
-		r := &Reference{
+	refs := []*Reference{
+		&Reference{
 			Ids:      flightcover_refs.From,
 			Property: PROPERTY_FLIGHTCOVER_FROM,
 			AltLabel: ALTLABEL_FLIGHTCOVER_FROM,
-		}
-
-		refs = append(refs, r)
-	}
-
-	if len(flightcover_refs.To) > 0 {
-
-		r := &Reference{
+		},
+		&Reference{
 			Ids:      flightcover_refs.To,
 			Property: PROPERTY_FLIGHTCOVER_TO,
 			AltLabel: ALTLABEL_FLIGHTCOVER_TO,
-		}
-
-		refs = append(refs, r)
-	}
-
-	if len(flightcover_refs.Sent) > 0 {
-
-		r := &Reference{
+		},
+		&Reference{
 			Ids:      flightcover_refs.Sent,
 			Property: PROPERTY_FLIGHTCOVER_SENT,
 			AltLabel: ALTLABEL_FLIGHTCOVER_SENT,
-		}
-
-		refs = append(refs, r)
-	}
-
-	if len(flightcover_refs.Received) > 0 {
-
-		r := &Reference{
+		},
+		&Reference{
 			Ids:      flightcover_refs.Received,
 			Property: PROPERTY_FLIGHTCOVER_RECEIVED,
 			AltLabel: ALTLABEL_FLIGHTCOVER_RECEIVED,
-		}
-
-		refs = append(refs, r)
+		},
 	}
 
 	return refs
