@@ -10,35 +10,6 @@ Common methods for writing Who's On First documents.
 
 _Note that error handling has been removed for the sake of brevity._
 
-### WriteFeature
-
-```
-import (
-	"context"
-	"flag"
-	"github.com/paulmach/orb/geojson"
-	"io"
-	wof_writer "github.com/whosonfirst/go-whosonfirst-writer"
-	"github.com/whosonfirst/go-writer"			
-)
-
-func main() {
-
-	flag.Parse()
-
-	ctx := context.Background()
-	wr, _ := writer.NewWriter(ctx, "stdout://")
-	
-	for _, feature_path := range flag.Args() {
-	
-		r, _ := os.Open(feature_path)
-		body, _ := io.ReadAll(r)		    
-		f, _ := geojson.UnmarshalFeature(body)
-
-		wof_writer.WriteFeature(ctx, wr, f)
-	}
-```
-
 ### WriteBytes
 
 ```
@@ -59,9 +30,10 @@ func main() {
 	
 	for _, feature_path := range flag.Args() {
 	
-		fh, _ := os.Open(feature_path)
-		body, _ := io.ReadAll(fh)
+		r, _ := os.Open(feature_path)
+		defer r.Close()
 		
+		body, _ := io.ReadAll(r)
 		wof_writer.WriteBytes(ctx, wr, body)
 	}
 ```

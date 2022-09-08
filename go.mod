@@ -3,11 +3,11 @@ module github.com/sfomuseum/go-sfomuseum-geo
 go 1.19
 
 require (
-	github.com/aws/aws-lambda-go v1.9.0
+	github.com/aws/aws-lambda-go v1.34.1
 	github.com/paulmach/orb v0.7.1
-	github.com/sfomuseum/go-flags v0.8.3
+	github.com/sfomuseum/go-flags v0.9.0
 	github.com/sfomuseum/go-geojson-geotag v1.0.0
-	github.com/sfomuseum/go-sfomuseum-writer/v2 v2.0.3
+	github.com/sfomuseum/go-sfomuseum-writer/v2 v2.1.0
 	github.com/tidwall/gjson v1.14.3
 	github.com/tidwall/sjson v1.2.5
 	github.com/whosonfirst/go-ioutil v1.0.2
@@ -72,10 +72,9 @@ require (
 	github.com/whosonfirst/go-reader-http v0.3.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-findingaid/v2 v2.5.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.4.4 // indirect
-	github.com/whosonfirst/go-whosonfirst-id v1.1.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-id v1.0.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
-	github.com/whosonfirst/go-whosonfirst-writer/v2 v2.0.2 // indirect
-	github.com/whosonfirst/go-writer v1.0.1 // indirect
+	github.com/whosonfirst/go-whosonfirst-writer/v2 v2.1.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/ratelimit v0.2.0 // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
