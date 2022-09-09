@@ -23,6 +23,7 @@ import (
 	"github.com/whosonfirst/go-writer/v2"
 	_ "log"
 	"sync"
+	"time"
 )
 
 // AssignReferencesOptions defines a struct for reading/writing options when updating geo-related information in depictions.
@@ -264,13 +265,28 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Determine whether there are any other alt files (not included in the set of new labels)
 
+	// First create a lookup table for alt files that need to be "removed"
+
+	to_remove := make(map[string]*Reference)
+
+	for _, r := range refs {
+
+		if len(r.Ids) == 0 {
+			to_remove[r.AltLabel] = r
+		}
+	}
+
+	// Now build the list of features (used to build alt files) to fetch
+	// Note how we are skipping features to remove
+
 	to_fetch := make([]string, 0)
 
 	for _, label := range existing_alt {
 
-		_, ok := lookup[label]
+		_, ok_lookup := lookup[label]
+		_, ok_remove := to_remove[label]
 
-		if !ok {
+		if !ok_lookup && !ok_remove {
 			to_fetch = append(to_fetch, label)
 		}
 	}
@@ -344,6 +360,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			}
 		}
 	}
+
 	// Combine new and other alt features
 
 	alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
@@ -416,6 +433,73 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write %s, %w", alt_uri, err)
 		}
+	}
+
+	// Now rewrite alt files that need to be "removed"
+
+	for _, ref := range to_remove {
+
+		alt_uri_geom := &uri.AltGeom{
+			Source: ref.AltLabel,
+		}
+
+		alt_uri_args := &uri.URIArgs{
+			IsAlternate: true,
+			AltGeom:     alt_uri_geom,
+		}
+
+		alt_uri, err := uri.Id2RelPath(depiction_id, alt_uri_args)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to derive rel path for alt file, %w", err)
+		}
+
+		// In advance of a generic "exists" method/package this will have to do...
+
+		_, err = opts.DepictionReader.Read(ctx, alt_uri)
+
+		if err != nil {
+			continue
+		}
+
+		now := time.Now()
+		deprecated := now.Format("2006-01-02")
+
+		alt_props := map[string]interface{}{
+			"edtf:deprecated": deprecated,
+			"src:alt_label":   ref.AltLabel,
+			"src:geom":        "sfomuseum#georeference-flightcover",
+			"wof:id":          depiction_id,
+			"wof:repo":        "sfomuseum-data-media-collection",
+		}
+
+		pt := orb.Point{0.0, 0.0}
+		alt_geom := geojson.NewGeometry(pt)
+
+		alt_f := &alt.WhosOnFirstAltFeature{
+			Type:       "Feature",
+			Id:         depiction_id,
+			Properties: alt_props,
+			Geometry:   alt_geom,
+		}
+
+		enc_f, err := alt.FormatAltFeature(alt_f)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to format %s, %w", alt_uri, err)
+		}
+
+		r := bytes.NewReader(enc_f)
+
+		// Note how we're invoking depiction_wr directly because sfom_writer doesn't
+		// know how to work with alt files yet.
+
+		_, err = depiction_wr.Write(ctx, alt_uri, r)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to write %s, %w", alt_uri, err)
+		}
+
 	}
 
 	// END OF resolve alt files
