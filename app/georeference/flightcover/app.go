@@ -10,8 +10,8 @@ import (
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
 	"github.com/whosonfirst/go-reader"
-	gh_writer "github.com/whosonfirst/go-writer-github/v2"
-	"github.com/whosonfirst/go-writer/v2"
+	gh_writer "github.com/whosonfirst/go-writer-github/v3"
+	"github.com/whosonfirst/go-writer/v3"
 )
 
 // Run executes the "assign flight cover georeferences" application with a default `flag.FlagSet` instance.

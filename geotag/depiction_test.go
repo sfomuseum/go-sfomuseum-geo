@@ -5,7 +5,7 @@ import (
 	"fmt"
 	geojson "github.com/sfomuseum/go-geojson-geotag"
 	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-writer/v2"
+	"github.com/whosonfirst/go-writer/v3"
 	"io"
 	"os"
 	"path/filepath"

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/go-github/github"
-	wof_writer "github.com/whosonfirst/go-writer/v2"
+	wof_writer "github.com/whosonfirst/go-writer/v3"
 	"golang.org/x/oauth2"
 	"io"
 	"log"

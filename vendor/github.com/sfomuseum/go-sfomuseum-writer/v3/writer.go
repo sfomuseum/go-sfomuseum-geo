@@ -6,8 +6,8 @@ import (
 	"github.com/paulmach/orb/geojson"
 	_ "github.com/sfomuseum/go-sfomuseum-export/v2"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
-	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v2"
-	go_writer "github.com/whosonfirst/go-writer/v2"
+	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
+	go_writer "github.com/whosonfirst/go-writer/v3"
 )
 
 // WriteFeature will serialize and write 'f' using 'wr' using a SFO Museum specific `whosonfirst/go-whosonfirst-export/v2.Exporter` instance.

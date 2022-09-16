@@ -9,14 +9,14 @@ import (
 	"github.com/sfomuseum/go-geojson-geotag"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
-	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v2"
+	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v3"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"github.com/whosonfirst/go-writer/v2"
+	"github.com/whosonfirst/go-writer/v3"
 )
 
 // type Depiction is a struct definining properties for updating geotagging information in an depiction and its parent subject.

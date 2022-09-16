@@ -7,8 +7,8 @@ import (
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"github.com/whosonfirst/go-reader"
-	gh_writer "github.com/whosonfirst/go-writer-github/v2"
-	"github.com/whosonfirst/go-writer/v2"
+	gh_writer "github.com/whosonfirst/go-writer-github/v3"
+	"github.com/whosonfirst/go-writer/v3"
 	"os"
 )
 

@@ -8,7 +8,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	go_writer "github.com/whosonfirst/go-writer/v2"
+	go_writer "github.com/whosonfirst/go-writer/v3"
 )
 
 // WriteFeature will serialize and write 'f' using 'wr' using a default `whosonfirst/go-whosonfirst-export/v2.Exporter` instance.
