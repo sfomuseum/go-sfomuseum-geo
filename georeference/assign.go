@@ -557,8 +557,13 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		path := k.(string)
 
+		fq_from := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_FROM)
+		fq_to := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_TO)
+		fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
+		fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)		
+		
 		switch path {
-		case PROPERTY_FLIGHTCOVER_FROM, PROPERTY_FLIGHTCOVER_TO, PROPERTY_FLIGHTCOVER_SENT, PROPERTY_FLIGHTCOVER_RECEIVED:
+		case fq_from, fq_to, fq_sent, fq_received:
 
 			lookup := new(sync.Map)
 
@@ -569,7 +574,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			}
 
 			subject_ids := gjson.GetBytes(subject_body, path)
-
+			
 			for _, r := range subject_ids.Array() {
 				lookup.Store(r.Int(), true)
 			}
@@ -577,7 +582,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			all_ids := make([]int64, 0)
 
 			lookup.Range(func(k interface{}, v interface{}) bool {
-				id := v.(int64)
+				id := k.(int64)
 				all_ids = append(all_ids, id)
 				return true
 			})
@@ -703,6 +708,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	subject_removals := make([]string, 0)
 
+	//
 	for _, r := range refs {
 		if len(r.Ids) == 0 {
 			path := fmt.Sprintf("properties.%s", r.Property)
