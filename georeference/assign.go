@@ -706,16 +706,126 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF derive geometry from depictions (media/image files)
 
+	// START OF here is the problem... basically we can't do it this way
+	// 
+	
 	subject_removals := make([]string, 0)
 
-	//
+	images_rsp := gjson.GetBytes(subject_body, "properties.millsfield:images")
+	images_list := images_rsp.Array()
+	images_count := len(images_list)
+
+	type image_ref struct {
+		path string
+		id int64
+	}
+	
+	done_ch := make(chan bool)
+	err_ch := make(chan error)
+	ref_ch := make(chan image_ref)
+	
+	for _, r := range images_list {
+
+		image_id := r.Int()
+
+		if image_id == depiction_id {
+			continue
+		}
+		
+		go func(image_id int64) {
+
+			defer func(){
+				done_ch <- true
+			}()
+			
+			image_r, err := depiction.Reader(ctx, image_id)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to load %d, %w", image_id, err)
+				return
+			}
+
+			image_body, err := io.ReadAll(image_r)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to read %d, %w", image_id, err)
+				return
+			}
+			
+			fq_from := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_FROM)
+			fq_to := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_TO)
+			fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
+			fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)		
+
+			paths := []string{
+				fq_from,
+				fq_to,
+				fq_sent,
+				fq_received,
+			}
+
+			for _, path := range paths {
+
+				rsp := gjson.GetBytes(image_body, path)
+
+				for _, r := range rsp.Array(){
+					refs_ch <- image_ref{ path: path, id: r.Int() }
+				}
+			}
+			
+		}(image_id)
+	}
+
+	remaining := images_count - 1
+
+	refs_lookup := new(sync.Map)
+	
+	for remaining > 0 {
+		select {
+		case <- done_ch:
+			remaining -= 1
+		case err := <- err_ch:
+			log.Println(err)
+		case ref := <- ref_ch:
+
+			ids, ok := refs_lookup.Load(ref.path)
+
+			if !ok {
+				ids = make([]int64, 0)
+			}
+
+			ids = append(ids, ref.id)
+			refs_lookup.Store(ref.path, ids)
+		}
+	}
+
+	subject_refs := map[string][]int64
+
+	refs_lookup.Range(func(k interface{}, v interface{}) bool {
+
+		ref_path := k.(string)
+		ids := v.([]int64)
+
+		subject_updates[ref_path] = ids
+
+		// I am here. Two things to note:
+		// Still not dealing with the image being updated
+		// Still not deleting anything
+	})
+	
+	// START OF the old way
+	
 	for _, r := range refs {
 		if len(r.Ids) == 0 {
-			path := fmt.Sprintf("properties.%s", r.Property)
+			path := fmt.Sprintf("properties.%s", r.Property)			
 			subject_removals = append(subject_removals, path)
 		}
 	}
 
+	// END OF the old way
+	
+	// END OF here is the problem...
+	
 	if len(subject_removals) > 0 {
 
 		subject_body, err = export.RemoveProperties(ctx, subject_body, subject_removals)
