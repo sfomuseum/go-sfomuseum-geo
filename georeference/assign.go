@@ -552,13 +552,13 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	subject_foo := new(sync.Map)
-	
+
 	// Assign the reference pointers to the subject record
 
 	fq_from := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_FROM)
 	fq_to := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_TO)
 	fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
-	fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)		
+	fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)
 
 	fq_paths := []string{
 		fq_from,
@@ -566,7 +566,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		fq_sent,
 		fq_received,
 	}
-	
+
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 
 		path := k.(string)
@@ -577,39 +577,39 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			ids_foo := new(sync.Map)
 
 			ids := v.([]int64)
-			
+
 			for _, id := range ids {
 				ids_foo.Store(id, true)
 			}
-			
+
 			subject_foo.Store(path, ids_foo)
 
 			/*
-			lookup := new(sync.Map)
+				lookup := new(sync.Map)
 
-			ids := v.([]int64)
-			
-			for _, id := range ids {
-				lookup.Store(id, true)
-			}
+				ids := v.([]int64)
 
-			subject_ids := gjson.GetBytes(subject_body, path)
-			
-			for _, r := range subject_ids.Array() {
-				lookup.Store(r.Int(), true)
-			}
+				for _, id := range ids {
+					lookup.Store(id, true)
+				}
 
-			all_ids := make([]int64, 0)
+				subject_ids := gjson.GetBytes(subject_body, path)
 
-			lookup.Range(func(k interface{}, v interface{}) bool {
-				id := k.(int64)
-				all_ids = append(all_ids, id)
-				return true
-			})
+				for _, r := range subject_ids.Array() {
+					lookup.Store(r.Int(), true)
+				}
 
-			subject_updates[path] = all_ids
+				all_ids := make([]int64, 0)
+
+				lookup.Range(func(k interface{}, v interface{}) bool {
+					id := k.(int64)
+					all_ids = append(all_ids, id)
+					return true
+				})
+
+				subject_updates[path] = all_ids
 			*/
-			
+
 		default:
 			subject_updates[path] = v
 		}
@@ -728,87 +728,99 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// END OF derive geometry from depictions (media/image files)
 
 	// START OF here is the problem... basically we can't do it this way
-	// 
-	
+	//
+
 	subject_removals := make([]string, 0)
 
 	// Or derive from same source as geometry? Either way should be reconciled
-	
+
 	images_rsp := gjson.GetBytes(subject_body, "properties.millsfield:images")
-	
+
 	images_list := images_rsp.Array()
-	images_count := len(images_list)
 
 	type image_ref struct {
 		path string
-		id int64
+		id   int64
 	}
-	
+
 	im_done_ch := make(chan bool)
 	im_err_ch := make(chan error)
 	im_ref_ch := make(chan image_ref)
-	
+
+	im_remaining := 0
+
 	for _, r := range images_list {
 
 		image_id := r.Int()
 
+		log.Println("DEBUG", image_id)
+
 		// Remember these have been assigned above
-		
+
 		if image_id == depiction_id {
 			continue
 		}
-		
+
+		log.Println("FETCH", image_id)
+
+		im_remaining += 1
+
 		go func(image_id int64) {
 
-			defer func(){
+			defer func() {
 				im_done_ch <- true
 			}()
-			
+
 			image_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, image_id)
 
 			if err != nil {
 				im_err_ch <- fmt.Errorf("Failed to read %d, %w", image_id, err)
 				return
 			}
-			
+
 			for _, path := range fq_paths {
 
 				rsp := gjson.GetBytes(image_body, path)
 
-				for _, r := range rsp.Array(){
-					im_ref_ch <- image_ref{ path: path, id: r.Int() }
+				for _, r := range rsp.Array() {
+					im_ref_ch <- image_ref{path: path, id: r.Int()}
 				}
 			}
-			
+
 		}(image_id)
 	}
 
 	// Remember we're skipping the current depiction having set it above
-	
-	im_remaining := images_count - 1
+
+	log.Println("REMAINING", im_remaining)
 
 	for im_remaining > 0 {
 		select {
-		case <- im_done_ch:
-			remaining -= 1
-		case err := <- im_err_ch:
-			log.Println(err)
-		case ref := <- im_ref_ch:
+		case <-im_done_ch:
+			im_remaining -= 1
+			log.Println("REMAINING", im_remaining)
+		case err := <-im_err_ch:
+			log.Println("SAD", err)
+		case ref := <-im_ref_ch:
+
+			log.Println("REF", ref)
 
 			var ids_foo *sync.Map
-			
+
 			ids_v, ok := subject_foo.Load(ref.path)
 
 			if !ok {
 				ids_foo = new(sync.Map)
-			} else { 
+			} else {
 				ids_foo = ids_v.(*sync.Map)
 			}
-			
-			ids_foo.Store(ref.id, true)			
+
+			ids_foo.Store(ref.id, true)
 			subject_foo.Store(ref.path, ids_foo)
 		}
 	}
+
+	log.Println("WOO")
 
 	for _, path := range fq_paths {
 
@@ -819,33 +831,36 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			ids := make([]int64, 0)
 
 			ids_foo := ids_v.(*sync.Map)
-			
+
 			ids_foo.Range(func(k interface{}, v interface{}) bool {
 				ids = append(ids, k.(int64))
 				return true
 			})
-			
+
 			subject_updates[path] = ids
-			
+
 		} else {
 			subject_removals = append(subject_removals, path)
 		}
 	}
-	
-	
+
 	// START OF the old way
-	
-	for _, r := range refs {
-		if len(r.Ids) == 0 {
-			path := fmt.Sprintf("properties.%s", r.Property)			
-			subject_removals = append(subject_removals, path)
+
+	/*
+		for _, r := range refs {
+			if len(r.Ids) == 0 {
+				path := fmt.Sprintf("properties.%s", r.Property)
+				subject_removals = append(subject_removals, path)
+			}
 		}
-	}
+	*/
 
 	// END OF the old way
-	
+
 	// END OF here is the problem...
-	
+
+	log.Println("REMOVE", subject_removals)
+
 	if len(subject_removals) > 0 {
 
 		subject_body, err = export.RemoveProperties(ctx, subject_body, subject_removals)
@@ -854,6 +869,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, fmt.Errorf("Failed to remove depiction properties, %w", err)
 		}
 	}
+
+	log.Println("UPDATE", subject_updates)
 
 	has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
