@@ -10,7 +10,6 @@ import (
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
-	"log"
 )
 
 // DeriveMultiPointFromIds generates a new `geojson.Geometry` MultiPoint instance derived from the (planar)
@@ -30,8 +29,6 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 	for _, id := range ids {
 
 		go func(id int64) {
-
-			log.Println("OKAY", id)
 
 			defer func() {
 				done_ch <- true
@@ -102,7 +99,7 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 		case err := <-err_ch:
 			return nil, fmt.Errorf("Failed to derive geometry for subject, %w", err)
 		case pt := <-centroid_ch:
-			points = append(points, pt)
+			points = AddPointIfNotExist(points, pt)
 		}
 	}
 

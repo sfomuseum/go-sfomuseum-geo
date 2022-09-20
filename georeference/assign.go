@@ -21,7 +21,7 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer/v3"
-	_ "log"
+	"log"
 	"sync"
 	"time"
 )
@@ -48,6 +48,7 @@ type AssignReferencesOptions struct {
 	DepictionWriterURI string
 	// SubjectWriterURI is the URI used to create `SubjectWriter`; it is a temporary necessity to be removed with the go-writer/v3 (clone) release
 	SubjectWriterURI string
+	Logger *log.Logger
 }
 
 func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
@@ -119,7 +120,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	var depiction_reader reader.Reader
 
 	depiction_reader = opts.DepictionReader
-	
+
 	// START OF update the depiction record
 
 	done_ch := make(chan bool)
@@ -602,7 +603,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 			// subject record georeference properties are not updated until
 			// the combined properties for all the images are gathered (below)
-			
+
 		default:
 			subject_updates[path] = v
 		}
@@ -776,7 +777,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	// Wait...
-	
+
 	for im_remaining > 0 {
 		select {
 		case <-im_done_ch:
@@ -802,7 +803,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Once all the images have been reviewed for flightcover (georeference) properties
 	// figure out which ones need to be updated in or removed from the subject record
-	
+
 	for _, path := range georeferences_paths {
 
 		ids_v, ok := georef_properties_lookup.Load(path)
@@ -825,7 +826,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	// END OF denormalize all the georeferenced properties (flightcover, etc.) from all the images in to the object record	
+	// END OF denormalize all the georeferenced properties (flightcover, etc.) from all the images in to the object record
 
 	if len(subject_removals) > 0 {
 

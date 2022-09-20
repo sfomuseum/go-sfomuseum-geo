@@ -9,6 +9,7 @@ import (
 	"github.com/paulmach/orb/planar"
 	"github.com/tidwall/sjson"
 	"github.com/whosonfirst/go-whosonfirst-format"
+	"github.com/sfomuseum/go-sfomuseum-geo/geometry"	
 )
 
 // WhosOnFirstAltFeature is a struct defining a GeoJSON Feature for alternate geometries.
@@ -61,16 +62,16 @@ func DeriveMultiPointGeometry(ctx context.Context, features ...*WhosOnFirstAltFe
 		switch orb_geom.GeoJSONType() {
 		case "Point":
 			pt, _ := orb_geom.(orb.Point)
-			points = append(points, pt)
+			points = geometry.AddPointIfNotExist(points, pt)
 		case "MultiPoint":
 
 			for _, pt := range orb_geom.(orb.MultiPoint) {
-				points = append(points, pt)
+				points = geometry.AddPointIfNotExist(points, pt)
 			}
 
 		default:
 			pt, _ := planar.CentroidArea(orb_geom)
-			points = append(points, pt)
+			points = geometry.AddPointIfNotExist(points, pt)
 		}
 	}
 
@@ -96,7 +97,7 @@ func multipointsFromGeometry(ctx context.Context, geom orb.Geometry) (orb.MultiP
 
 		for _, poly := range geom.(orb.MultiPolygon) {
 			pt, _ := planar.CentroidArea(poly)
-			points = append(points, pt)
+			points = geometry.AddPointIfNotExist(points, pt)
 		}
 
 		return orb.MultiPoint(points), nil
