@@ -21,7 +21,7 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer/v3"
-	"log"
+	_ "log"
 	"sync"
 	"time"
 )
@@ -113,6 +113,13 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF to be removed once the go-writer/v3 (Clone) interface is complete
 
+	// TBD: use of https://github.com/whosonfirst/go-reader-cachereader for reading depictions
+	// Maybe check for non-nil opts.DepictionCache and update depiction_reader accordingly?
+
+	var depiction_reader reader.Reader
+
+	depiction_reader = opts.DepictionReader
+	
 	// START OF update the depiction record
 
 	done_ch := make(chan bool)
@@ -323,7 +330,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 					return
 				}
 
-				r, err := opts.DepictionReader.Read(ctx, alt_uri)
+				r, err := depiction_reader.Read(ctx, alt_uri)
 
 				if err != nil {
 					err_ch <- fmt.Errorf("Failed to read %s, %w", alt_uri, err)
@@ -456,7 +463,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		// In advance of a generic "exists" method/package this will have to do...
 
-		_, err = opts.DepictionReader.Read(ctx, alt_uri)
+		_, err = depiction_reader.Read(ctx, alt_uri)
 
 		if err != nil {
 			continue
@@ -547,11 +554,20 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to load subject (parent) for depiction, %w", err)
 	}
 
+	// Things to update in the subject (object) record
+
 	subject_updates := map[string]interface{}{
 		"properties.src:geom": depiction_updates["properties.src:geom"],
 	}
 
-	subject_foo := new(sync.Map)
+	// Things to remove from the subject record - this is tightly integrated with the
+	// georef_properties_lookup table below
+
+	subject_removals := make([]string, 0)
+
+	// Lookup table for all the flightcover properties across all the images for an objects
+
+	georef_properties_lookup := new(sync.Map)
 
 	// Assign the reference pointers to the subject record
 
@@ -560,7 +576,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
 	fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)
 
-	fq_paths := []string{
+	georeferences_paths := []string{
 		fq_from,
 		fq_to,
 		fq_sent,
@@ -574,42 +590,19 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		switch path {
 		case fq_from, fq_to, fq_sent, fq_received:
 
-			ids_foo := new(sync.Map)
+			georef_ids_lookup := new(sync.Map)
 
 			ids := v.([]int64)
 
 			for _, id := range ids {
-				ids_foo.Store(id, true)
+				georef_ids_lookup.Store(id, true)
 			}
 
-			subject_foo.Store(path, ids_foo)
+			georef_properties_lookup.Store(path, georef_ids_lookup)
 
-			/*
-				lookup := new(sync.Map)
-
-				ids := v.([]int64)
-
-				for _, id := range ids {
-					lookup.Store(id, true)
-				}
-
-				subject_ids := gjson.GetBytes(subject_body, path)
-
-				for _, r := range subject_ids.Array() {
-					lookup.Store(r.Int(), true)
-				}
-
-				all_ids := make([]int64, 0)
-
-				lookup.Range(func(k interface{}, v interface{}) bool {
-					id := k.(int64)
-					all_ids = append(all_ids, id)
-					return true
-				})
-
-				subject_updates[path] = all_ids
-			*/
-
+			// subject record georeference properties are not updated until
+			// the combined properties for all the images are gathered (below)
+			
 		default:
 			subject_updates[path] = v
 		}
@@ -684,7 +677,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
 		id := k.(int64)
 
-		// Do not try to fetch the geometry for depiction ID from opts.DepictionReader
+		// Do not try to fetch the geometry for depiction ID from depiction_reader
 		// because it hasn't been written/published yet and we will update things from
 		// memory below
 
@@ -697,7 +690,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if len(geom_ids) > 0 {
 
-		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.DepictionReader, geom_ids...)
+		geom, err := geometry.DeriveMultiPointFromIds(ctx, depiction_reader, geom_ids...)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
@@ -727,16 +720,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF derive geometry from depictions (media/image files)
 
-	// START OF here is the problem... basically we can't do it this way
-	//
-
-	subject_removals := make([]string, 0)
-
-	// Or derive from same source as geometry? Either way should be reconciled
-
-	images_rsp := gjson.GetBytes(subject_body, "properties.millsfield:images")
-
-	images_list := images_rsp.Array()
+	// START OF denormalize all the georeferenced properties (flightcover, etc.) from all the images in to the object record
 
 	type image_ref struct {
 		path string
@@ -749,19 +733,20 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	im_remaining := 0
 
+	// Replace with georeferences array defined above?
+
+	images_rsp := gjson.GetBytes(subject_body, "properties.millsfield:images")
+	images_list := images_rsp.Array()
+
 	for _, r := range images_list {
 
 		image_id := r.Int()
-
-		log.Println("DEBUG", image_id)
 
 		// Remember these have been assigned above
 
 		if image_id == depiction_id {
 			continue
 		}
-
-		log.Println("FETCH", image_id)
 
 		im_remaining += 1
 
@@ -771,14 +756,14 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				im_done_ch <- true
 			}()
 
-			image_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, image_id)
+			image_body, err := wof_reader.LoadBytes(ctx, depiction_reader, image_id)
 
 			if err != nil {
 				im_err_ch <- fmt.Errorf("Failed to read %d, %w", image_id, err)
 				return
 			}
 
-			for _, path := range fq_paths {
+			for _, path := range georeferences_paths {
 
 				rsp := gjson.GetBytes(image_body, path)
 
@@ -790,49 +775,45 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}(image_id)
 	}
 
-	// Remember we're skipping the current depiction having set it above
-
-	log.Println("REMAINING", im_remaining)
-
+	// Wait...
+	
 	for im_remaining > 0 {
 		select {
 		case <-im_done_ch:
 			im_remaining -= 1
-			log.Println("REMAINING", im_remaining)
 		case err := <-im_err_ch:
-			log.Println("SAD", err)
+			return nil, fmt.Errorf("Failed to denormalize georeference properties, %w", err)
 		case ref := <-im_ref_ch:
 
-			log.Println("REF", ref)
+			var georef_ids_lookup *sync.Map
 
-			var ids_foo *sync.Map
-
-			ids_v, ok := subject_foo.Load(ref.path)
+			ids_v, ok := georef_properties_lookup.Load(ref.path)
 
 			if !ok {
-				ids_foo = new(sync.Map)
+				georef_ids_lookup = new(sync.Map)
 			} else {
-				ids_foo = ids_v.(*sync.Map)
+				georef_ids_lookup = ids_v.(*sync.Map)
 			}
 
-			ids_foo.Store(ref.id, true)
-			subject_foo.Store(ref.path, ids_foo)
+			georef_ids_lookup.Store(ref.id, true)
+			georef_properties_lookup.Store(ref.path, georef_ids_lookup)
 		}
 	}
 
-	log.Println("WOO")
+	// Once all the images have been reviewed for flightcover (georeference) properties
+	// figure out which ones need to be updated in or removed from the subject record
+	
+	for _, path := range georeferences_paths {
 
-	for _, path := range fq_paths {
-
-		ids_v, ok := subject_foo.Load(path)
+		ids_v, ok := georef_properties_lookup.Load(path)
 
 		if ok {
 
 			ids := make([]int64, 0)
 
-			ids_foo := ids_v.(*sync.Map)
+			georef_ids_lookup := ids_v.(*sync.Map)
 
-			ids_foo.Range(func(k interface{}, v interface{}) bool {
+			georef_ids_lookup.Range(func(k interface{}, v interface{}) bool {
 				ids = append(ids, k.(int64))
 				return true
 			})
@@ -844,22 +825,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	// START OF the old way
-
-	/*
-		for _, r := range refs {
-			if len(r.Ids) == 0 {
-				path := fmt.Sprintf("properties.%s", r.Property)
-				subject_removals = append(subject_removals, path)
-			}
-		}
-	*/
-
-	// END OF the old way
-
-	// END OF here is the problem...
-
-	log.Println("REMOVE", subject_removals)
+	// END OF denormalize all the georeferenced properties (flightcover, etc.) from all the images in to the object record	
 
 	if len(subject_removals) > 0 {
 
@@ -869,8 +835,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, fmt.Errorf("Failed to remove depiction properties, %w", err)
 		}
 	}
-
-	log.Println("UPDATE", subject_updates)
 
 	has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
