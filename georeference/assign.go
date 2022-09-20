@@ -21,7 +21,7 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer/v3"
-	_ "log"
+	"log"
 	"sync"
 	"time"
 )
@@ -551,24 +551,44 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		"properties.src:geom": depiction_updates["properties.src:geom"],
 	}
 
+	subject_foo := new(sync.Map)
+	
 	// Assign the reference pointers to the subject record
 
+	fq_from := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_FROM)
+	fq_to := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_TO)
+	fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
+	fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)		
+
+	fq_paths := []string{
+		fq_from,
+		fq_to,
+		fq_sent,
+		fq_received,
+	}
+	
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 
 		path := k.(string)
 
-		fq_from := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_FROM)
-		fq_to := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_TO)
-		fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
-		fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)		
-		
 		switch path {
 		case fq_from, fq_to, fq_sent, fq_received:
 
+			ids_foo := new(sync.Map)
+
+			ids := v.([]int64)
+			
+			for _, id := range ids {
+				ids_foo.Store(id, true)
+			}
+			
+			subject_foo.Store(path, ids_foo)
+
+			/*
 			lookup := new(sync.Map)
 
 			ids := v.([]int64)
-
+			
 			for _, id := range ids {
 				lookup.Store(id, true)
 			}
@@ -588,7 +608,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			})
 
 			subject_updates[path] = all_ids
-
+			*/
+			
 		default:
 			subject_updates[path] = v
 		}
@@ -711,7 +732,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	
 	subject_removals := make([]string, 0)
 
+	// Or derive from same source as geometry? Either way should be reconciled
+	
 	images_rsp := gjson.GetBytes(subject_body, "properties.millsfield:images")
+	
 	images_list := images_rsp.Array()
 	images_count := len(images_list)
 
@@ -720,14 +744,16 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		id int64
 	}
 	
-	done_ch := make(chan bool)
-	err_ch := make(chan error)
-	ref_ch := make(chan image_ref)
+	im_done_ch := make(chan bool)
+	im_err_ch := make(chan error)
+	im_ref_ch := make(chan image_ref)
 	
 	for _, r := range images_list {
 
 		image_id := r.Int()
 
+		// Remember these have been assigned above
+		
 		if image_id == depiction_id {
 			continue
 		}
@@ -735,83 +761,77 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		go func(image_id int64) {
 
 			defer func(){
-				done_ch <- true
+				im_done_ch <- true
 			}()
 			
-			image_r, err := depiction.Reader(ctx, image_id)
+			image_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, image_id)
 
 			if err != nil {
-				err_ch <- fmt.Errorf("Failed to load %d, %w", image_id, err)
-				return
-			}
-
-			image_body, err := io.ReadAll(image_r)
-
-			if err != nil {
-				err_ch <- fmt.Errorf("Failed to read %d, %w", image_id, err)
+				im_err_ch <- fmt.Errorf("Failed to read %d, %w", image_id, err)
 				return
 			}
 			
-			fq_from := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_FROM)
-			fq_to := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_TO)
-			fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
-			fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)		
-
-			paths := []string{
-				fq_from,
-				fq_to,
-				fq_sent,
-				fq_received,
-			}
-
-			for _, path := range paths {
+			for _, path := range fq_paths {
 
 				rsp := gjson.GetBytes(image_body, path)
 
 				for _, r := range rsp.Array(){
-					refs_ch <- image_ref{ path: path, id: r.Int() }
+					im_ref_ch <- image_ref{ path: path, id: r.Int() }
 				}
 			}
 			
 		}(image_id)
 	}
 
-	remaining := images_count - 1
-
-	refs_lookup := new(sync.Map)
+	// Remember we're skipping the current depiction having set it above
 	
-	for remaining > 0 {
-		select {
-		case <- done_ch:
-			remaining -= 1
-		case err := <- err_ch:
-			log.Println(err)
-		case ref := <- ref_ch:
+	im_remaining := images_count - 1
 
-			ids, ok := refs_lookup.Load(ref.path)
+	for im_remaining > 0 {
+		select {
+		case <- im_done_ch:
+			remaining -= 1
+		case err := <- im_err_ch:
+			log.Println(err)
+		case ref := <- im_ref_ch:
+
+			var ids_foo *sync.Map
+			
+			ids_v, ok := subject_foo.Load(ref.path)
 
 			if !ok {
-				ids = make([]int64, 0)
+				ids_foo = new(sync.Map)
+			} else { 
+				ids_foo = ids_v.(*sync.Map)
 			}
-
-			ids = append(ids, ref.id)
-			refs_lookup.Store(ref.path, ids)
+			
+			ids_foo.Store(ref.id, true)			
+			subject_foo.Store(ref.path, ids_foo)
 		}
 	}
 
-	subject_refs := map[string][]int64
+	for _, path := range fq_paths {
 
-	refs_lookup.Range(func(k interface{}, v interface{}) bool {
+		ids_v, ok := subject_foo.Load(path)
 
-		ref_path := k.(string)
-		ids := v.([]int64)
+		if ok {
 
-		subject_updates[ref_path] = ids
+			ids := make([]int64, 0)
 
-		// I am here. Two things to note:
-		// Still not dealing with the image being updated
-		// Still not deleting anything
-	})
+			ids_foo := ids_v.(*sync.Map)
+			
+			ids_foo.Range(func(k interface{}, v interface{}) bool {
+				ids = append(ids, k.(int64))
+				return true
+			})
+			
+			subject_updates[path] = ids
+			
+		} else {
+			subject_removals = append(subject_removals, path)
+		}
+	}
+	
 	
 	// START OF the old way
 	
