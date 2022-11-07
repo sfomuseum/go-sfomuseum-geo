@@ -1530,8 +1530,9 @@ github.com/whosonfirst/go-whosonfirst-writer/v3 v3.0.0 h1:snhEF7nNPP1E0reD8cbwRH
 github.com/whosonfirst/go-whosonfirst-writer/v3 v3.0.0/go.mod h1:zr1HVHJ0Q8/azLtC0aeu8zgeALqPxrgPgxUe1SKnDyo=
 github.com/whosonfirst/go-writer-github/v3 v3.0.1 h1:0e8TgG9lzM1ja58NqW1mG5hCy60WkJwrQH0BwRRmyXc=
 github.com/whosonfirst/go-writer-github/v3 v3.0.1/go.mod h1:QoUD/ezZG1pSaJLVAksJdgr6WZl4c6BRJ4FOvyC1OeU=
-github.com/whosonfirst/go-writer/v3 v3.0.0 h1:EyGed1mP60LbXYGTVqQl5PAkfUkLfczGOPcC9mcHTMQ=
 github.com/whosonfirst/go-writer/v3 v3.0.0/go.mod h1:TmYoKR7RvrzJaj3eOgMhgXHFE+R1yuO/4smxKHFhv14=
+github.com/whosonfirst/go-writer/v3 v3.1.0 h1:lEZ6TIYvZb5NJ6e2OXYRM1j+MM2svKCSlb+6Vzbz+/M=
+github.com/whosonfirst/go-writer/v3 v3.1.0/go.mod h1:TmYoKR7RvrzJaj3eOgMhgXHFE+R1yuO/4smxKHFhv14=
 github.com/whosonfirst/iso8601duration v0.0.0-20150204201828-8da3af7a2a61/go.mod h1:mT7JgXlZYn9Ct77XmFiCDqdp0vEgWvRjC9mnY0lT6Lo=
 github.com/whosonfirst/walk v0.0.1/go.mod h1:1KtP/VeooSlFOI61p+THc/C16Ra8Z5MjpjI0tsd3c1M=
 github.com/whosonfirst/warning v0.1.1/go.mod h1:/unEMzhB9YaMeEwTJpzLN3kM5LiSxdJhKEsf/OQhn6s=

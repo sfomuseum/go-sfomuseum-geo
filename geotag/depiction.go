@@ -1,6 +1,7 @@
 package geotag
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -83,7 +84,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	parent_id := update.ParentId
 	geotag_f := update.Feature
 
-	// START OF to refactor with go-writer/v3 (clone) release
+	// START OF to refactor with go-writer/v4 (clone) release
 
 	update_opts := &github.UpdateWriterURIOptions{
 		WhosOnFirstId: depiction_id,
@@ -116,6 +117,44 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	}
 
 	// END OF to refactor with go-writer/v3 (clone) release
+
+	// START OF
+
+	// The buffer where we will write updated Feature information
+	var depiction_buf bytes.Buffer
+	var subject_buf bytes.Buffer
+
+	// The io.Writer where we will write updated Feature information
+	depiction_buf_writer := bufio.NewWriter(&depiction_buf)
+	subject_buf_writer := bufio.NewWriter(&subject_buf)
+
+	// The writer.Writer where we will write updated Feature information
+	depiction_wr, err := writer.NewIOWriterWithWriter(ctx, depiction_buf_writer)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create IOWriter for depiction, %w", err)
+	}
+
+	subject_wr, err := writer.NewIOWriterWithWriter(ctx, subject_buf_writer)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create IOWriter for subject, %w", err)
+	}
+
+	// The writer.MultiWriter where we will write updated Feature information
+	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, depiction_wr)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
+	}
+
+	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, subject_wr)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
+	}
+
+	// END OF
 
 	depiction_f, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
@@ -272,7 +311,8 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	if subject_changed {
 
-		_, err := sfom_writer.WriteBytes(ctx, subject_writer, subject_f)
+		// _, err := sfom_writer.WriteBytes(ctx, subject_writer, subject_f)
+		_, err := sfom_writer.WriteBytes(ctx, subject_mw, subject_f)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write subject record %d, %w", subject_id, err)
@@ -335,7 +375,8 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	if depiction_changed {
 
-		_, err := sfom_writer.WriteBytes(ctx, depiction_writer, depiction_f)
+		// _, err := sfom_writer.WriteBytes(ctx, depiction_writer, depiction_f)
+		_, err := sfom_writer.WriteBytes(ctx, depiction_mw, depiction_f)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write depiction record %d, %w", depiction_id, err)
@@ -423,6 +464,14 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	if err != nil {
 		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
 	}
+
+	//
+
+	// fc := geojson.NewFeatureCollection()
+
+	// alt_fh
+	// depiction_f <-- needs to re-read from sfom_writer
+	// subject_f <-- needs to re-read from sfom_writer
 
 	return depiction_f, nil
 }

@@ -7,9 +7,9 @@ import (
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/planar"
+	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
 	"github.com/tidwall/sjson"
 	"github.com/whosonfirst/go-whosonfirst-format"
-	"github.com/sfomuseum/go-sfomuseum-geo/geometry"	
 )
 
 // WhosOnFirstAltFeature is a struct defining a GeoJSON Feature for alternate geometries.

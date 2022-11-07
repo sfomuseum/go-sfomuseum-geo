@@ -48,7 +48,7 @@ type AssignReferencesOptions struct {
 	DepictionWriterURI string
 	// SubjectWriterURI is the URI used to create `SubjectWriter`; it is a temporary necessity to be removed with the go-writer/v3 (clone) release
 	SubjectWriterURI string
-	Logger *log.Logger
+	Logger           *log.Logger
 }
 
 func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
