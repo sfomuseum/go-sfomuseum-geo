@@ -116,9 +116,15 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		return nil, fmt.Errorf("Failed to create new subject writer for '%s', %w", subject_writer_uri, err)
 	}
 
-	// END OF to refactor with go-writer/v3 (clone) release
+	// END OF to refactor with go-writer/v4 (clone) release
 
-	// START OF
+	// START OF hooks to capture updates/writes so we can parrot them back in the method response
+	// We're doing it this way because the code, as written, relies on sfomuseum/go-sfomuseum-writer
+	// which hides the format-and-export stages and modifies the document being written. To account
+	// for this we'll just keep local copies of those updates in *_buf and reference them at the end.
+	// Note that we are not doing this for the alternate geometry feature (alt_body) since are manually
+	// formatting, exporting and writing a byte slice in advance of better support for alternate
+	// geometries in the tooling.
 
 	// The buffer where we will write updated Feature information
 	var depiction_buf bytes.Buffer
@@ -154,7 +160,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
 	}
 
-	// END OF
+	// END OF hooks to capture updates/writes so we can parrot them back in the method response
 
 	depiction_f, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
@@ -467,11 +473,40 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	//
 
-	// fc := geojson.NewFeatureCollection()
+	depiction_buf_writer.Flush()
+	subject_buf_writer.Flush()
 
-	// alt_fh
-	// depiction_f <-- needs to re-read from sfom_writer
-	// subject_f <-- needs to re-read from sfom_writer
+	fc := geojson.NewFeatureCollection()
 
-	return depiction_f, nil
+	new_subject_f, err := geojson.UnmarshalFeature(subject_buf.Bytes())
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w", err)
+	}
+
+	fc.Append(new_subject_f)
+
+	new_depiction_f, err := geojson.UnmarshalFeature(depiction_buf.Bytes())
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w", err)
+	}
+
+	fc.Append(new_depiction_f)
+	
+	new_alt_f, err := geojson.UnmarshalFeature(alt_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal feature from alt body, %w", err)
+	}
+
+	fc.Append(new_alt_f)
+	
+	fc_body, err := fc.MarshalJSON()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to marshal feature collection, %w", err)
+	}
+
+	return fc_body, nil
 }
