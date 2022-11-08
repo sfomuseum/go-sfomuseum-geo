@@ -126,35 +126,35 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	// formatting, exporting and writing a byte slice in advance of better support for alternate
 	// geometries in the tooling.
 
-	// The buffer where we will write updated Feature information
-	var depiction_buf bytes.Buffer
-	var subject_buf bytes.Buffer
+	// The buffers where we will write updated Feature information
+	var local_depiction_buf bytes.Buffer
+	var local_subject_buf bytes.Buffer
 
-	// The io.Writer where we will write updated Feature information
-	depiction_buf_writer := bufio.NewWriter(&depiction_buf)
-	subject_buf_writer := bufio.NewWriter(&subject_buf)
+	// The io.Writers where we will write updated Feature information
+	local_depiction_buf_writer := bufio.NewWriter(&local_depiction_buf)
+	local_subject_buf_writer := bufio.NewWriter(&local_subject_buf)
 
 	// The writer.Writer where we will write updated Feature information
-	depiction_wr, err := writer.NewIOWriterWithWriter(ctx, depiction_buf_writer)
+	local_depiction_writer, err := writer.NewIOWriterWithWriter(ctx, local_depiction_buf_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create IOWriter for depiction, %w", err)
 	}
 
-	subject_wr, err := writer.NewIOWriterWithWriter(ctx, subject_buf_writer)
+	local_subject_writer, err := writer.NewIOWriterWithWriter(ctx, local_subject_buf_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create IOWriter for subject, %w", err)
 	}
 
 	// The writer.MultiWriter where we will write updated Feature information
-	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, depiction_wr)
+	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
 	}
 
-	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, subject_wr)
+	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
@@ -473,12 +473,12 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	//
 
-	depiction_buf_writer.Flush()
-	subject_buf_writer.Flush()
+	local_depiction_buf_writer.Flush()
+	local_subject_buf_writer.Flush()
 
 	fc := geojson.NewFeatureCollection()
 
-	new_subject_f, err := geojson.UnmarshalFeature(subject_buf.Bytes())
+	new_subject_f, err := geojson.UnmarshalFeature(local_subject_buf.Bytes())
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w", err)
@@ -486,7 +486,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	fc.Append(new_subject_f)
 
-	new_depiction_f, err := geojson.UnmarshalFeature(depiction_buf.Bytes())
+	new_depiction_f, err := geojson.UnmarshalFeature(local_depiction_buf.Bytes())
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w", err)

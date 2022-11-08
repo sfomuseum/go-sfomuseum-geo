@@ -124,45 +124,39 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// formatting, exporting and writing a byte slice in advance of better support for alternate
 	// geometries in the tooling.
 
-	// The buffer where we will write updated Feature information
-	var depiction_buf bytes.Buffer
-	var subject_buf bytes.Buffer
+	// The buffers where we will write updated Feature information
+	var local_depiction_buf bytes.Buffer
+	var local_subject_buf bytes.Buffer
 
-	// The io.Writer where we will write updated Feature information
-	depiction_buf_writer := bufio.NewWriter(&depiction_buf)
-	subject_buf_writer := bufio.NewWriter(&subject_buf)
+	// The io.Writers where we will write updated Feature information
+	local_depiction_buf_writer := bufio.NewWriter(&local_depiction_buf)
+	local_subject_buf_writer := bufio.NewWriter(&local_subject_buf)
 
-	/*
-		// The writer.Writer where we will write updated Feature information
-		depiction_wr, err := writer.NewIOWriterWithWriter(ctx, depiction_buf_writer)
+	// Note that we are writing to a writer.FeatureCollectionWriter instead of a writer.IOWriter
+	// instance. This is because we end writing (potentially) multiple alternate geometries (as
+	// well as the depiction (image)) below. A FeatureCollectionWriter allows us to iterate over
+	// the results when we are constructing the final response body at the end of this function.
 
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create IOWriter for depiction, %w", err)
-		}
-	*/
-
-	// Here is a wrinkle
-
-	depiction_wr, err := featurecollection.NewFeatureCollectionWriterWithWriter(ctx, depiction_buf_writer)
+	local_depiction_wr, err := featurecollection.NewFeatureCollectionWriterWithWriter(ctx, local_depiction_buf_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create FeatureCollection writer, %w", err)
 	}
 
-	subject_wr, err := writer.NewIOWriterWithWriter(ctx, subject_buf_writer)
+	local_subject_wr, err := writer.NewIOWriterWithWriter(ctx, local_subject_buf_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create IOWriter for subject, %w", err)
 	}
 
 	// The writer.MultiWriter where we will write updated Feature information
-	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, depiction_wr)
+	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_wr)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
 	}
 
-	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, subject_wr)
+	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_wr)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
@@ -492,7 +486,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		// Note how we're invoking depiction_wr directly because sfom_writer doesn't
 		// know how to work with alt files yet.
 
-		_, err = depiction_wr.Write(ctx, alt_uri, r)
+		_, err = depiction_mw.Write(ctx, alt_uri, r)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write %s, %w", alt_uri, err)
@@ -558,7 +552,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		// Note how we're invoking depiction_wr directly because sfom_writer doesn't
 		// know how to work with alt files yet.
 
-		_, err = depiction_wr.Write(ctx, alt_uri, r)
+		_, err = depiction_mw.Write(ctx, alt_uri, r)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write %s, %w", alt_uri, err)
@@ -914,13 +908,13 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// Close the depiction and subject writers - this is a no-op for many writer but
 	// required for things like the githubapi-tree:// and githubapi-pr:// writers.
 
-	err = depiction_wr.Close(ctx)
+	err = depiction_mw.Close(ctx)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to close depiction writer, %w", err)
 	}
 
-	err = subject_wr.Close(ctx)
+	err = subject_mw.Close(ctx)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
@@ -928,15 +922,15 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	//
 
-	depiction_buf_writer.Flush()
-	subject_buf_writer.Flush()
+	local_depiction_buf_writer.Flush()
+	local_subject_buf_writer.Flush()
 
 	fc := geojson.NewFeatureCollection()
 
 	var new_subject_b []byte
 
 	if subject_has_changed {
-		new_subject_b = subject_buf.Bytes()
+		new_subject_b = local_subject_buf.Bytes()
 	} else {
 		new_subject_b = subject_body
 	}
@@ -951,7 +945,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if depiction_has_changed {
 
-		new_depiction_b := depiction_buf.Bytes()
+		new_depiction_b := local_depiction_buf.Bytes()
 
 		new_depiction_fc, err := geojson.UnmarshalFeatureCollection(new_depiction_b)
 
@@ -963,16 +957,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			fc.Append(f)
 		}
 	}
-
-	/*
-		new_alt_f, err := geojson.UnmarshalFeature(alt_body)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to unmarshal feature from alt body, %w", err)
-		}
-
-		fc.Append(new_alt_f)
-	*/
 
 	fc_body, err := fc.MarshalJSON()
 
