@@ -493,7 +493,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	}
 
 	fc.Append(new_depiction_f)
-	
+
 	new_alt_f, err := geojson.UnmarshalFeature(alt_body)
 
 	if err != nil {
@@ -501,7 +501,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	}
 
 	fc.Append(new_alt_f)
-	
+
 	fc_body, err := fc.MarshalJSON()
 
 	if err != nil {

@@ -4,6 +4,7 @@ package georeference
 // but not today...
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -20,6 +21,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
+	"github.com/whosonfirst/go-writer-featurecollection/v3"
 	"github.com/whosonfirst/go-writer/v3"
 	"log"
 	"sync"
@@ -80,7 +82,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to derive subject (parent) ID for depiction, %w", err)
 	}
 
-	// START OF to be removed once the go-writer/v3 (Clone) interface is complete
+	// START OF to be removed once the go-writer/v4 (Clone) interface is complete
 
 	update_opts := &github.UpdateWriterURIOptions{
 		WhosOnFirstId: depiction_id,
@@ -94,7 +96,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to update depiction writer URI, %w", err)
 	}
 
-	depiction_wr, err := writer.NewWriter(ctx, depiction_wr_uri)
+	depiction_writer, err := writer.NewWriter(ctx, depiction_wr_uri)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create new depiction writer, %w", err)
@@ -106,13 +108,67 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to update subject writer URI, %w", err)
 	}
 
-	subject_wr, err := writer.NewWriter(ctx, subject_wr_uri)
+	subject_writer, err := writer.NewWriter(ctx, subject_wr_uri)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create new subject writer, %w", err)
 	}
 
-	// END OF to be removed once the go-writer/v3 (Clone) interface is complete
+	// END OF to be removed once the go-writer/v4 (Clone) interface is complete
+
+	// START OF hooks to capture updates/writes so we can parrot them back in the method response
+	// We're doing it this way because the code, as written, relies on sfomuseum/go-sfomuseum-writer
+	// which hides the format-and-export stages and modifies the document being written. To account
+	// for this we'll just keep local copies of those updates in *_buf and reference them at the end.
+	// Note that we are not doing this for the alternate geometry feature (alt_body) since are manually
+	// formatting, exporting and writing a byte slice in advance of better support for alternate
+	// geometries in the tooling.
+
+	// The buffer where we will write updated Feature information
+	var depiction_buf bytes.Buffer
+	var subject_buf bytes.Buffer
+
+	// The io.Writer where we will write updated Feature information
+	depiction_buf_writer := bufio.NewWriter(&depiction_buf)
+	subject_buf_writer := bufio.NewWriter(&subject_buf)
+
+	/*
+		// The writer.Writer where we will write updated Feature information
+		depiction_wr, err := writer.NewIOWriterWithWriter(ctx, depiction_buf_writer)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create IOWriter for depiction, %w", err)
+		}
+	*/
+
+	// Here is a wrinkle
+
+	depiction_wr, err := featurecollection.NewFeatureCollectionWriterWithWriter(ctx, depiction_buf_writer)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create FeatureCollection writer, %w", err)
+	}
+
+	subject_wr, err := writer.NewIOWriterWithWriter(ctx, subject_buf_writer)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create IOWriter for subject, %w", err)
+	}
+
+	// The writer.MultiWriter where we will write updated Feature information
+	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, depiction_wr)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
+	}
+
+	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, subject_wr)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
+	}
+
+	// END OF hooks to capture updates/writes so we can parrot them back in the method response
 
 	// TBD: use of https://github.com/whosonfirst/go-reader-cachereader for reading depictions
 	// Maybe check for non-nil opts.DepictionCache and update depiction_reader accordingly?
@@ -530,15 +586,16 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	has_changed, new_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, depiction_updates)
+	depiction_has_changed, new_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, depiction_updates)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to assign depiction properties, %w", err)
 	}
 
-	if has_changed {
+	if depiction_has_changed {
 
-		_, err = sfom_writer.WriteBytes(ctx, depiction_wr, new_body)
+		// _, err = sfom_writer.WriteBytes(ctx, depiction_wr, new_body)
+		_, err = sfom_writer.WriteBytes(ctx, depiction_mw, new_body)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write depiction update, %w", err)
@@ -837,15 +894,15 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
+	subject_has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to assign subject properties, %w", err)
 	}
 
-	if has_changed {
+	if subject_has_changed {
 
-		_, err = sfom_writer.WriteBytes(ctx, subject_wr, new_subject)
+		_, err = sfom_writer.WriteBytes(ctx, subject_mw, new_subject)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write subject update, %w", err)
@@ -869,5 +926,59 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
 	}
 
-	return new_body, nil
+	//
+
+	depiction_buf_writer.Flush()
+	subject_buf_writer.Flush()
+
+	fc := geojson.NewFeatureCollection()
+
+	var new_subject_b []byte
+
+	if subject_has_changed {
+		new_subject_b = subject_buf.Bytes()
+	} else {
+		new_subject_b = subject_body
+	}
+
+	new_subject_f, err := geojson.UnmarshalFeature(new_subject_b)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w", err)
+	}
+
+	fc.Append(new_subject_f)
+
+	if depiction_has_changed {
+
+		new_depiction_b := depiction_buf.Bytes()
+
+		new_depiction_fc, err := geojson.UnmarshalFeatureCollection(new_depiction_b)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w '%s'", err, string(new_depiction_b))
+		}
+
+		for _, f := range new_depiction_fc.Features {
+			fc.Append(f)
+		}
+	}
+
+	/*
+		new_alt_f, err := geojson.UnmarshalFeature(alt_body)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to unmarshal feature from alt body, %w", err)
+		}
+
+		fc.Append(new_alt_f)
+	*/
+
+	fc_body, err := fc.MarshalJSON()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to marshal feature collection, %w", err)
+	}
+
+	return fc_body, nil
 }

@@ -19,6 +19,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-format v0.4.1
 	github.com/whosonfirst/go-whosonfirst-reader v1.0.1
 	github.com/whosonfirst/go-whosonfirst-uri v1.2.0
+	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.0
 	github.com/whosonfirst/go-writer-github/v3 v3.0.1
 	github.com/whosonfirst/go-writer/v3 v3.1.0
 	gocloud.dev v0.27.0
