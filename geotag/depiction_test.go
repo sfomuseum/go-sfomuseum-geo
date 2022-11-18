@@ -128,6 +128,12 @@ func TestUpdateDepiction(t *testing.T) {
 				t.Fatalf("Failed to find geotag:whosonfirst property in feature at offset %d", idx)
 			}
 
+			hier_rsp := wof_rsp.Get("wof:hierarchy")
+
+			if !hier_rsp.Exists() {
+				t.Fatalf("Failed to find geotag:whosonfirst.wof:hierarchy property in feature at offset %d", idx)
+			}
+
 			id_rsp := wof_rsp.Get("wof:id")
 
 			if !id_rsp.Exists() {

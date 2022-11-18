@@ -297,7 +297,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	subject_updates["geometry.type"] = "MultiPoint"
 	subject_updates["geometry.coordinates"] = coords
 
-	subject_updates["properties.geotag:whosonfirst"] = map[string]interface{}{
+	subject_wof := map[string]interface{}{
 		"wof:id": parent_id,
 	}
 
@@ -309,7 +309,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		subject_updates["properties.wof:parent_id"] = id_rsp.Int()
 
 		parent_hierarchies := properties.Hierarchies(parent_f)
-		subject_updates["properties.geotag:whosonfirst.wof:hierarchy"] = parent_hierarchies
+		subject_wof["wof:hierarchy"] = parent_hierarchies
 
 		to_copy := []string{
 			"properties.iso:country",
@@ -325,6 +325,8 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 			}
 		}
 	}
+
+	subject_updates["properties.geotag:whosonfirst"] = subject_wof
 
 	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
 
