@@ -3,7 +3,7 @@ module github.com/sfomuseum/go-sfomuseum-geo
 go 1.19
 
 require (
-	github.com/aws/aws-lambda-go v1.34.1
+	github.com/aws/aws-lambda-go v1.35.0
 	github.com/paulmach/orb v0.7.1
 	github.com/sfomuseum/go-flags v0.10.0
 	github.com/sfomuseum/go-geojson-geotag v1.0.0
@@ -11,9 +11,9 @@ require (
 	github.com/tidwall/gjson v1.14.3
 	github.com/tidwall/sjson v1.2.5
 	github.com/whosonfirst/go-ioutil v1.0.2
-	github.com/whosonfirst/go-reader v1.0.1
-	github.com/whosonfirst/go-reader-findingaid v0.13.0
-	github.com/whosonfirst/go-reader-github v0.6.1
+	github.com/whosonfirst/go-reader v1.0.2
+	github.com/whosonfirst/go-reader-findingaid v0.14.2
+	github.com/whosonfirst/go-reader-github v0.6.2
 	github.com/whosonfirst/go-whosonfirst-export/v2 v2.6.0
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.24
 	github.com/whosonfirst/go-whosonfirst-format v0.4.1
@@ -27,7 +27,7 @@ require (
 
 require (
 	github.com/aaronland/go-artisanal-integers v0.9.1 // indirect
-	github.com/aaronland/go-aws-dynamodb v0.0.3 // indirect
+	github.com/aaronland/go-aws-dynamodb v0.0.5 // indirect
 	github.com/aaronland/go-aws-session v0.0.6 // indirect
 	github.com/aaronland/go-brooklynintegers-api v1.2.6 // indirect
 	github.com/aaronland/go-pool/v2 v2.0.0 // indirect
@@ -38,7 +38,7 @@ require (
 	github.com/aaronland/go-uid-proxy v0.0.2 // indirect
 	github.com/aaronland/go-uid-whosonfirst v0.0.2 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
-	github.com/aws/aws-sdk-go v1.44.68 // indirect
+	github.com/aws/aws-sdk-go v1.44.134 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.16.8 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.15.15 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.10 // indirect
@@ -61,27 +61,29 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jtacoma/uritemplates v1.0.0 // indirect
-	github.com/mattn/go-sqlite3 v1.14.12 // indirect
+	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/sfomuseum/go-edtf v1.1.1 // indirect
 	github.com/sfomuseum/go-sfomuseum-export/v2 v2.3.7 // indirect
-	github.com/sfomuseum/runtimevar v1.0.0 // indirect
+	github.com/sfomuseum/runtimevar v1.0.3 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/whosonfirst/go-reader-http v0.3.1 // indirect
-	github.com/whosonfirst/go-whosonfirst-findingaid/v2 v2.5.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-findingaid/v2 v2.7.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.4.4 // indirect
 	github.com/whosonfirst/go-whosonfirst-id v1.0.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-writer/v3 v3.0.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/ratelimit v0.2.0 // indirect
-	golang.org/x/net v0.0.0-20220802222814-0bcc04d9c69b // indirect
+	golang.org/x/net v0.1.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220808172628-8227340efae7 // indirect
-	golang.org/x/sys v0.0.0-20220731174439-a90be440212d // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/api v0.91.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

@@ -24,7 +24,7 @@ const WHOSONFIRST_DATA_TEMPLATE string = "https://raw.githubusercontent.com/whos
 // type FindingAidReader implements the `whosonfirst/go-reader` interface for use with Who's On First finding aids.
 type FindingAidReader struct {
 	wof_reader.Reader
-	// A SQLite `sql.DB` instance containing Who's On First finding aid data.
+	// A SQLite `sql.DB` instance containing Who's On First finding aid data. (Optional)
 	db *sql.DB
 	// A compiled `uritemplates.UriTemplate` to use resolving Who's On First finding aid URIs.
 	template *uritemplates.UriTemplate
@@ -53,6 +53,12 @@ func NewFindingAidReader(ctx context.Context, uri string) (wof_reader.Reader, er
 
 	if q.Get("template") != "" {
 		uri_template = q.Get("template")
+	}
+
+	uri_template, err = url.QueryUnescape(uri_template)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unescape ?template= parameter, %w", err)
 	}
 
 	t, err := uritemplates.Parse(uri_template)
@@ -90,7 +96,7 @@ func NewFindingAidReader(ctx context.Context, uri string) (wof_reader.Reader, er
 		}
 
 		ru.RawQuery = u.RawQuery
-		
+
 	default:
 
 		path := u.Path
@@ -171,7 +177,7 @@ func (r *FindingAidReader) getReaderURIAndPath(ctx context.Context, uri string) 
 	if err != nil {
 		return "", "", fmt.Errorf("Failed to parse URI, %w", err)
 	}
-	
+
 	repo, err := r.resolver.GetRepo(ctx, id)
 
 	if err != nil {

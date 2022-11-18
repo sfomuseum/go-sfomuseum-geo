@@ -123,9 +123,14 @@ const (
 	// "DocumentPermissionLimit".
 	//
 	// The document can't be shared with more Amazon Web Services user accounts.
-	// You can share a document with a maximum of 20 accounts. You can publicly
-	// share up to five documents. If you need to increase this limit, contact Amazon
-	// Web Services Support.
+	// You can specify a maximum of 20 accounts per API operation to share a private
+	// document.
+	//
+	// By default, you can share a private document with a maximum of 1,000 accounts
+	// and publicly share up to five documents.
+	//
+	// If you need to increase the quota for privately or publicly shared Systems
+	// Manager documents, contact Amazon Web Services Support.
 	ErrCodeDocumentPermissionLimit = "DocumentPermissionLimit"
 
 	// ErrCodeDocumentVersionLimitExceeded for service response error code
@@ -510,6 +515,12 @@ const (
 	//
 	// The schedule is invalid. Verify your cron or rate expression and try again.
 	ErrCodeInvalidSchedule = "InvalidSchedule"
+
+	// ErrCodeInvalidTag for service response error code
+	// "InvalidTag".
+	//
+	// The specified tag key or value isn't valid.
+	ErrCodeInvalidTag = "InvalidTag"
 
 	// ErrCodeInvalidTarget for service response error code
 	// "InvalidTarget".
@@ -943,6 +954,7 @@ var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
 	"InvalidResultAttributeException":                newErrorInvalidResultAttributeException,
 	"InvalidRole":                                    newErrorInvalidRole,
 	"InvalidSchedule":                                newErrorInvalidSchedule,
+	"InvalidTag":                                     newErrorInvalidTag,
 	"InvalidTarget":                                  newErrorInvalidTarget,
 	"InvalidTargetMaps":                              newErrorInvalidTargetMaps,
 	"InvalidTypeNameException":                       newErrorInvalidTypeNameException,
