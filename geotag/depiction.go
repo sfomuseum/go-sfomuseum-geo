@@ -289,6 +289,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	subject_updates["geometry.type"] = "MultiPoint"
 	subject_updates["geometry.coordinates"] = coords
+	subject_updates["properties.geotag:whosonfirst_id"] = parent_id
 
 	// Update the parent ID and hierarchy for the subject
 
@@ -337,6 +338,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		"properties.geotag:camera_latitude":  camera_coords[1],
 		"properties.geotag:target_longitude": target_coords[0],
 		"properties.geotag:target_latitude":  target_coords[1],
+		"properties.geotag:whosonfirst_id":   parent_id,
 	}
 
 	to_copy := []string{
