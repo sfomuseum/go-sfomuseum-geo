@@ -2,8 +2,10 @@ package geotag
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	geojson "github.com/sfomuseum/go-geojson-geotag"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-writer/v3"
 	"io"
@@ -55,10 +57,10 @@ func TestUpdateDepiction(t *testing.T) {
 	}
 
 	img_reader_uri := fmt.Sprintf("repo://%s/sfomuseum-data-media-collection", path_fixtures)
-	img_writer_uri := "stdout://"
+	img_writer_uri := "null://"
 
 	obj_reader_uri := fmt.Sprintf("repo://%s/sfomuseum-data-collection", path_fixtures)
-	obj_writer_uri := "stdout://"
+	obj_writer_uri := "null://"
 
 	arch_reader_uri := fmt.Sprintf("repo://%s/sfomuseum-data-architecture", path_fixtures)
 
@@ -102,9 +104,55 @@ func TestUpdateDepiction(t *testing.T) {
 		SubjectWriterURI:   obj_writer_uri,
 	}
 
-	_, err = UpdateDepiction(ctx, opts, update)
+	body, err := UpdateDepiction(ctx, opts, update)
 
 	if err != nil {
 		t.Fatalf("Failed to update depiction, %v", err)
+	}
+
+	features_rsp := gjson.GetBytes(body, "features")
+
+	count_features := len(features_rsp.Array())
+
+	if count_features != 3 {
+		t.Fatalf("Expected to find 2 features,, but got %d", count_features)
+	}
+
+	for idx, f_rsp := range features_rsp.Array() {
+
+		if idx < 2 {
+
+			wof_rsp := f_rsp.Get("properties.geotag:whosonfirst")
+
+			if !wof_rsp.Exists() {
+				t.Fatalf("Failed to find geotag:whosonfirst property in feature at offset %d", idx)
+			}
+
+			id_rsp := wof_rsp.Get("wof:id")
+
+			if !id_rsp.Exists() {
+				t.Fatalf("Failed to find geotag:whosonfirst.wof:id property in feature at offset %d", idx)
+			}
+
+			if id_rsp.Int() != parent_id {
+				t.Fatalf("Invalid geotag:whosonfirst.wof:id property. Expected %d but got %d", parent_id, id_rsp.Int())
+			}
+		}
+	}
+
+	var tmp map[string]interface{}
+	err = json.Unmarshal(body, &tmp)
+
+	if err != nil {
+		t.Fatalf("Failed to unmarshal update, %v", err)
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", " ")
+
+	err = enc.Encode(tmp)
+
+	if err != nil {
+		t.Fatalf("Failed to encode update, %v", err)
 	}
 }
