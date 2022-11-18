@@ -35,16 +35,17 @@ type UpdateDepictionOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
 	DepictionReader reader.Reader
 	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
-	DepictionWriter writer.Writer
-	// A valid whosonfirst/go-reader.Reader instance for reading subject features.
+	DepictionWriter    writer.Writer
 	DepictionWriterURI string
-	SubjectReader      reader.Reader
+	// A valid whosonfirst/go-reader.Reader instance for reading subject features.
+	SubjectReader reader.Reader
 	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
 	SubjectWriter    writer.Writer
 	SubjectWriterURI string
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	ParentReader reader.Reader
-	Author       string
+	// The name of the person (or process) updating a depiction.
+	Author string
 }
 
 // UpdateDepiction will update the geometries and relevant properties for SFOM/WOF records 'depiction_id' and 'subject_id' using
@@ -176,11 +177,15 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	subject_id := parent_rsp.Int()
 
+	// subject_f is the feature that parents the depiction (for example an object that has one or more depictions)
+
 	subject_f, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load subject record %d, %w", subject_id, err)
 	}
+
+	// parent_f is the Who's On First place feature that parent/contains a geotagging geometry
 
 	var parent_f []byte
 
@@ -249,7 +254,8 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	coords := make([][]float64, 0)
 	coords = append(coords, camera_coord)
 
-	// Fetch others
+	// Fetch other depictions for a given subject; we do this in order to generate
+	// a MultiPoint geometry of all the depictions for a subject
 
 	for _, other_id := range depictions {
 
@@ -299,14 +305,18 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		subject_updates["properties.wof:parent_id"] = id_rsp.Int()
 
 		to_copy := []string{
-			"properties.wof:hierarchy",
+			// "properties.wof:hierarchy",
 			"properties.iso:country",
 			"properties.wof:country",
 		}
 
 		for _, path := range to_copy {
-			rsp := gjson.GetBytes(subject_f, path)
-			subject_updates[path] = rsp.Value()
+
+			rsp := gjson.GetBytes(parent_f, path)
+
+			if rsp.Exists() {
+				subject_updates[path] = rsp.Value()
+			}
 		}
 	}
 
@@ -318,7 +328,6 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	if subject_changed {
 
-		// _, err := sfom_writer.WriteBytes(ctx, subject_writer, subject_f)
 		_, err := sfom_writer.WriteBytes(ctx, subject_mw, subject_f)
 
 		if err != nil {
@@ -342,7 +351,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	}
 
 	to_copy := []string{
-		"properties.wof:hierarchy",
+		// "properties.wof:hierarchy",
 		"properties.iso:country",
 		"properties.wof:country",
 		"properties.edtf:inception",
@@ -351,8 +360,12 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	}
 
 	for _, path := range to_copy {
+
 		rsp := gjson.GetBytes(subject_f, path)
-		depiction_updates[path] = rsp.Value()
+
+		if rsp.Exists() {
+			depiction_updates[path] = rsp.Value()
+		}
 	}
 
 	geom_alt := []string{
