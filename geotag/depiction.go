@@ -378,6 +378,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	to_copy := []string{
 		"properties.geotag:whosonfirst",
+		"properties.geotag:depictions",		
 		"properties.iso:country",
 		"properties.wof:country",
 		"properties.edtf:inception",
