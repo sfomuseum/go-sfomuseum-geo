@@ -19,6 +19,7 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer/v3"
+	"sync"
 )
 
 // type Depiction is a struct definining properties for updating geotagging information in an depiction and its parent subject.
@@ -310,6 +311,24 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 		parent_hierarchies := properties.Hierarchies(parent_f)
 		subject_wof["wof:hierarchy"] = parent_hierarchies
+
+		depicts_map := new(sync.Map)
+
+		for _, parent_h := range parent_hierarchies {
+
+			for _, id := range parent_h {
+				depicts_map.Store(id, true)
+			}
+		}
+
+		depicts := make([]int64, 0)
+
+		depicts_map.Range(func(k interface{}, v interface{}) bool {
+			depicts = append(depicts, k.(int64))
+			return true
+		})
+
+		subject_updates["properties.geotag:depictions"] = depicts
 
 		to_copy := []string{
 			"properties.iso:country",
