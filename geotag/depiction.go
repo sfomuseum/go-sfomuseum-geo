@@ -312,23 +312,23 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		parent_hierarchies := properties.Hierarchies(parent_f)
 		subject_wof["wof:hierarchy"] = parent_hierarchies
 
-		depicts_map := new(sync.Map)
+		belongsto_map := new(sync.Map)
 
 		for _, parent_h := range parent_hierarchies {
 
 			for _, id := range parent_h {
-				depicts_map.Store(id, true)
+				belongsto_map.Store(id, true)
 			}
 		}
 
-		depicts := make([]int64, 0)
+		belongsto := make([]int64, 0)
 
-		depicts_map.Range(func(k interface{}, v interface{}) bool {
-			depicts = append(depicts, k.(int64))
+		belongsto_map.Range(func(k interface{}, v interface{}) bool {
+			belongsto = append(belongsto, k.(int64))
 			return true
 		})
 
-		subject_updates["properties.geotag:depictions"] = depicts
+		subject_wof["wof:belongsto"] = belongsto
 
 		to_copy := []string{
 			"properties.iso:country",
