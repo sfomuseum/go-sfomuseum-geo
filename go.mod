@@ -17,6 +17,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-export/v2 v2.6.0
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.24
 	github.com/whosonfirst/go-whosonfirst-format v0.4.1
+	github.com/whosonfirst/go-whosonfirst-id v1.0.0
 	github.com/whosonfirst/go-whosonfirst-reader v1.0.1
 	github.com/whosonfirst/go-whosonfirst-uri v1.2.0
 	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.0
@@ -75,7 +76,6 @@ require (
 	github.com/whosonfirst/go-reader-http v0.3.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-findingaid/v2 v2.7.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.4.4 // indirect
-	github.com/whosonfirst/go-whosonfirst-id v1.0.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-writer/v3 v3.0.0 // indirect
 	go.opencensus.io v0.23.0 // indirect

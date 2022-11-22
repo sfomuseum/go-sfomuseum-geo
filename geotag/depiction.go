@@ -17,6 +17,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
+	"github.com/whosonfirst/go-whosonfirst-id"	
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer/v3"
 	"sync"
@@ -317,7 +318,9 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		for _, parent_h := range parent_hierarchies {
 
 			for _, id := range parent_h {
-				belongsto_map.Store(id, true)
+				if id >= id.EARTH {
+					belongsto_map.Store(id, true)
+				}
 			}
 		}
 
