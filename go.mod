@@ -17,7 +17,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-export/v2 v2.6.0
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.24
 	github.com/whosonfirst/go-whosonfirst-format v0.4.1
-	github.com/whosonfirst/go-whosonfirst-id v1.0.0
+	github.com/whosonfirst/go-whosonfirst-id v1.2.0
 	github.com/whosonfirst/go-whosonfirst-reader v1.0.1
 	github.com/whosonfirst/go-whosonfirst-uri v1.2.0
 	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.0
