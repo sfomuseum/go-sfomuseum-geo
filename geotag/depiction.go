@@ -307,9 +307,6 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	if parent_f != nil {
 
-		id_rsp := gjson.GetBytes(parent_f, "properties.wof:id")
-		subject_updates["properties.wof:parent_id"] = id_rsp.Int()
-
 		parent_hierarchies := properties.Hierarchies(parent_f)
 		subject_wof["wof:hierarchy"] = parent_hierarchies
 
