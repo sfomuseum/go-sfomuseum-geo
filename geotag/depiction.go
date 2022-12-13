@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/paulmach/orb/geojson"
-	"github.com/sfomuseum/go-geojson-geotag"
+	"github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
 	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v3"
@@ -16,8 +16,8 @@ import (
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	wof "github.com/whosonfirst/go-whosonfirst-id"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
-	wof "github.com/whosonfirst/go-whosonfirst-id"	
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer/v3"
 	"sync"
@@ -85,8 +85,14 @@ type UpdateDepictionOptions struct {
 func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *Depiction) ([]byte, error) {
 
 	depiction_id := update.DepictionId
-	parent_id := update.ParentId
+	// v1
+	// parent_id := update.ParentId
 	geotag_f := update.Feature
+
+	// v2
+	geotag_props := geotag_f.Properties
+	camera_parent_id := geotag_props.Camera.ParentId
+	target_parent_id := geotag_props.Target.ParentId
 
 	// START OF to refactor with go-writer/v4 (clone) release
 
@@ -190,17 +196,36 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	// parent_f is the Who's On First place feature that parent/contains a geotagging geometry
 
-	var parent_f []byte
+	// v1
+	// var parent_f []byte
 
-	if parent_id != -1 {
+	// v2
 
-		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, parent_id)
+	var camera_parent_f []byte
+	var target_parent_f []byte
+
+	if camera_parent_id != -1 {
+
+		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, camera_parent_id)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to load parent record %d, %w", parent_id, err)
+			return nil, fmt.Errorf("Failed to load parent record %d, %w", camera_parent_id, err)
 		}
 
-		parent_f = f
+		camera_parent_f = f
+	}
+
+	if target_parent_id != -1 {
+
+		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, target_parent_id)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to load parent record %d, %w", target_parent_id, err)
+		}
+
+		target_parent_f = f
+
+		fmt.Println("DEBUG", target_parent_f)
 	}
 
 	// Update the subject
@@ -300,14 +325,14 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	subject_updates["geometry.coordinates"] = coords
 
 	subject_wof := map[string]interface{}{
-		"wof:id": parent_id,
+		"wof:id": camera_parent_id,
 	}
 
 	// Update the parent ID and hierarchy for the subject
 
-	if parent_f != nil {
+	if camera_parent_f != nil {
 
-		parent_hierarchies := properties.Hierarchies(parent_f)
+		parent_hierarchies := properties.Hierarchies(camera_parent_f)
 		subject_wof["wof:hierarchy"] = parent_hierarchies
 
 		belongsto_map := new(sync.Map)
@@ -337,13 +362,15 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 		for _, path := range to_copy {
 
-			rsp := gjson.GetBytes(parent_f, path)
+			rsp := gjson.GetBytes(camera_parent_f, path)
 
 			if rsp.Exists() {
 				subject_updates[path] = rsp.Value()
 			}
 		}
 	}
+
+	// update me...
 
 	subject_updates["properties.geotag:whosonfirst"] = subject_wof
 
@@ -378,7 +405,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	to_copy := []string{
 		"properties.geotag:whosonfirst",
-		"properties.geotag:depictions",		
+		"properties.geotag:depictions",
 		"properties.iso:country",
 		"properties.wof:country",
 		"properties.edtf:inception",

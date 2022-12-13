@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	geojson "github.com/sfomuseum/go-geojson-geotag"
+	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	geotag "github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"log"
 	"os"

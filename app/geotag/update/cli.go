@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	geojson "github.com/sfomuseum/go-geojson-geotag"
+	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"os"
 )

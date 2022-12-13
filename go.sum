@@ -1346,8 +1346,8 @@ github.com/sfomuseum/go-flags v0.7.0/go.mod h1:ML3DTNbF9xnjExSdS/9FtVLjIUhRU5gm/
 github.com/sfomuseum/go-flags v0.8.3/go.mod h1:VXOnnX1/yxQpX2yiwHaBV6aCmhtszQOL5bL1/nNo3co=
 github.com/sfomuseum/go-flags v0.10.0 h1:1OC1ACxpWMsl3XQ9OeNVMQj7Zi2CzufP3Rym3mPI8HU=
 github.com/sfomuseum/go-flags v0.10.0/go.mod h1:VXOnnX1/yxQpX2yiwHaBV6aCmhtszQOL5bL1/nNo3co=
-github.com/sfomuseum/go-geojson-geotag v1.0.0 h1:a1limWrPszcW0Hs8YKxwow1FY0/kK4AAz2q7ybWpBDQ=
-github.com/sfomuseum/go-geojson-geotag v1.0.0/go.mod h1:KC3HmXH9Aws5v5iPzCukiNGUlLfHITZAqFVLqvi2COg=
+github.com/sfomuseum/go-geojson-geotag/v2 v2.0.0 h1:rURaNpyMFLNDPGkNNHpCvuaFis0ohxHYJtp+uWZL9/M=
+github.com/sfomuseum/go-geojson-geotag/v2 v2.0.0/go.mod h1:rgEW52oCyyXNm11kjtAh+fM7jbB506qDq4GqGEJmpzY=
 github.com/sfomuseum/go-sfomuseum-export/v2 v2.3.7 h1:Iyww9GEtv6AvQTaPdZRsWA6lnlsapt/GyUhp8ie8z/c=
 github.com/sfomuseum/go-sfomuseum-export/v2 v2.3.7/go.mod h1:M7HapFTwSdWsufgXrQpSOsuoq+bFjLZb31Y+uWAQYis=
 github.com/sfomuseum/go-sfomuseum-writer/v3 v3.0.0 h1:zgg8K941EleE2uuOH8NZuJxlUBfXW3CsMdYhTtE4FnI=
