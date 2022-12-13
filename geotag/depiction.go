@@ -27,9 +27,6 @@ import (
 type Depiction struct {
 	// The unique numeric identifier of the depiction being geotagged
 	DepictionId int64 `json:"depiction_id"`
-	// The unique numeric identifier of the Who's On First feature that parents the subject being geotagged
-	// DEPRECATED - commented out to trigger errors; to be removed
-	// ParentId int64 `json:"parent_id,omitempty"`
 	// The GeoJSON Feature containing geotagging information
 	Feature *geotag.GeotagFeature `json:"feature"`
 }
