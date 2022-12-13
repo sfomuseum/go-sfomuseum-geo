@@ -24,7 +24,6 @@ func runCommandLine(ctx context.Context, opts *geotag.UpdateDepictionOptions) er
 
 		update := &geotag.Depiction{
 			DepictionId: depiction_id,
-			ParentId:    parent_id,
 			Feature:     f,
 		}
 

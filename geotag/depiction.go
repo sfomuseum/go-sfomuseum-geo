@@ -29,7 +29,7 @@ type Depiction struct {
 	DepictionId int64 `json:"depiction_id"`
 	// The unique numeric identifier of the Who's On First feature that parents the subject being geotagged
 	// DEPRECATED - commented out to trigger errors; to be removed
-	ParentId int64 `json:"parent_id,omitempty"`
+	// ParentId int64 `json:"parent_id,omitempty"`
 	// The GeoJSON Feature containing geotagging information
 	Feature *geotag.GeotagFeature `json:"feature"`
 }
@@ -325,7 +325,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	subject_target_wof := map[string]interface{}{
 		"wof:id": target_parent_id,
 	}
-	
+
 	// Update the parent ID and hierarchy for the subject
 
 	if camera_parent_f != nil {
@@ -407,14 +407,14 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 			}
 		}
 	}
-	
+
 	// v1 (deprecated)
 	subject_updates["properties.geotag:whosonfirst"] = subject_camera_wof
 
 	// v2
 	subject_updates["properties.geotag:camera_whosonfirst"] = subject_camera_wof
-	subject_updates["properties.geotag:target_whosonfirst"] = subject_target_wof	
-	
+	subject_updates["properties.geotag:target_whosonfirst"] = subject_target_wof
+
 	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
 
 	if err != nil {
@@ -445,13 +445,13 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	}
 
 	to_copy := []string{
-		
+
 		// v1
 		"properties.geotag:whosonfirst",
-		// v2	
+		// v2
 		"properties.geotag:camera_whosonfirst",
 		"properties.geotag:target_whosonfirst",
-		
+
 		"properties.geotag:depictions",
 		"properties.iso:country",
 		"properties.wof:country",
