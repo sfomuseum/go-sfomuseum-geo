@@ -28,6 +28,7 @@ type Depiction struct {
 	// The unique numeric identifier of the depiction being geotagged
 	DepictionId int64 `json:"depiction_id"`
 	// The unique numeric identifier of the Who's On First feature that parents the subject being geotagged
+	// DEPRECATED - commented out to trigger errors; to be removed
 	ParentId int64 `json:"parent_id,omitempty"`
 	// The GeoJSON Feature containing geotagging information
 	Feature *geotag.GeotagFeature `json:"feature"`
@@ -85,11 +86,8 @@ type UpdateDepictionOptions struct {
 func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *Depiction) ([]byte, error) {
 
 	depiction_id := update.DepictionId
-	// v1
-	// parent_id := update.ParentId
 	geotag_f := update.Feature
 
-	// v2
 	geotag_props := geotag_f.Properties
 	camera_parent_id := geotag_props.Camera.ParentId
 	target_parent_id := geotag_props.Target.ParentId
@@ -194,12 +192,8 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		return nil, fmt.Errorf("Failed to load subject record %d, %w", subject_id, err)
 	}
 
-	// parent_f is the Who's On First place feature that parent/contains a geotagging geometry
-
-	// v1
-	// var parent_f []byte
-
-	// v2
+	// *_parent_f are the Who's On First place features that parent/contains a geotagging geometry
+	// camera is point at which a depiction was created; target is what the depiction is pointing at
 
 	var camera_parent_f []byte
 	var target_parent_f []byte
@@ -324,16 +318,20 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	subject_updates["geometry.type"] = "MultiPoint"
 	subject_updates["geometry.coordinates"] = coords
 
-	subject_wof := map[string]interface{}{
+	subject_camera_wof := map[string]interface{}{
 		"wof:id": camera_parent_id,
 	}
 
+	subject_target_wof := map[string]interface{}{
+		"wof:id": target_parent_id,
+	}
+	
 	// Update the parent ID and hierarchy for the subject
 
 	if camera_parent_f != nil {
 
 		parent_hierarchies := properties.Hierarchies(camera_parent_f)
-		subject_wof["wof:hierarchy"] = parent_hierarchies
+		subject_camera_wof["wof:hierarchy"] = parent_hierarchies
 
 		belongsto_map := new(sync.Map)
 
@@ -353,7 +351,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 			return true
 		})
 
-		subject_wof["wof:belongsto"] = belongsto
+		subject_camera_wof["wof:belongsto"] = belongsto
 
 		to_copy := []string{
 			"properties.iso:country",
@@ -370,10 +368,53 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		}
 	}
 
-	// update me...
+	if target_parent_f != nil {
 
-	subject_updates["properties.geotag:whosonfirst"] = subject_wof
+		parent_hierarchies := properties.Hierarchies(target_parent_f)
+		subject_target_wof["wof:hierarchy"] = parent_hierarchies
 
+		belongsto_map := new(sync.Map)
+
+		for _, parent_h := range parent_hierarchies {
+
+			for _, h_id := range parent_h {
+				if h_id >= wof.EARTH {
+					belongsto_map.Store(h_id, true)
+				}
+			}
+		}
+
+		belongsto := make([]int64, 0)
+
+		belongsto_map.Range(func(k interface{}, v interface{}) bool {
+			belongsto = append(belongsto, k.(int64))
+			return true
+		})
+
+		subject_target_wof["wof:belongsto"] = belongsto
+
+		to_copy := []string{
+			"properties.iso:country",
+			"properties.wof:country",
+		}
+
+		for _, path := range to_copy {
+
+			rsp := gjson.GetBytes(target_parent_f, path)
+
+			if rsp.Exists() {
+				subject_updates[path] = rsp.Value()
+			}
+		}
+	}
+	
+	// v1 (deprecated)
+	subject_updates["properties.geotag:whosonfirst"] = subject_camera_wof
+
+	// v2
+	subject_updates["properties.geotag:camera_whosonfirst"] = subject_camera_wof
+	subject_updates["properties.geotag:target_whosonfirst"] = subject_target_wof	
+	
 	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
 
 	if err != nil {
@@ -404,7 +445,13 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	}
 
 	to_copy := []string{
+		
+		// v1
 		"properties.geotag:whosonfirst",
+		// v2	
+		"properties.geotag:camera_whosonfirst",
+		"properties.geotag:target_whosonfirst",
+		
 		"properties.geotag:depictions",
 		"properties.iso:country",
 		"properties.wof:country",
