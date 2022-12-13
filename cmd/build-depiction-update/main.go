@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	geojson "github.com/sfomuseum/go-geojson-geotag"
+	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	geotag "github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"log"
 	"os"
@@ -17,7 +17,6 @@ import (
 func main() {
 
 	depiction_id := flag.Int64("depiction-id", -1, "A valid Who's On First ID of the record being depicted.")
-	parent_id := flag.Int64("parent-id", -1, "A valid Who's On First ID of the record \"parenting\" the record being depicted.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "build-update emits a JSON-encoded `geotag.Depiction` struct to STDOUT derived from command-line flags and a \"geotag\" GeoJSON Feature read from STDIN.\n")
@@ -39,7 +38,6 @@ func main() {
 
 	update := &geotag.Depiction{
 		DepictionId: *depiction_id,
-		ParentId:    *parent_id,
 		Feature:     f,
 	}
 

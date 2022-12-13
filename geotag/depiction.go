@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/paulmach/orb/geojson"
-	"github.com/sfomuseum/go-geojson-geotag"
+	"github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
 	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v3"
@@ -16,8 +16,8 @@ import (
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	wof "github.com/whosonfirst/go-whosonfirst-id"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
-	wof "github.com/whosonfirst/go-whosonfirst-id"	
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer/v3"
 	"sync"
@@ -27,8 +27,6 @@ import (
 type Depiction struct {
 	// The unique numeric identifier of the depiction being geotagged
 	DepictionId int64 `json:"depiction_id"`
-	// The unique numeric identifier of the Who's On First feature that parents the subject being geotagged
-	ParentId int64 `json:"parent_id,omitempty"`
 	// The GeoJSON Feature containing geotagging information
 	Feature *geotag.GeotagFeature `json:"feature"`
 }
@@ -85,8 +83,11 @@ type UpdateDepictionOptions struct {
 func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *Depiction) ([]byte, error) {
 
 	depiction_id := update.DepictionId
-	parent_id := update.ParentId
 	geotag_f := update.Feature
+
+	geotag_props := geotag_f.Properties
+	camera_parent_id := geotag_props.Camera.ParentId
+	target_parent_id := geotag_props.Target.ParentId
 
 	// START OF to refactor with go-writer/v4 (clone) release
 
@@ -188,19 +189,34 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		return nil, fmt.Errorf("Failed to load subject record %d, %w", subject_id, err)
 	}
 
-	// parent_f is the Who's On First place feature that parent/contains a geotagging geometry
+	// *_parent_f are the Who's On First place features that parent/contains a geotagging geometry
+	// camera is point at which a depiction was created; target is what the depiction is pointing at
 
-	var parent_f []byte
+	var camera_parent_f []byte
+	var target_parent_f []byte
 
-	if parent_id != -1 {
+	if camera_parent_id != -1 {
 
-		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, parent_id)
+		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, camera_parent_id)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to load parent record %d, %w", parent_id, err)
+			return nil, fmt.Errorf("Failed to load parent record %d, %w", camera_parent_id, err)
 		}
 
-		parent_f = f
+		camera_parent_f = f
+	}
+
+	if target_parent_id != -1 {
+
+		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, target_parent_id)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to load parent record %d, %w", target_parent_id, err)
+		}
+
+		target_parent_f = f
+
+		fmt.Println("DEBUG", target_parent_f)
 	}
 
 	// Update the subject
@@ -299,16 +315,20 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	subject_updates["geometry.type"] = "MultiPoint"
 	subject_updates["geometry.coordinates"] = coords
 
-	subject_wof := map[string]interface{}{
-		"wof:id": parent_id,
+	subject_camera_wof := map[string]interface{}{
+		"wof:id": camera_parent_id,
+	}
+
+	subject_target_wof := map[string]interface{}{
+		"wof:id": target_parent_id,
 	}
 
 	// Update the parent ID and hierarchy for the subject
 
-	if parent_f != nil {
+	if camera_parent_f != nil {
 
-		parent_hierarchies := properties.Hierarchies(parent_f)
-		subject_wof["wof:hierarchy"] = parent_hierarchies
+		parent_hierarchies := properties.Hierarchies(camera_parent_f)
+		subject_camera_wof["wof:hierarchy"] = parent_hierarchies
 
 		belongsto_map := new(sync.Map)
 
@@ -328,7 +348,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 			return true
 		})
 
-		subject_wof["wof:belongsto"] = belongsto
+		subject_camera_wof["wof:belongsto"] = belongsto
 
 		to_copy := []string{
 			"properties.iso:country",
@@ -337,7 +357,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 		for _, path := range to_copy {
 
-			rsp := gjson.GetBytes(parent_f, path)
+			rsp := gjson.GetBytes(camera_parent_f, path)
 
 			if rsp.Exists() {
 				subject_updates[path] = rsp.Value()
@@ -345,7 +365,52 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		}
 	}
 
-	subject_updates["properties.geotag:whosonfirst"] = subject_wof
+	if target_parent_f != nil {
+
+		parent_hierarchies := properties.Hierarchies(target_parent_f)
+		subject_target_wof["wof:hierarchy"] = parent_hierarchies
+
+		belongsto_map := new(sync.Map)
+
+		for _, parent_h := range parent_hierarchies {
+
+			for _, h_id := range parent_h {
+				if h_id >= wof.EARTH {
+					belongsto_map.Store(h_id, true)
+				}
+			}
+		}
+
+		belongsto := make([]int64, 0)
+
+		belongsto_map.Range(func(k interface{}, v interface{}) bool {
+			belongsto = append(belongsto, k.(int64))
+			return true
+		})
+
+		subject_target_wof["wof:belongsto"] = belongsto
+
+		to_copy := []string{
+			"properties.iso:country",
+			"properties.wof:country",
+		}
+
+		for _, path := range to_copy {
+
+			rsp := gjson.GetBytes(target_parent_f, path)
+
+			if rsp.Exists() {
+				subject_updates[path] = rsp.Value()
+			}
+		}
+	}
+
+	// v1 (deprecated)
+	subject_updates["properties.geotag:whosonfirst"] = subject_camera_wof
+
+	// v2
+	subject_updates["properties.geotag:camera_whosonfirst"] = subject_camera_wof
+	subject_updates["properties.geotag:target_whosonfirst"] = subject_target_wof
 
 	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
 
@@ -377,8 +442,14 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 	}
 
 	to_copy := []string{
+
+		// v1
 		"properties.geotag:whosonfirst",
-		"properties.geotag:depictions",		
+		// v2
+		"properties.geotag:camera_whosonfirst",
+		"properties.geotag:target_whosonfirst",
+
+		"properties.geotag:depictions",
 		"properties.iso:country",
 		"properties.wof:country",
 		"properties.edtf:inception",

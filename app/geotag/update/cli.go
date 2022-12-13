@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	geojson "github.com/sfomuseum/go-geojson-geotag"
+	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"os"
 )
@@ -24,7 +24,6 @@ func runCommandLine(ctx context.Context, opts *geotag.UpdateDepictionOptions) er
 
 		update := &geotag.Depiction{
 			DepictionId: depiction_id,
-			ParentId:    parent_id,
 			Feature:     f,
 		}
 

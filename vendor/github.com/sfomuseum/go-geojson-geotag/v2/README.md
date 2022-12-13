@@ -13,7 +13,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/sfomuseum/go-geojson-geotag"
+	"github.com/sfomuseum/go-geojson-geotag/v2"
 	"io"
 	"os"
 )

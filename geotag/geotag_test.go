@@ -2,7 +2,7 @@ package geotag
 
 import (
 	"encoding/json"
-	geojson "github.com/sfomuseum/go-geojson-geotag"
+	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	"os"
 	"testing"
 )

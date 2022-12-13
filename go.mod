@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-lambda-go v1.35.0
 	github.com/paulmach/orb v0.7.1
 	github.com/sfomuseum/go-flags v0.10.0
-	github.com/sfomuseum/go-geojson-geotag v1.0.0
+	github.com/sfomuseum/go-geojson-geotag/v2 v2.0.0
 	github.com/sfomuseum/go-sfomuseum-writer/v3 v3.0.0
 	github.com/tidwall/gjson v1.14.3
 	github.com/tidwall/sjson v1.2.5

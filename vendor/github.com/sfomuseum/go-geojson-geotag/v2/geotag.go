@@ -3,22 +3,39 @@ package geotag
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 )
+
+// CameraProperties is a struct containing Who's On First pointers for the point where the "camera" is located.
+type CameraProperties struct {
+	// The ID of the Who's On First (WOF) feature that immediately parents the point where the "camera" is located.
+	ParentId int64 `json:"wof:parent_id,omitempty"`
+	// The ID of the Who's On First (WOF) hierarchy of ancestors that parents the point where the "camera" is located.
+	Hierarchy []map[string]int64 `json:"wof:hierarchy,omitempty"`
+}
+
+// TargetProperties is a struct containing Who's On First pointers for the point where the "camera" is pointed.
+type TargetProperties struct {
+	// The ID of the Who's On First (WOF) feature that immediately parents the point targeted by the "camera".
+	ParentId int64 `json:"wof:parent_id,omitempty"`
+	// The ID of the Who's On First (WOF) hierarchy of ancestors that parents the point targeted by the "camera".
+	Hierarchy []map[string]int64 `json:"wof:hierarchy,omitempty"`
+}
 
 // GeotagProperties defines properties exported by the `Leaflet.GeotagPhoto` package
 // and, optionally, by the sfomuseum/go-www-geotag package.
 type GeotagProperties struct {
 	// The angle for the field of view
-	Angle     float64            `json:"angle"`
+	Angle float64 `json:"geotag:angle"`
 	// The bearing for camera
-	Bearing   float64            `json:"bearing"`
+	Bearing float64 `json:"geotag:bearing"`
 	// The distance from the camera to the center point of the field of view's edges.
-	Distance  float64            `json:"distance"`
-	// The ID of the Who's On First (WOF) feature that immediately parents this feature.
-	ParentId  int64              `json:"wof:parent_id,omitempty"`
-	// The ID of the Who's On First (WOF) hierarchy of ancestors that parents this feature.	
-	Hierarchy []map[string]int64 `json:"wof:hierarchy,omitempty"`
+	Distance float64 `json:"geotag:distance"`
+	// Camera is a `CameraProperties` instance containing Who's On First pointers for the point where the "camera" is located.
+	Camera *CameraProperties `json:"geotag:camera"`
+	// Target is a `TargetProperties` instance containing Who's On First pointers for the point where the "camera" is pointed.
+	Target *TargetProperties `json:"geotag:target"`
 }
 
 // GeotagCoordinate defines a longitude, latitude coorindate.
@@ -27,45 +44,45 @@ type GeotagCoordinate [2]float64
 // GeotagPoint defines a GeoJSON `Point` geometry element.
 type GeotagPoint struct {
 	// The GeoJSON type for this geometry. It is expected to be `Point`
-	Type        string           `json:"type"`
+	Type string `json:"type"`
 	// The GeoJSON coordinates associated with this struct.
 	Coordinates GeotagCoordinate `json:"coordinates"`
 }
 
 // GeotagPoint defines a GeoJSON `LineString` geometry element.
 type GeotagLineString struct {
-	// The GeoJSON type for this geometry. It is expected to be `LineString`	
-	Type        string              `json:"type"`
-	// The GeoJSON coordinates associated with this struct.	
+	// The GeoJSON type for this geometry. It is expected to be `LineString`
+	Type string `json:"type"`
+	// The GeoJSON coordinates associated with this struct.
 	Coordinates [2]GeotagCoordinate `json:"coordinates"`
 }
 
 // GeotagPolygon defines a GeoJSON `Polygon` geometry element.
 type GeotagPolygon struct {
 	// The GeoJSON type for this geometry. It is expected to be `Polygon`
-	Type        string               `json:"type"`
-	// The GeoJSON coordinates associated with this struct.	
+	Type string `json:"type"`
+	// The GeoJSON coordinates associated with this struct.
 	Coordinates [][]GeotagCoordinate `json:"coordinates"`
 }
 
 // GeotagGeometryCollection defines a GeoJSON `GeometryCollection` geometry element.
 type GeotagGeometryCollection struct {
 	// The GeoJSON type for this geometry. It is expected to be `GeometryCollection`
-	Type       string         `json:"type"`
-	// The GeoJSON coordinates associated with this struct.	
+	Type string `json:"type"`
+	// The GeoJSON coordinates associated with this struct.
 	Geometries [2]interface{} `json:"geometries"`
 }
 
 // GeotagFeature defines a GeoJSON Feature produced by the `Leaflet.GeotagPhoto` package
 type GeotagFeature struct {
 	// The unique ID associated with this feature.
-	Id         string                   `json:"id,omitempty"`
-	// The GeoJSON type for this feature. It is expected to be `Feature`	
-	Type       string                   `json:"type"`
-	// The GeoJSON coordinates associated with this struct.	
-	Geometry   GeotagGeometryCollection `json:"geometry"`
-	// The metadata properties associated with this feature.	
-	Properties GeotagProperties         `json:"properties"`
+	Id string `json:"id,omitempty"`
+	// The GeoJSON type for this feature. It is expected to be `Feature`
+	Type string `json:"type"`
+	// The GeoJSON coordinates associated with this struct.
+	Geometry GeotagGeometryCollection `json:"geometry"`
+	// The metadata properties associated with this feature.
+	Properties GeotagProperties `json:"properties"`
 }
 
 // NewGeotagFeatureWithReader returns a new `GeotagFeature` reading data from 'body'.
@@ -84,10 +101,10 @@ func NewGeotagFeatureWithReader(r io.Reader) (*GeotagFeature, error) {
 	err := decoder.Decode(&f)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to decode feature, %w", err)
 	}
 
-	return f, err
+	return f, nil
 }
 
 // Target returns the coordinate at the center of the "horizon line" for f
@@ -97,7 +114,7 @@ func (f *GeotagFeature) Target() (*GeotagPoint, error) {
 	hl, err := f.HorizonLine()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to derive horizon line, %w", err)
 	}
 
 	coords := hl.Coordinates
@@ -129,14 +146,14 @@ func (f *GeotagFeature) PointOfView() (*GeotagPoint, error) {
 	enc, err := json.Marshal(raw)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to marshal geometries, %w", err)
 	}
 
 	var pov *GeotagPoint
 	err = json.Unmarshal(enc, &pov)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to unmarshal point of view, %w", err)
 	}
 
 	return pov, nil
@@ -150,14 +167,14 @@ func (f *GeotagFeature) HorizonLine() (*GeotagLineString, error) {
 	enc, err := json.Marshal(raw)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to marshal geometry, %w", err)
 	}
 
 	var ls *GeotagLineString
 	err = json.Unmarshal(enc, &ls)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to unmarshal line string, %w", err)
 	}
 
 	return ls, nil
@@ -170,13 +187,13 @@ func (f *GeotagFeature) FieldOfView() (*GeotagPolygon, error) {
 	pov, err := f.PointOfView()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to derive point of view, %w", err)
 	}
 
 	hl, err := f.HorizonLine()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to derive horizon line, %w", err)
 	}
 
 	coords := make([]GeotagCoordinate, 0)
