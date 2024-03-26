@@ -3,6 +3,7 @@ package geometry
 import (
 	"context"
 	"fmt"
+	
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/planar"

@@ -2,9 +2,10 @@ package geotag
 
 import (
 	"encoding/json"
-	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	"os"
 	"testing"
+
+	geojson "github.com/sfomuseum/go-geojson-geotag/v2"	
 )
 
 func TestGeotagDepiction(t *testing.T) {

@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
-	"github.com/tidwall/gjson"
-	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-writer/v3"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
+	"github.com/tidwall/gjson"
+	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-writer/v3"	
 )
 
 func TestUpdateDepiction(t *testing.T) {

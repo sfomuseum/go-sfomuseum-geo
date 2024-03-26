@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/github"
-	wof_writer "github.com/whosonfirst/go-writer/v3"
-	"golang.org/x/oauth2"
 	"io"
 	"log"
 	"net/url"
@@ -14,6 +11,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/go-github/v48/github"
+	wof_writer "github.com/whosonfirst/go-writer/v3"
+	"golang.org/x/oauth2"
 )
 
 const GITHUBAPI_TREE_SCHEME string = "githubapi-tree"
@@ -29,7 +30,7 @@ type GitHubAPITreeWriter struct {
 	commit_author      string
 	commit_email       string
 	commit_description string
-	commit_entries     []github.TreeEntry
+	commit_entries     []*github.TreeEntry
 	commit_ensure_repo bool
 	prefix             string
 	client             *github.Client
@@ -125,7 +126,7 @@ func NewGitHubAPITreeWriter(ctx context.Context, uri string) (wof_writer.Writer,
 		return nil, fmt.Errorf("Invalid email address")
 	}
 
-	commit_entries := []github.TreeEntry{}
+	commit_entries := []*github.TreeEntry{}
 
 	logger := log.Default()
 
@@ -168,7 +169,7 @@ func (wr *GitHubAPITreeWriter) Write(ctx context.Context, uri string, r io.ReadS
 
 	wr_uri := wr.WriterURI(ctx, uri)
 
-	e := github.TreeEntry{
+	e := &github.TreeEntry{
 		Path:    github.String(wr_uri),
 		Type:    github.String("blob"),
 		Content: github.String(string(body)),
@@ -214,7 +215,7 @@ func (wr *GitHubAPITreeWriter) Flush(ctx context.Context) error {
 		return fmt.Errorf("Failed to push commit, %w", err)
 	}
 
-	wr.commit_entries = []github.TreeEntry{}
+	wr.commit_entries = []*github.TreeEntry{}
 	return nil
 }
 
@@ -271,7 +272,9 @@ func (wr *GitHubAPITreeWriter) pushCommit(ctx context.Context, ref *github.Refer
 
 	// Get the parent commit to attach the commit to.
 
-	parent, _, err := wr.client.Repositories.GetCommit(ctx, wr.commit_owner, wr.commit_repo, *ref.Object.SHA)
+	list_opts := &github.ListOptions{}
+
+	parent, _, err := wr.client.Repositories.GetCommit(ctx, wr.commit_owner, wr.commit_repo, *ref.Object.SHA, list_opts)
 
 	if err != nil {
 		return fmt.Errorf("Failed to determine parent commit, %w", err)
@@ -289,8 +292,8 @@ func (wr *GitHubAPITreeWriter) pushCommit(ctx context.Context, ref *github.Refer
 		Email: &wr.commit_email,
 	}
 
-	parents := []github.Commit{
-		*parent.Commit,
+	parents := []*github.Commit{
+		parent.Commit,
 	}
 
 	commit := &github.Commit{

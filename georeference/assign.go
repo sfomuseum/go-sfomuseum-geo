@@ -9,6 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
@@ -22,10 +26,7 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer-featurecollection/v3"
-	"github.com/whosonfirst/go-writer/v3"
-	"log"
-	"sync"
-	"time"
+	"github.com/whosonfirst/go-writer/v3"	
 )
 
 // AssignReferencesOptions defines a struct for reading/writing options when updating geo-related information in depictions.

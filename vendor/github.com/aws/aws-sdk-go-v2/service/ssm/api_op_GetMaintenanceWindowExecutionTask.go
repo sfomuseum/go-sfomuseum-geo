@@ -4,8 +4,8 @@ package ssm
 
 import (
 	"context"
+	"fmt"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
@@ -31,8 +31,8 @@ func (c *Client) GetMaintenanceWindowExecutionTask(ctx context.Context, params *
 
 type GetMaintenanceWindowExecutionTaskInput struct {
 
-	// The ID of the specific task execution in the maintenance window task that should
-	// be retrieved.
+	// The ID of the specific task execution in the maintenance window task that
+	// should be retrieved.
 	//
 	// This member is required.
 	TaskId *string
@@ -47,14 +47,18 @@ type GetMaintenanceWindowExecutionTaskInput struct {
 
 type GetMaintenanceWindowExecutionTaskOutput struct {
 
+	// The details for the CloudWatch alarm you applied to your maintenance window
+	// task.
+	AlarmConfiguration *types.AlarmConfiguration
+
 	// The time the task execution completed.
 	EndTime *time.Time
 
 	// The defined maximum number of task executions that could be run in parallel.
 	MaxConcurrency *string
 
-	// The defined maximum number of task execution errors allowed before scheduling of
-	// the task execution would have been stopped.
+	// The defined maximum number of task execution errors allowed before scheduling
+	// of the task execution would have been stopped.
 	MaxErrors *string
 
 	// The priority of the task.
@@ -81,16 +85,16 @@ type GetMaintenanceWindowExecutionTaskOutput struct {
 
 	// The parameters passed to the task when it was run. TaskParameters has been
 	// deprecated. To specify parameters to pass to a task when it runs, instead use
-	// the Parameters option in the TaskInvocationParameters structure. For information
-	// about how Systems Manager handles these options for the supported maintenance
-	// window task types, see MaintenanceWindowTaskInvocationParameters. The map has
-	// the following format:
-	//
-	// * Key: string, between 1 and 255 characters
-	//
-	// * Value: an
-	// array of strings, each between 1 and 255 characters
+	// the Parameters option in the TaskInvocationParameters structure. For
+	// information about how Systems Manager handles these options for the supported
+	// maintenance window task types, see MaintenanceWindowTaskInvocationParameters .
+	// The map has the following format:
+	//   - Key : string, between 1 and 255 characters
+	//   - Value : an array of strings, each between 1 and 255 characters
 	TaskParameters []map[string]types.MaintenanceWindowTaskParameterValueExpression
+
+	// The CloudWatch alarms that were invoked by the maintenance window task.
+	TriggeredAlarms []types.AlarmStateInformation
 
 	// The type of task that was run.
 	Type types.MaintenanceWindowTaskType
@@ -105,6 +109,9 @@ type GetMaintenanceWindowExecutionTaskOutput struct {
 }
 
 func (c *Client) addOperationGetMaintenanceWindowExecutionTaskMiddlewares(stack *middleware.Stack, options Options) (err error) {
+	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
+		return err
+	}
 	err = stack.Serialize.Add(&awsAwsjson11_serializeOpGetMaintenanceWindowExecutionTask{}, middleware.After)
 	if err != nil {
 		return err
@@ -113,34 +120,38 @@ func (c *Client) addOperationGetMaintenanceWindowExecutionTaskMiddlewares(stack 
 	if err != nil {
 		return err
 	}
+	if err := addProtocolFinalizerMiddlewares(stack, options, "GetMaintenanceWindowExecutionTask"); err != nil {
+		return fmt.Errorf("add protocol finalizers: %v", err)
+	}
+
+	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
+		return err
+	}
 	if err = addSetLoggerMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddClientRequestIDMiddleware(stack); err != nil {
+	if err = addClientRequestID(stack); err != nil {
 		return err
 	}
-	if err = smithyhttp.AddComputeContentLengthMiddleware(stack); err != nil {
+	if err = addComputeContentLength(stack); err != nil {
 		return err
 	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = v4.AddComputePayloadSHA256Middleware(stack); err != nil {
+	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetryMiddlewares(stack, options); err != nil {
+	if err = addRetry(stack, options); err != nil {
 		return err
 	}
-	if err = addHTTPSignerV4Middleware(stack, options); err != nil {
+	if err = addRawResponseToMetadata(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRawResponseToMetadata(stack); err != nil {
+	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
-		return err
-	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -149,10 +160,16 @@ func (c *Client) addOperationGetMaintenanceWindowExecutionTaskMiddlewares(stack 
 	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
 		return err
 	}
+	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+		return err
+	}
 	if err = addOpGetMaintenanceWindowExecutionTaskValidationMiddleware(stack); err != nil {
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opGetMaintenanceWindowExecutionTask(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
@@ -164,6 +181,9 @@ func (c *Client) addOperationGetMaintenanceWindowExecutionTaskMiddlewares(stack 
 	if err = addRequestResponseLogging(stack, options); err != nil {
 		return err
 	}
+	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -171,7 +191,6 @@ func newServiceMetadataMiddleware_opGetMaintenanceWindowExecutionTask(region str
 	return &awsmiddleware.RegisterServiceMetadata{
 		Region:        region,
 		ServiceID:     ServiceID,
-		SigningName:   "ssm",
 		OperationName: "GetMaintenanceWindowExecutionTask",
 	}
 }
