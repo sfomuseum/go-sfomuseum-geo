@@ -3,10 +3,11 @@ package reader
 import (
 	"context"
 	"fmt"
+	"io"
+
 	"github.com/paulmach/orb/geojson"
 	go_reader "github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"io"
 )
 
 // LoadReadCloser will return an `io.ReadCloser` instance from 'r' for the relative path associated with 'id'.

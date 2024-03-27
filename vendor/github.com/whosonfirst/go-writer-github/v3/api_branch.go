@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/github"
-	wof_writer "github.com/whosonfirst/go-writer/v3"
-	"golang.org/x/oauth2"
 	"io"
 	"log"
 	"net/url"
@@ -15,6 +12,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/go-github/v48/github"
+	wof_writer "github.com/whosonfirst/go-writer/v3"
+	"golang.org/x/oauth2"
 )
 
 const GITHUBAPI_BRANCH_SCHEME string = "githubapi-branch"
@@ -30,7 +31,7 @@ type GitHubAPIBranchWriter struct {
 	commit_author      string
 	commit_email       string
 	commit_description string
-	commit_entries     []github.TreeEntry
+	commit_entries     []*github.TreeEntry
 	merge_branch       bool
 	remove_branch      bool
 	prefix             string
@@ -131,7 +132,7 @@ func NewGitHubAPIBranchWriter(ctx context.Context, uri string) (wof_writer.Write
 		return nil, fmt.Errorf("Invalid email address")
 	}
 
-	commit_entries := []github.TreeEntry{}
+	commit_entries := []*github.TreeEntry{}
 
 	merge_branch := false
 	remove_branch := false
@@ -198,7 +199,7 @@ func (wr *GitHubAPIBranchWriter) Write(ctx context.Context, uri string, r io.Rea
 
 	wr_uri := wr.WriterURI(ctx, uri)
 
-	e := github.TreeEntry{
+	e := &github.TreeEntry{
 		Path:    github.String(wr_uri),
 		Type:    github.String("blob"),
 		Content: github.String(string(body)),
@@ -247,7 +248,7 @@ func (wr *GitHubAPIBranchWriter) Flush(ctx context.Context) error {
 		return fmt.Errorf("Failed to push commit, %w", err)
 	}
 
-	wr.commit_entries = []github.TreeEntry{}
+	wr.commit_entries = []*github.TreeEntry{}
 	return nil
 }
 
@@ -338,7 +339,9 @@ func (wr *GitHubAPIBranchWriter) pushCommit(ctx context.Context, ref *github.Ref
 
 	// Get the parent commit to attach the commit to.
 
-	parent, _, err := wr.client.Repositories.GetCommit(ctx, wr.commit_owner, wr.commit_repo, *ref.Object.SHA)
+	list_opts := &github.ListOptions{}
+
+	parent, _, err := wr.client.Repositories.GetCommit(ctx, wr.commit_owner, wr.commit_repo, *ref.Object.SHA, list_opts)
 
 	if err != nil {
 		return fmt.Errorf("Failed to determine parent commit, %w", err)
@@ -356,8 +359,8 @@ func (wr *GitHubAPIBranchWriter) pushCommit(ctx context.Context, ref *github.Ref
 		Email: &wr.commit_email,
 	}
 
-	parents := []github.Commit{
-		*parent.Commit,
+	parents := []*github.Commit{
+		parent.Commit,
 	}
 
 	commit := &github.Commit{

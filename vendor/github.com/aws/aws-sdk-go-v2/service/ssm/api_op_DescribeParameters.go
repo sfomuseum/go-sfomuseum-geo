@@ -6,22 +6,23 @@ import (
 	"context"
 	"fmt"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Get information about a parameter. Request results are returned on a best-effort
-// basis. If you specify MaxResults in the request, the response includes
-// information up to the limit specified. The number of items returned, however,
-// can be between zero and the value of MaxResults. If the service reaches an
-// internal limit while processing the results, it stops the operation and returns
-// the matching values up to that point and a NextToken. You can specify the
-// NextToken in a subsequent call to get the next set of results. If you change the
-// KMS key alias for the KMS key used to encrypt a parameter, then you must also
-// update the key alias the parameter uses to reference KMS. Otherwise,
-// DescribeParameters retrieves whatever the original key alias was referencing.
+// Lists the parameters in your Amazon Web Services account or the parameters
+// shared with you when you enable the Shared (https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_DescribeParameters.html#systemsmanager-DescribeParameters-request-Shared)
+// option. Request results are returned on a best-effort basis. If you specify
+// MaxResults in the request, the response includes information up to the limit
+// specified. The number of items returned, however, can be between zero and the
+// value of MaxResults . If the service reaches an internal limit while processing
+// the results, it stops the operation and returns the matching values up to that
+// point and a NextToken . You can specify the NextToken in a subsequent call to
+// get the next set of results. If you change the KMS key alias for the KMS key
+// used to encrypt a parameter, then you must also update the key alias the
+// parameter uses to reference KMS. Otherwise, DescribeParameters retrieves
+// whatever the original key alias was referencing.
 func (c *Client) DescribeParameters(ctx context.Context, params *DescribeParametersInput, optFns ...func(*Options)) (*DescribeParametersOutput, error) {
 	if params == nil {
 		params = &DescribeParametersInput{}
@@ -39,12 +40,12 @@ func (c *Client) DescribeParameters(ctx context.Context, params *DescribeParamet
 
 type DescribeParametersInput struct {
 
-	// This data type is deprecated. Instead, use ParameterFilters.
+	// This data type is deprecated. Instead, use ParameterFilters .
 	Filters []types.ParametersFilter
 
 	// The maximum number of items to return for this call. The call also returns a
 	// token that you can specify in a subsequent call to get the next set of results.
-	MaxResults int32
+	MaxResults *int32
 
 	// The token for the next set of items to return. (You received this token from a
 	// previous call.)
@@ -52,6 +53,16 @@ type DescribeParametersInput struct {
 
 	// Filters to limit the request results.
 	ParameterFilters []types.ParameterStringFilter
+
+	// Lists parameters that are shared with you. By default when using this option,
+	// the command returns parameters that have been shared using a standard Resource
+	// Access Manager Resource Share. In order for a parameter that was shared using
+	// the PutResourcePolicy command to be returned, the associated RAM Resource Share
+	// Created From Policy must have been promoted to a standard Resource Share using
+	// the RAM PromoteResourceShareCreatedFromPolicy (https://docs.aws.amazon.com/ram/latest/APIReference/API_PromoteResourceShareCreatedFromPolicy.html)
+	// API operation. For more information about sharing parameters, see Working with
+	// shared parameters in the Amazon Web Services Systems Manager User Guide.
+	Shared *bool
 
 	noSmithyDocumentSerde
 }
@@ -71,6 +82,9 @@ type DescribeParametersOutput struct {
 }
 
 func (c *Client) addOperationDescribeParametersMiddlewares(stack *middleware.Stack, options Options) (err error) {
+	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
+		return err
+	}
 	err = stack.Serialize.Add(&awsAwsjson11_serializeOpDescribeParameters{}, middleware.After)
 	if err != nil {
 		return err
@@ -79,34 +93,38 @@ func (c *Client) addOperationDescribeParametersMiddlewares(stack *middleware.Sta
 	if err != nil {
 		return err
 	}
+	if err := addProtocolFinalizerMiddlewares(stack, options, "DescribeParameters"); err != nil {
+		return fmt.Errorf("add protocol finalizers: %v", err)
+	}
+
+	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
+		return err
+	}
 	if err = addSetLoggerMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddClientRequestIDMiddleware(stack); err != nil {
+	if err = addClientRequestID(stack); err != nil {
 		return err
 	}
-	if err = smithyhttp.AddComputeContentLengthMiddleware(stack); err != nil {
+	if err = addComputeContentLength(stack); err != nil {
 		return err
 	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = v4.AddComputePayloadSHA256Middleware(stack); err != nil {
+	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetryMiddlewares(stack, options); err != nil {
+	if err = addRetry(stack, options); err != nil {
 		return err
 	}
-	if err = addHTTPSignerV4Middleware(stack, options); err != nil {
+	if err = addRawResponseToMetadata(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRawResponseToMetadata(stack); err != nil {
+	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
-		return err
-	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -115,10 +133,16 @@ func (c *Client) addOperationDescribeParametersMiddlewares(stack *middleware.Sta
 	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
 		return err
 	}
+	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+		return err
+	}
 	if err = addOpDescribeParametersValidationMiddleware(stack); err != nil {
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDescribeParameters(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
@@ -128,6 +152,9 @@ func (c *Client) addOperationDescribeParametersMiddlewares(stack *middleware.Sta
 		return err
 	}
 	if err = addRequestResponseLogging(stack, options); err != nil {
+		return err
+	}
+	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
 		return err
 	}
 	return nil
@@ -169,8 +196,8 @@ func NewDescribeParametersPaginator(client DescribeParametersAPIClient, params *
 	}
 
 	options := DescribeParametersPaginatorOptions{}
-	if params.MaxResults != 0 {
-		options.Limit = params.MaxResults
+	if params.MaxResults != nil {
+		options.Limit = *params.MaxResults
 	}
 
 	for _, fn := range optFns {
@@ -200,7 +227,11 @@ func (p *DescribeParametersPaginator) NextPage(ctx context.Context, optFns ...fu
 	params := *p.params
 	params.NextToken = p.nextToken
 
-	params.MaxResults = p.options.Limit
+	var limit *int32
+	if p.options.Limit > 0 {
+		limit = &p.options.Limit
+	}
+	params.MaxResults = limit
 
 	result, err := p.client.DescribeParameters(ctx, &params, optFns...)
 	if err != nil {
@@ -225,7 +256,6 @@ func newServiceMetadataMiddleware_opDescribeParameters(region string) *awsmiddle
 	return &awsmiddleware.RegisterServiceMetadata{
 		Region:        region,
 		ServiceID:     ServiceID,
-		SigningName:   "ssm",
 		OperationName: "DescribeParameters",
 	}
 }

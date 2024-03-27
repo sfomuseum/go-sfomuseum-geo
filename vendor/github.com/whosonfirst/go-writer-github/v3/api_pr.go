@@ -7,9 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/github"
-	wof_writer "github.com/whosonfirst/go-writer/v3"
-	"golang.org/x/oauth2"
 	"io"
 	"log"
 	"net/url"
@@ -18,6 +15,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/go-github/v48/github"
+	wof_writer "github.com/whosonfirst/go-writer/v3"
+	"golang.org/x/oauth2"
 )
 
 const GITHUBAPI_PR_SCHEME string = "githubapi-pr"
@@ -37,7 +38,7 @@ type GitHubAPIPullRequestWriter struct {
 	pr_email       string
 	pr_title       string
 	pr_description string
-	pr_entries     []github.TreeEntry
+	pr_entries     []*github.TreeEntry
 	pr_ensure_repo bool
 	prefix         string
 	client         *github.Client
@@ -169,7 +170,7 @@ func NewGitHubAPIPullRequestWriter(ctx context.Context, uri string) (wof_writer.
 		pr_ensure_repo = ensure_repo
 	}
 
-	pr_entries := []github.TreeEntry{}
+	pr_entries := []*github.TreeEntry{}
 
 	mutex := new(sync.RWMutex)
 	logger := log.Default()
@@ -213,7 +214,7 @@ func (wr *GitHubAPIPullRequestWriter) Write(ctx context.Context, uri string, r i
 
 	wr_uri := wr.WriterURI(ctx, uri)
 
-	e := github.TreeEntry{
+	e := &github.TreeEntry{
 		Path:    github.String(wr_uri),
 		Type:    github.String("blob"),
 		Content: github.String(string(body)),
@@ -381,7 +382,9 @@ func (wr *GitHubAPIPullRequestWriter) pushCommit(ctx context.Context, ref *githu
 
 	// Get the parent commit to attach the commit to.
 
-	parent, _, err := wr.client.Repositories.GetCommit(ctx, wr.pr_owner, wr.pr_repo, *ref.Object.SHA)
+	list_opts := &github.ListOptions{}
+
+	parent, _, err := wr.client.Repositories.GetCommit(ctx, wr.pr_owner, wr.pr_repo, *ref.Object.SHA, list_opts)
 
 	if err != nil {
 		return fmt.Errorf("Failed to determine parent commit, %w", err)
@@ -399,8 +402,8 @@ func (wr *GitHubAPIPullRequestWriter) pushCommit(ctx context.Context, ref *githu
 		Email: &wr.pr_email,
 	}
 
-	parents := []github.Commit{
-		*parent.Commit,
+	parents := []*github.Commit{
+		parent.Commit,
 	}
 
 	commit := &github.Commit{

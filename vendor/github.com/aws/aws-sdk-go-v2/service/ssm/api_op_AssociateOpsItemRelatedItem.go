@@ -4,8 +4,8 @@ package ssm
 
 import (
 	"context"
+	"fmt"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
@@ -44,14 +44,14 @@ type AssociateOpsItemRelatedItemInput struct {
 	OpsItemId *string
 
 	// The type of resource that you want to associate with an OpsItem. OpsCenter
-	// supports the following types: AWS::SSMIncidents::IncidentRecord: an Incident
-	// Manager incident. AWS::SSM::Document: a Systems Manager (SSM) document.
+	// supports the following types: AWS::SSMIncidents::IncidentRecord : an Incident
+	// Manager incident. AWS::SSM::Document : a Systems Manager (SSM) document.
 	//
 	// This member is required.
 	ResourceType *string
 
-	// The Amazon Resource Name (ARN) of the Amazon Web Services resource that you want
-	// to associate with the OpsItem.
+	// The Amazon Resource Name (ARN) of the Amazon Web Services resource that you
+	// want to associate with the OpsItem.
 	//
 	// This member is required.
 	ResourceUri *string
@@ -71,6 +71,9 @@ type AssociateOpsItemRelatedItemOutput struct {
 }
 
 func (c *Client) addOperationAssociateOpsItemRelatedItemMiddlewares(stack *middleware.Stack, options Options) (err error) {
+	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
+		return err
+	}
 	err = stack.Serialize.Add(&awsAwsjson11_serializeOpAssociateOpsItemRelatedItem{}, middleware.After)
 	if err != nil {
 		return err
@@ -79,34 +82,38 @@ func (c *Client) addOperationAssociateOpsItemRelatedItemMiddlewares(stack *middl
 	if err != nil {
 		return err
 	}
+	if err := addProtocolFinalizerMiddlewares(stack, options, "AssociateOpsItemRelatedItem"); err != nil {
+		return fmt.Errorf("add protocol finalizers: %v", err)
+	}
+
+	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
+		return err
+	}
 	if err = addSetLoggerMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddClientRequestIDMiddleware(stack); err != nil {
+	if err = addClientRequestID(stack); err != nil {
 		return err
 	}
-	if err = smithyhttp.AddComputeContentLengthMiddleware(stack); err != nil {
+	if err = addComputeContentLength(stack); err != nil {
 		return err
 	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = v4.AddComputePayloadSHA256Middleware(stack); err != nil {
+	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetryMiddlewares(stack, options); err != nil {
+	if err = addRetry(stack, options); err != nil {
 		return err
 	}
-	if err = addHTTPSignerV4Middleware(stack, options); err != nil {
+	if err = addRawResponseToMetadata(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRawResponseToMetadata(stack); err != nil {
+	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
-		return err
-	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -115,10 +122,16 @@ func (c *Client) addOperationAssociateOpsItemRelatedItemMiddlewares(stack *middl
 	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
 		return err
 	}
+	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+		return err
+	}
 	if err = addOpAssociateOpsItemRelatedItemValidationMiddleware(stack); err != nil {
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opAssociateOpsItemRelatedItem(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
@@ -130,6 +143,9 @@ func (c *Client) addOperationAssociateOpsItemRelatedItemMiddlewares(stack *middl
 	if err = addRequestResponseLogging(stack, options); err != nil {
 		return err
 	}
+	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -137,7 +153,6 @@ func newServiceMetadataMiddleware_opAssociateOpsItemRelatedItem(region string) *
 	return &awsmiddleware.RegisterServiceMetadata{
 		Region:        region,
 		ServiceID:     ServiceID,
-		SigningName:   "ssm",
 		OperationName: "AssociateOpsItemRelatedItem",
 	}
 }

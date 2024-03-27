@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
 	"github.com/whosonfirst/go-reader"

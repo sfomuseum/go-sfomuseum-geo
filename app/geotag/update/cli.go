@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+
 	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
-	"os"
 )
 
 func runCommandLine(ctx context.Context, opts *geotag.UpdateDepictionOptions) error {

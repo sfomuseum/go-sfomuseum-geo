@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
 	"github.com/paulmach/orb/geojson"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
+	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	go_writer "github.com/whosonfirst/go-writer/v3"
@@ -62,11 +64,35 @@ func WriteBytesWithExporter(ctx context.Context, wr go_writer.Writer, ex export.
 		return -1, fmt.Errorf("Failed to derive ID, %w", err)
 	}
 
-	rel_path, err := uri.Id2RelPath(id)
+	// START OF put me in a function somewhere...
+
+	var rel_path string
+
+	if alt.IsAlt(body) {
+
+		alt_label, err := properties.AltLabel(body)
+
+		if err != nil {
+			return -1, fmt.Errorf("Failed to derive alt label, %w", err)
+		}
+
+		uri_args, err := uri.NewAlternateURIArgsFromAltLabel(alt_label)
+
+		if err != nil {
+			return -1, fmt.Errorf("Failed to derive URI args from label '%s', %w", alt_label, err)
+		}
+
+		rel_path, err = uri.Id2RelPath(id, uri_args)
+
+	} else {
+		rel_path, err = uri.Id2RelPath(id)
+	}
 
 	if err != nil {
 		return -1, fmt.Errorf("Failed to derive relative path, %w", err)
 	}
+
+	// END OF put me in a function somewhere...
 
 	br := bytes.NewReader(body)
 

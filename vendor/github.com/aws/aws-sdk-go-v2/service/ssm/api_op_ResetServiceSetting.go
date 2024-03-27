@@ -4,8 +4,8 @@ package ssm
 
 import (
 	"context"
+	"fmt"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
@@ -18,8 +18,8 @@ import (
 // team might create a default setting of "false". This means the user can't use
 // this feature unless they change the setting to "true" and intentionally opt in
 // for a paid feature. Services map a SettingId object to a setting value. Amazon
-// Web Services services teams define the default value for a SettingId. You can't
-// create a new SettingId, but you can overwrite the default value if you have the
+// Web Services services teams define the default value for a SettingId . You can't
+// create a new SettingId , but you can overwrite the default value if you have the
 // ssm:UpdateServiceSetting permission for the setting. Use the GetServiceSetting
 // API operation to view the current value. Use the UpdateServiceSetting API
 // operation to change the default setting. Reset the service setting for the
@@ -45,26 +45,14 @@ type ResetServiceSettingInput struct {
 
 	// The Amazon Resource Name (ARN) of the service setting to reset. The setting ID
 	// can be one of the following.
-	//
-	// *
-	// /ssm/automation/customer-script-log-destination
-	//
-	// *
-	// /ssm/automation/customer-script-log-group-name
-	//
-	// *
-	// /ssm/documents/console/public-sharing-permission
-	//
-	// *
-	// /ssm/managed-instance/activation-tier
-	//
-	// * /ssm/opsinsights/opscenter
-	//
-	// *
-	// /ssm/parameter-store/default-parameter-tier
-	//
-	// *
-	// /ssm/parameter-store/high-throughput-enabled
+	//   - /ssm/managed-instance/default-ec2-instance-management-role
+	//   - /ssm/automation/customer-script-log-destination
+	//   - /ssm/automation/customer-script-log-group-name
+	//   - /ssm/documents/console/public-sharing-permission
+	//   - /ssm/managed-instance/activation-tier
+	//   - /ssm/opsinsights/opscenter
+	//   - /ssm/parameter-store/default-parameter-tier
+	//   - /ssm/parameter-store/high-throughput-enabled
 	//
 	// This member is required.
 	SettingId *string
@@ -75,8 +63,8 @@ type ResetServiceSettingInput struct {
 // The result body of the ResetServiceSetting API operation.
 type ResetServiceSettingOutput struct {
 
-	// The current, effective service setting after calling the ResetServiceSetting API
-	// operation.
+	// The current, effective service setting after calling the ResetServiceSetting
+	// API operation.
 	ServiceSetting *types.ServiceSetting
 
 	// Metadata pertaining to the operation's result.
@@ -86,6 +74,9 @@ type ResetServiceSettingOutput struct {
 }
 
 func (c *Client) addOperationResetServiceSettingMiddlewares(stack *middleware.Stack, options Options) (err error) {
+	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
+		return err
+	}
 	err = stack.Serialize.Add(&awsAwsjson11_serializeOpResetServiceSetting{}, middleware.After)
 	if err != nil {
 		return err
@@ -94,34 +85,38 @@ func (c *Client) addOperationResetServiceSettingMiddlewares(stack *middleware.St
 	if err != nil {
 		return err
 	}
+	if err := addProtocolFinalizerMiddlewares(stack, options, "ResetServiceSetting"); err != nil {
+		return fmt.Errorf("add protocol finalizers: %v", err)
+	}
+
+	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
+		return err
+	}
 	if err = addSetLoggerMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddClientRequestIDMiddleware(stack); err != nil {
+	if err = addClientRequestID(stack); err != nil {
 		return err
 	}
-	if err = smithyhttp.AddComputeContentLengthMiddleware(stack); err != nil {
+	if err = addComputeContentLength(stack); err != nil {
 		return err
 	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = v4.AddComputePayloadSHA256Middleware(stack); err != nil {
+	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetryMiddlewares(stack, options); err != nil {
+	if err = addRetry(stack, options); err != nil {
 		return err
 	}
-	if err = addHTTPSignerV4Middleware(stack, options); err != nil {
+	if err = addRawResponseToMetadata(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRawResponseToMetadata(stack); err != nil {
+	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
-		return err
-	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -130,10 +125,16 @@ func (c *Client) addOperationResetServiceSettingMiddlewares(stack *middleware.St
 	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
 		return err
 	}
+	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+		return err
+	}
 	if err = addOpResetServiceSettingValidationMiddleware(stack); err != nil {
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opResetServiceSetting(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
@@ -145,6 +146,9 @@ func (c *Client) addOperationResetServiceSettingMiddlewares(stack *middleware.St
 	if err = addRequestResponseLogging(stack, options); err != nil {
 		return err
 	}
+	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -152,7 +156,6 @@ func newServiceMetadataMiddleware_opResetServiceSetting(region string) *awsmiddl
 	return &awsmiddleware.RegisterServiceMetadata{
 		Region:        region,
 		ServiceID:     ServiceID,
-		SigningName:   "ssm",
 		OperationName: "ResetServiceSetting",
 	}
 }
