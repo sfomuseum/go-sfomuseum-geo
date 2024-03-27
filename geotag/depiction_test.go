@@ -12,13 +12,13 @@ import (
 	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-writer/v3"	
+	"github.com/whosonfirst/go-writer/v3"
 )
 
 func TestUpdateDepiction(t *testing.T) {
 
 	depiction_id := int64(1527827539) // negative: San Francisco International Airport (SFO), Pancake Palace restaurant
-	parent_id := int64(1159396131)    // Central Terminal (1954~ to 1963~)
+	// parent_id := int64(1159396131)    // Central Terminal (1954~ to 1963~)
 
 	ctx := context.Background()
 
@@ -53,7 +53,6 @@ func TestUpdateDepiction(t *testing.T) {
 
 	update := &Depiction{
 		DepictionId: depiction_id,
-		ParentId:    parent_id,
 		Feature:     f,
 	}
 
@@ -141,9 +140,11 @@ func TestUpdateDepiction(t *testing.T) {
 				t.Fatalf("Failed to find geotag:whosonfirst.wof:id property in feature at offset %d", idx)
 			}
 
-			if id_rsp.Int() != parent_id {
-				t.Fatalf("Invalid geotag:whosonfirst.wof:id property. Expected %d but got %d", parent_id, id_rsp.Int())
-			}
+			/*
+				if id_rsp.Int() != parent_id {
+					t.Fatalf("Invalid geotag:whosonfirst.wof:id property. Expected %d but got %d", parent_id, id_rsp.Int())
+				}
+			*/
 		}
 	}
 

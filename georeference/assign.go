@@ -26,7 +26,7 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/go-writer-featurecollection/v3"
-	"github.com/whosonfirst/go-writer/v3"	
+	"github.com/whosonfirst/go-writer/v3"
 )
 
 // AssignReferencesOptions defines a struct for reading/writing options when updating geo-related information in depictions.

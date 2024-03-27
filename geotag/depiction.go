@@ -21,7 +21,7 @@ import (
 	wof "github.com/whosonfirst/go-whosonfirst-id"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"github.com/whosonfirst/go-writer/v3"	
+	"github.com/whosonfirst/go-writer/v3"
 )
 
 // type Depiction is a struct definining properties for updating geotagging information in an depiction and its parent subject.

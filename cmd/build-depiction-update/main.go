@@ -12,7 +12,7 @@ import (
 	"os"
 
 	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
-	geotag "github.com/sfomuseum/go-sfomuseum-geo/geotag"	
+	geotag "github.com/sfomuseum/go-sfomuseum-geo/geotag"
 )
 
 func main() {

@@ -12,7 +12,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/sfomuseum/go-sfomuseum-geo/app/georeference/flightcover"	
+	"github.com/sfomuseum/go-sfomuseum-geo/app/georeference/flightcover"
 )
 
 func main() {

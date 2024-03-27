@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	geojson "github.com/sfomuseum/go-geojson-geotag/v2"	
+	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 )
 
 func TestGeotagDepiction(t *testing.T) {
@@ -31,8 +31,8 @@ func TestGeotagDepiction(t *testing.T) {
 
 	d := Depiction{
 		DepictionId: -1,
-		ParentId:    -1,
-		Feature:     f,
+		// ParentId:    -1,
+		Feature: f,
 	}
 
 	enc_d, err := json.Marshal(d)

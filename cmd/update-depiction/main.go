@@ -37,7 +37,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/sfomuseum/go-sfomuseum-geo/app/geotag/update"	
+	"github.com/sfomuseum/go-sfomuseum-geo/app/geotag/update"
 )
 
 func main() {
