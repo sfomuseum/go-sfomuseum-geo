@@ -31,8 +31,7 @@ func TestGeotagDepiction(t *testing.T) {
 
 	d := Depiction{
 		DepictionId: -1,
-		// ParentId:    -1,
-		Feature: f,
+		Feature:     f,
 	}
 
 	enc_d, err := json.Marshal(d)

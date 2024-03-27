@@ -1,33 +1,65 @@
 {
-  "type": "Feature",
-  "properties": {
-    "angle": 60.975016733273264,
-    "bearing": -15.37617921357767,
-    "distance": 78.42929920238107
-  },
-  "geometry": {
-    "type": "GeometryCollection",
-    "geometries": [
-      {
-        "type": "Point",
-        "coordinates": [
-          -122.38340377807619,
-          37.61678098755535
-        ]
+   "geometry" : {
+      "geometries" : [
+         {
+            "coordinates" : [
+               -122.383403778076,
+               37.6167809875554
+            ],
+            "type" : "Point"
+         },
+         {
+            "coordinates" : [
+               [
+                  -122.384145143226,
+                  37.6173507814666
+               ],
+               [
+                  -122.383134480217,
+                  37.6175709337643
+               ]
+            ],
+            "type" : "LineString"
+         }
+      ],
+      "type" : "GeometryCollection"
+   },
+   "properties" : {
+      "geotag:angle" : 60.9750167332733,
+      "geotag:bearing" : -15.3761792135777,
+      "geotag:camera" : {
+         "wof:hierarchy" : [
+            {
+               "building_id" : 1159396329,
+               "campus_id" : 102527513,
+               "continent_id" : 102191575,
+               "country_id" : 85633793,
+               "county_id" : 102087579,
+               "locality_id" : 85922583,
+               "neighbourhood_id" : -1,
+               "region_id" : 85688637,
+               "wing_id" : 1159396131
+            }
+         ],
+         "wof:parent_id" : 1159396131
       },
-      {
-        "type": "LineString",
-        "coordinates": [
-          [
-            -122.38414514322554,
-            37.6173507814666
-          ],
-          [
-            -122.38313448021721,
-            37.61757093376433
-          ]
-        ]
+      "geotag:distance" : 78.4292992023811,
+      "geotag:target" : {
+         "wof:hierarchy" : [
+            {
+               "building_id" : 1159396329,
+               "campus_id" : 102527513,
+               "continent_id" : 102191575,
+               "country_id" : 85633793,
+               "county_id" : 102087579,
+               "locality_id" : 85922583,
+               "neighbourhood_id" : -1,
+               "region_id" : 85688637,
+               "wing_id" : 1159396131
+            }
+         ],
+         "wof:parent_id" : 1159396131
       }
-    ]
-  }
+   },
+   "type" : "Feature"
 }
