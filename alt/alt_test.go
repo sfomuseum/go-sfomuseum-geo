@@ -9,7 +9,7 @@ import (
 
 func TestFormatAltFeature(t *testing.T) {
 
-	expected := []byte(`{
+	expected := `{
           "id": 1511949289,
           "type": "Feature",
           "properties": {
@@ -26,7 +26,7 @@ func TestFormatAltFeature(t *testing.T) {
             "wof:repo": "sfomuseum-data-collection"
           },
           "geometry": {"type":"Polygon","coordinates":[[[-122.38344191444918,37.61626328776611],[-122.39442677335957,37.61442973681917],[-122.38774592621468,37.60805038870438],[-122.38344191444918,37.61626328776611]]]}
-        }`)
+        }`
 
 	rel_path := "../fixtures/sfomuseum-data-collection/data/151/194/928/9/1511949289-alt-geotag-fov.geojson"
 
@@ -53,13 +53,27 @@ func TestFormatAltFeature(t *testing.T) {
 		t.Fatalf("Failed to format %s, %v", rel_path, err)
 	}
 
-	enc_body, err := json.Marshal(body)
+	var tmp interface{}
+
+	err = json.Unmarshal(body, &tmp)
+
+	if err != nil {
+		t.Fatalf("Failed to unmarshal formatted result for %s, %v", rel_path, err)
+	}
+
+	enc_body, err := json.Marshal(tmp)
 
 	if err != nil {
 		t.Fatalf("Failed to marshal result, %v", err)
 	}
 
-	enc_expected, err := json.Marshal(expected)
+	err = json.Unmarshal([]byte(expected), &tmp)
+
+	if err != nil {
+		t.Fatalf("Failed to unmarshal expected result for %s, %v", rel_path, err)
+	}
+
+	enc_expected, err := json.Marshal(tmp)
 
 	if err != nil {
 		t.Fatalf("Failed to marshal expected result, %v", err)
