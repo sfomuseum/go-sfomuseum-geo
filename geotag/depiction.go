@@ -216,8 +216,6 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 		}
 
 		target_parent_f = f
-
-		fmt.Println("DEBUG", target_parent_f)
 	}
 
 	// Update the subject
