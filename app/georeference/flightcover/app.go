@@ -7,7 +7,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
-
+	"log"
+	
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
 	"github.com/whosonfirst/go-reader"
@@ -84,11 +85,9 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
 	}
 
+	log.Println(opts)
+	
 	switch mode {
-	case "cli":
-		return runCommandLine(ctx, opts)
-	case "lambda":
-		return runLambda(ctx, opts)
 	default:
 		return fmt.Errorf("Invalid or unsupported mode")
 	}

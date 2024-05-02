@@ -35,7 +35,7 @@ github.com/aaronland/go-uid-proxy
 # github.com/aaronland/go-uid-whosonfirst v0.0.4
 ## explicit; go 1.18
 github.com/aaronland/go-uid-whosonfirst
-# github.com/aws/aws-lambda-go v1.46.0
+# github.com/aws/aws-lambda-go v1.47.0
 ## explicit; go 1.18
 github.com/aws/aws-lambda-go/lambda
 github.com/aws/aws-lambda-go/lambda/handlertrace
@@ -346,8 +346,8 @@ github.com/whosonfirst/go-writer-featurecollection/v3
 # github.com/whosonfirst/go-writer-github/v3 v3.0.4
 ## explicit; go 1.18
 github.com/whosonfirst/go-writer-github/v3
-# github.com/whosonfirst/go-writer/v3 v3.1.0
-## explicit; go 1.18
+# github.com/whosonfirst/go-writer/v3 v3.1.1
+## explicit; go 1.22.1
 github.com/whosonfirst/go-writer/v3
 # go.mongodb.org/mongo-driver v1.11.4
 ## explicit; go 1.13

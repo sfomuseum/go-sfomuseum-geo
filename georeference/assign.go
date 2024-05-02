@@ -9,10 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 	"time"
-
+	"slices"
+	
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
@@ -51,7 +51,6 @@ type AssignReferencesOptions struct {
 	DepictionWriterURI string
 	// SubjectWriterURI is the URI used to create `SubjectWriter`; it is a temporary necessity to be removed with the go-writer/v3 (clone) release
 	SubjectWriterURI string
-	Logger           *log.Logger
 }
 
 func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
@@ -527,7 +526,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		alt_props := map[string]interface{}{
 			"edtf:deprecated": deprecated,
 			"src:alt_label":   ref.AltLabel,
-			"src:geom":        "sfomuseum#georeference-flightcover",
+			"src:geom":        "sfomuseum#georeference",
 			"wof:id":          depiction_id,
 			"wof:repo":        "sfomuseum-data-media-collection",
 		}
@@ -589,7 +588,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if depiction_has_changed {
 
-		// _, err = sfom_writer.WriteBytes(ctx, depiction_wr, new_body)
 		_, err = sfom_writer.WriteBytes(ctx, depiction_mw, new_body)
 
 		if err != nil {
@@ -618,30 +616,24 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	subject_removals := make([]string, 0)
 
-	// Lookup table for all the flightcover properties across all the images for an objects
+	// Lookup table for all the flightcover properties across all the images for an object
 
 	georef_properties_lookup := new(sync.Map)
 
 	// Assign the reference pointers to the subject record
 
-	fq_from := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_FROM)
-	fq_to := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_TO)
-	fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
-	fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)
+	georeferences_paths := make([]string, len(refs))
 
-	georeferences_paths := []string{
-		fq_from,
-		fq_to,
-		fq_sent,
-		fq_received,
+	for idx, r := range refs {
+		path := fmt.Sprintf("properties.%s", r.Property)
+		georeferences_paths[idx] = path
 	}
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 
 		path := k.(string)
 
-		switch path {
-		case fq_from, fq_to, fq_sent, fq_received:
+		if slices.Contains(georeferences_paths, path){
 
 			georef_ids_lookup := new(sync.Map)
 
@@ -656,7 +648,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			// subject record georeference properties are not updated until
 			// the combined properties for all the images are gathered (below)
 
-		default:
+		} else {
 			subject_updates[path] = v
 		}
 
