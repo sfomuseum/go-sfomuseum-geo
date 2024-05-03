@@ -8,12 +8,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log/slog"
 	"fmt"
+	"log/slog"
+	"slices"
 	"sync"
 	"time"
-	"slices"
-	
+
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
@@ -64,7 +64,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	logger := slog.Default()
 	logger = logger.With("depiction id", depiction_id)
-	
+
 	src_geom := "sfomuseum#georeference"
 
 	if opts.SourceGeomSuffix != "" {
@@ -90,7 +90,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	logger = logger.With("subject id", subject_id)
-	
+
 	// START OF to be removed once the go-writer/v4 (Clone) interface is complete
 
 	update_opts := &github.UpdateWriterURIOptions{
@@ -643,7 +643,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		path := k.(string)
 
-		if slices.Contains(georeferences_paths, path){
+		if slices.Contains(georeferences_paths, path) {
 
 			georef_ids_lookup := new(sync.Map)
 

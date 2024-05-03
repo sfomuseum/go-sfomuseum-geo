@@ -22,7 +22,7 @@ var whosonfirst_reader_uri string
 
 var access_token_uri string
 
-var references multi.KeyValueInt64
+var references multi.KeyValueString
 var depictions multi.MultiInt64
 
 func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
@@ -43,10 +43,7 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
 	fs.StringVar(&subject_writer_uri, "subject-writer-uri", "repo:///usr/local/data/sfomuseum-data-collection", "A valid whosonfirst/go-writer URI.")
 
-	// Eventually something in the whosonfirst(.org) findingaid
-
-	// fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "https://data.whosonfirst.org/", "A valid whosonfirst/go-reader URI.")
-	fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "repo:///usr/local/data/sfomuseum-data-whosonfirst", "A valid whosonfirst/go-reader URI.")
+	fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "https://data.whosonfirst.org/geojson/", "A valid whosonfirst/go-reader URI.")
 
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
