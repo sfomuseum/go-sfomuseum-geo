@@ -187,7 +187,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// * Update the depiction file with the:
 	//   * Updated list of alt files
 	//   * An updated list of references (the `georeference:depictions` property)
-	//   * An updated list of `wof:hierarchy` elements derived from `georeference:depictions` and `geotag:depictions` and... SFO? <-- this is not being done yet
+	//   * An updated list of `wof:hierarchy` elements derived from `georeference:depictions` and `geotag:depictions`
 	//   * An updated MultiPoint geometry derived from the geometries of the pointers in `georeference:depictions` and `geotag:depictions`
 	// * Update the "subject" file of the depiction (for example the object associated with an image) with the:
 	//   * Updated list of alt files
@@ -205,9 +205,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// and the key is the hash of the md5 sum of the JSON-encoded dictionary
 	hierarchies_hash_map := new(sync.Map)
 
-	// Map of hashed wof:hierarchy dictionaries (above) where the values is a list
-	// of hash values (stored in hierarchies_hash_map) and the key is a WOF ID
-	hierarchies_map := new(sync.Map)
+	// The set of unique hashed hierarchies (see above) across all the references
+	hier_hashes := make([]string, 0)
+
+	// Mutex for reading/writing to hier_hashes inside Go routines
+	hier_mu := new(sync.RWMutex)
 
 	references_map := new(sync.Map)
 	updates_map := new(sync.Map)
@@ -252,9 +254,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				}
 
 				hiers := properties.Hierarchies(body)
-				hier_hashes := make([]string, len(hiers))
 
-				for h_idx, h := range hiers {
+				for _, h := range hiers {
 
 					for _, h_id := range h {
 						references_map.Store(h_id, true)
@@ -268,12 +269,16 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 					}
 
 					md5_h := fmt.Sprintf("%x", md5.Sum(enc_h))
-					hier_hashes[h_idx] = md5_h
-
 					hierarchies_hash_map.Store(md5_h, h)
-				}
 
-				hierarchies_map.Store(id, hier_hashes)
+					hier_mu.Lock()
+
+					if !slices.Contains(hier_hashes, md5_h) {
+						hier_hashes = append(hier_hashes, md5_h)
+					}
+
+					hier_mu.Unlock()
+				}
 
 				pt, _, err := properties.Centroid(body)
 
@@ -636,14 +641,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	depiction_hierarchies := make([]map[string]int64, 0)
 
-	v, exists := hierarchies_map.Load(depiction_id)
-
-	if !exists {
-		return nil, fmt.Errorf("Failed to load hierarchy hashes for %s from lookup map", depiction_id)
-	}
-
-	hier_hashes := v.([]string)
-
 	for _, md5_h := range hier_hashes {
 
 		v, exists := hierarchies_hash_map.Load(md5_h)
@@ -687,10 +684,15 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to load subject (parent) for depiction, %w", err)
 	}
 
+	// TBD...
+	// subject_hierarchies := depiction_hierarchies
+	// Ensure that SFOM "collection" is in subject hierarchy?
+
 	// Things to update in the subject (object) record
 
 	subject_updates := map[string]interface{}{
 		"properties.src:geom": depiction_updates["properties.src:geom"],
+		// "properties.wof:hierarchy": subject_hierarchies,
 	}
 
 	// Things to remove from the subject record - this is tightly integrated with the
