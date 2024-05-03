@@ -1,4 +1,4 @@
-package flightcover
+package georeference
 
 import (
 	"context"
@@ -22,16 +22,12 @@ var whosonfirst_reader_uri string
 
 var access_token_uri string
 
-var from_id multi.MultiInt64
-var to_id multi.MultiInt64
-var sent_id multi.MultiInt64
-var received_id multi.MultiInt64
-
+var references multi.KeyValueInt64
 var depictions multi.MultiInt64
 
 func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
-	fs := flagset.NewFlagSet("geotag")
+	fs := flagset.NewFlagSet("reference")
 
 	fs.StringVar(&mode, "mode", "cli", "Valid options are: cli, lambda.")
 
@@ -54,11 +50,7 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
-	fs.Var(&from_id, "from", "One or more valid Who's On First IDs representing the place a (flight cover) letter was sent from.")
-	fs.Var(&to_id, "to", "One or more valid Who's On First IDs representing the place a (flight cover) letter was sent to.")
-	fs.Var(&received_id, "received", "One or more valid Who's On First IDs representing the place a (flight cover) letter was postmarked as received.")
-	fs.Var(&sent_id, "sent", "One or more valid Who's On First IDs representing the place a (flight cover) letter was postmarked as sent.")
-
+	fs.Var(&references, "reference", "...")
 	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
 
 	fs.Usage = func() {

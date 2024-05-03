@@ -12,14 +12,14 @@ import (
 	"context"
 	"log"
 
-	"github.com/sfomuseum/go-sfomuseum-geo/app/georeference/flightcover"
+	"github.com/sfomuseum/go-sfomuseum-geo/app/georeference"
 )
 
 func main() {
 
 	ctx := context.Background()
 
-	err := flightcover.Run(ctx)
+	err := georeference.Run(ctx)
 
 	if err != nil {
 		log.Fatalf("Failed to assign references, %v", err)

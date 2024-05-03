@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"fmt"
 	"sync"
 	"time"
@@ -53,11 +54,17 @@ type AssignReferencesOptions struct {
 	SubjectWriterURI string
 }
 
+// AssignReferences updates records associated with 'depiction_id' (that is the depiction record itself and it's "parent" object record)
+// and 'refs'. An alternate geometry file will be created for each element in 'ref' and a multi-point geometry (derived from 'refs') will
+// be assigned to the depiction and parent (subject) record.
 func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	logger := slog.Default()
+	logger = logger.With("depiction id", depiction_id)
+	
 	src_geom := "sfomuseum#georeference"
 
 	if opts.SourceGeomSuffix != "" {
@@ -82,6 +89,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to derive subject (parent) ID for depiction, %w", err)
 	}
 
+	logger = logger.With("subject id", subject_id)
+	
 	// START OF to be removed once the go-writer/v4 (Clone) interface is complete
 
 	update_opts := &github.UpdateWriterURIOptions{
@@ -268,6 +277,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		case <-done_ch:
 			remaining -= 1
 		case err := <-err_ch:
+			logger.Error("Alt file processing for referent failed", "error", err)
 			return nil, err
 		case alt_f := <-alt_ch:
 			new_alt_features = append(new_alt_features, alt_f)
