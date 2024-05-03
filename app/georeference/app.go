@@ -72,14 +72,21 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create whosonfirst reader, %v", err)
 	}
 
+	sfomuseum_reader, err := reader.NewReader(ctx, sfomuseum_reader_uri)
+
+	if err != nil {
+		return fmt.Errorf("Failed to create architecture reader, %v", err)
+	}
+
 	opts := &georeference.AssignReferencesOptions{
 		DepictionReader:    depiction_reader,
 		DepictionWriter:    depiction_writer,
 		SubjectReader:      subject_reader,
 		SubjectWriter:      subject_writer,
 		WhosOnFirstReader:  whosonfirst_reader,
-		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v3 (Clone) release
-		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
+		SFOMuseumReader:    sfomuseum_reader,
+		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v4 (Clone) release
+		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v4 (Clone) release
 	}
 
 	switch mode {

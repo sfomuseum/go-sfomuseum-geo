@@ -54,6 +54,8 @@ type AssignReferencesOptions struct {
 	DepictionWriterURI string
 	// SubjectWriterURI is the URI used to create `SubjectWriter`; it is a temporary necessity to be removed with the go-writer/v3 (clone) release
 	SubjectWriterURI string
+	// A valid whosonfirst/go-reader.Reader instance for reading "sfomuseum" features (for example the aviation collection).
+	SFOMuseumReader reader.Reader
 }
 
 // AssignReferences updates records associated with 'depiction_id' (that is the depiction record itself and it's "parent" object record)
@@ -678,21 +680,69 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF update the subject (parent) record
 
+	subject_hierarchies := make([]map[string]int64, 0)
+
 	subject_body, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load subject (parent) for depiction, %w", err)
 	}
 
-	// TBD...
-	// subject_hierarchies := depiction_hierarchies
-	// Ensure that SFOM "collection" is in subject hierarchy?
+	collection_id, err := properties.ParentId(subject_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load parent record for subject, %w", err)
+	}
+
+	col_body, err := wof_reader.LoadBytes(ctx, opts.SFOMuseumReader, collection_id)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load collection (%d) record, %w", collection_id, err)
+	}
+
+	hiers := properties.Hierarchies(col_body)
+
+	for _, h := range hiers {
+
+		for _, h_id := range h {
+			references_map.Store(h_id, true)
+		}
+
+		enc_h, err := json.Marshal(h)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal hierarchy for %d, %w", collection_id, err)
+		}
+
+		md5_h := fmt.Sprintf("%x", md5.Sum(enc_h))
+		hierarchies_hash_map.Store(md5_h, h)
+
+		hier_mu.Lock()
+
+		if !slices.Contains(hier_hashes, md5_h) {
+			hier_hashes = append(hier_hashes, md5_h)
+		}
+
+		hier_mu.Unlock()
+	}
+
+	for _, md5_h := range hier_hashes {
+
+		v, exists := hierarchies_hash_map.Load(md5_h)
+
+		if !exists {
+			return nil, fmt.Errorf("Failed to load hashed hierarchy (%s) for %d", md5_h, depiction_id)
+		}
+
+		h := v.(map[string]int64)
+		subject_hierarchies = append(subject_hierarchies, h)
+	}
 
 	// Things to update in the subject (object) record
 
 	subject_updates := map[string]interface{}{
-		"properties.src:geom": depiction_updates["properties.src:geom"],
-		// "properties.wof:hierarchy": subject_hierarchies,
+		"properties.src:geom":      depiction_updates["properties.src:geom"],
+		"properties.wof:hierarchy": subject_hierarchies,
 	}
 
 	// Things to remove from the subject record - this is tightly integrated with the
