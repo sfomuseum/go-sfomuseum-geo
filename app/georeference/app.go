@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 	_ "log/slog"
-	"strconv"
-	"strings"
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
@@ -87,39 +85,10 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 	switch mode {
 	case "cli":
 
-		refs := make([]*georeference.Reference, len(references))
+		refs, err := georeference.MultiKeyValueStringsToReferences(references)
 
-		for refs_idx, kv := range references {
-
-			k := kv.Key()
-			v := kv.Value().(string)
-
-			prop := k
-			str_ids := strings.Split(v, ",")
-
-			ids := make([]int64, len(str_ids))
-
-			for ids_idx, str_id := range str_ids {
-
-				id, err := strconv.ParseInt(str_id, 10, 64)
-
-				if err != nil {
-					return fmt.Errorf("Failed to parse ID '%s', %w", str_id, err)
-				}
-
-				ids[ids_idx] = id
-			}
-
-			label := strings.Replace(prop, ":", "_", -1)
-			label := strings.Replace(prop, ".", "_", -1)
-
-			r := &georeference.Reference{
-				Ids:      ids,
-				Property: prop,
-				AltLabel: label,
-			}
-
-			refs[refs_idx] = r
+		if err != nil {
+			return fmt.Errorf("Failed to derive references from flags, %w", err)
 		}
 
 		for _, id := range depictions {
