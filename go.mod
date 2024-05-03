@@ -2,8 +2,10 @@ module github.com/sfomuseum/go-sfomuseum-geo
 
 go 1.22.1
 
+toolchain go1.22.2
+
 require (
-	github.com/aws/aws-lambda-go v1.46.0
+	github.com/aws/aws-lambda-go v1.47.0
 	github.com/paulmach/orb v0.11.1
 	github.com/sfomuseum/go-flags v0.10.0
 	github.com/sfomuseum/go-geojson-geotag/v2 v2.0.0
@@ -22,7 +24,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.2
 	github.com/whosonfirst/go-writer-github/v3 v3.0.4
-	github.com/whosonfirst/go-writer/v3 v3.1.0
+	github.com/whosonfirst/go-writer/v3 v3.1.1
 	gocloud.dev v0.37.0
 )
 

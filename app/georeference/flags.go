@@ -1,4 +1,4 @@
-package flightcover
+package georeference
 
 import (
 	"context"
@@ -19,19 +19,16 @@ var subject_reader_uri string
 var subject_writer_uri string
 
 var whosonfirst_reader_uri string
+var sfomuseum_reader_uri string
 
 var access_token_uri string
 
-var from_id multi.MultiInt64
-var to_id multi.MultiInt64
-var sent_id multi.MultiInt64
-var received_id multi.MultiInt64
-
+var references multi.KeyValueString
 var depictions multi.MultiInt64
 
 func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
-	fs := flagset.NewFlagSet("geotag")
+	fs := flagset.NewFlagSet("reference")
 
 	fs.StringVar(&mode, "mode", "cli", "Valid options are: cli, lambda.")
 
@@ -47,18 +44,13 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
 	fs.StringVar(&subject_writer_uri, "subject-writer-uri", "repo:///usr/local/data/sfomuseum-data-collection", "A valid whosonfirst/go-writer URI.")
 
-	// Eventually something in the whosonfirst(.org) findingaid
+	fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "https://data.whosonfirst.org/geojson/", "A valid whosonfirst/go-reader URI.")
 
-	// fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "https://data.whosonfirst.org/", "A valid whosonfirst/go-reader URI.")
-	fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "repo:///usr/local/data/sfomuseum-data-whosonfirst", "A valid whosonfirst/go-reader URI.")
+	fs.StringVar(&sfomuseum_reader_uri, "sfomuseum-reader-uri", "https://static.sfomuseum.org/geojson/", "A valid whosonfirst/go-reader URI.")
 
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
-	fs.Var(&from_id, "from", "One or more valid Who's On First IDs representing the place a (flight cover) letter was sent from.")
-	fs.Var(&to_id, "to", "One or more valid Who's On First IDs representing the place a (flight cover) letter was sent to.")
-	fs.Var(&received_id, "received", "One or more valid Who's On First IDs representing the place a (flight cover) letter was postmarked as received.")
-	fs.Var(&sent_id, "sent", "One or more valid Who's On First IDs representing the place a (flight cover) letter was postmarked as sent.")
-
+	fs.Var(&references, "reference", "...")
 	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
 
 	fs.Usage = func() {

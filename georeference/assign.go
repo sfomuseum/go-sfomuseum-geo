@@ -7,14 +7,17 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/go-sfomuseum-geo"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
@@ -51,13 +54,20 @@ type AssignReferencesOptions struct {
 	DepictionWriterURI string
 	// SubjectWriterURI is the URI used to create `SubjectWriter`; it is a temporary necessity to be removed with the go-writer/v3 (clone) release
 	SubjectWriterURI string
-	Logger           *log.Logger
+	// A valid whosonfirst/go-reader.Reader instance for reading "sfomuseum" features (for example the aviation collection).
+	SFOMuseumReader reader.Reader
 }
 
+// AssignReferences updates records associated with 'depiction_id' (that is the depiction record itself and it's "parent" object record)
+// and 'refs'. An alternate geometry file will be created for each element in 'ref' and a multi-point geometry (derived from 'refs') will
+// be assigned to the depiction and parent (subject) record.
 func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	logger := slog.Default()
+	logger = logger.With("depiction id", depiction_id)
 
 	src_geom := "sfomuseum#georeference"
 
@@ -82,6 +92,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive subject (parent) ID for depiction, %w", err)
 	}
+
+	logger = logger.With("subject id", subject_id)
 
 	// START OF to be removed once the go-writer/v4 (Clone) interface is complete
 
@@ -172,11 +184,34 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	depiction_reader = opts.DepictionReader
 
+	// Okay, so there's a lot going on here. Given a depiction (image) and (n) references we want to:
+	// * Create or update the list of alt files (one alt file per reference) associated with the depiction
+	// * Update the depiction file with the:
+	//   * Updated list of alt files
+	//   * An updated list of references (the `georeference:depictions` property)
+	//   * An updated list of `wof:hierarchy` elements derived from `georeference:depictions` and `geotag:depictions`
+	//   * An updated MultiPoint geometry derived from the geometries of the pointers in `georeference:depictions` and `geotag:depictions`
+	// * Update the "subject" file of the depiction (for example the object associated with an image) with the:
+	//   * Updated list of alt files
+	//   * An updated list of references derived from the `georeference:depictions` property of all the depictions (images)
+	//   * An updated list of `wof:hierarchy` elements derived from `georeference:depictions` and `geotag:depictions` and... SFO (?) derived from all the depictions (images) <-- this is not being done yet
+	//   * An updated MultiPoint geometry derived from all the depictions (images)
+
 	// START OF update the depiction record
 
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
 	alt_ch := make(chan *alt.WhosOnFirstAltFeature)
+
+	// Map of any given wof:hierarchy dictionary where the value is the dictionary
+	// and the key is the hash of the md5 sum of the JSON-encoded dictionary
+	hierarchies_hash_map := new(sync.Map)
+
+	// The set of unique hashed hierarchies (see above) across all the references
+	hier_hashes := make([]string, 0)
+
+	// Mutex for reading/writing to hier_hashes inside Go routines
+	hier_mu := new(sync.RWMutex)
 
 	references_map := new(sync.Map)
 	updates_map := new(sync.Map)
@@ -185,6 +220,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	new_alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
 	other_alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
+
+	// Start iterating references to assign
 
 	for _, r := range refs {
 
@@ -207,6 +244,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			count := len(r.Ids)
 			points := make([]orb.Point, count)
 
+			// Remember any given reference (label) can have mutiple WOF IDs
+
 			for idx, id := range r.Ids {
 
 				body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
@@ -223,6 +262,24 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 					for _, h_id := range h {
 						references_map.Store(h_id, true)
 					}
+
+					enc_h, err := json.Marshal(h)
+
+					if err != nil {
+						err_ch <- fmt.Errorf("Failed to marshal hierarchy for %d, %w", id, err)
+						return
+					}
+
+					md5_h := fmt.Sprintf("%x", md5.Sum(enc_h))
+					hierarchies_hash_map.Store(md5_h, h)
+
+					hier_mu.Lock()
+
+					if !slices.Contains(hier_hashes, md5_h) {
+						hier_hashes = append(hier_hashes, md5_h)
+					}
+
+					hier_mu.Unlock()
 				}
 
 				pt, _, err := properties.Centroid(body)
@@ -269,6 +326,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		case <-done_ch:
 			remaining -= 1
 		case err := <-err_ch:
+			logger.Error("Alt file processing for referent failed", "error", err)
 			return nil, err
 		case alt_f := <-alt_ch:
 			new_alt_features = append(new_alt_features, alt_f)
@@ -527,7 +585,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		alt_props := map[string]interface{}{
 			"edtf:deprecated": deprecated,
 			"src:alt_label":   ref.AltLabel,
-			"src:geom":        "sfomuseum#georeference-flightcover",
+			"src:geom":        "sfomuseum#georeference",
 			"wof:id":          depiction_id,
 			"wof:repo":        "sfomuseum-data-media-collection",
 		}
@@ -581,15 +639,36 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
+	// Update wof:hierarchy (ies) for depiction
+
+	depiction_hierarchies := make([]map[string]int64, 0)
+
+	for _, md5_h := range hier_hashes {
+
+		v, exists := hierarchies_hash_map.Load(md5_h)
+
+		if !exists {
+			return nil, fmt.Errorf("Failed to load hashed hierarchy (%s) for %d", md5_h, depiction_id)
+		}
+
+		h := v.(map[string]int64)
+		depiction_hierarchies = append(depiction_hierarchies, h)
+	}
+
+	depiction_updates["properties.wof:hierarchy"] = depiction_hierarchies
+
+	// Has anything changed?
+
 	depiction_has_changed, new_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, depiction_updates)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to assign depiction properties, %w", err)
 	}
 
+	// Write changes
+
 	if depiction_has_changed {
 
-		// _, err = sfom_writer.WriteBytes(ctx, depiction_wr, new_body)
 		_, err = sfom_writer.WriteBytes(ctx, depiction_mw, new_body)
 
 		if err != nil {
@@ -601,16 +680,69 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF update the subject (parent) record
 
+	subject_hierarchies := make([]map[string]int64, 0)
+
 	subject_body, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load subject (parent) for depiction, %w", err)
 	}
 
+	collection_id, err := properties.ParentId(subject_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load parent record for subject, %w", err)
+	}
+
+	col_body, err := wof_reader.LoadBytes(ctx, opts.SFOMuseumReader, collection_id)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load collection (%d) record, %w", collection_id, err)
+	}
+
+	hiers := properties.Hierarchies(col_body)
+
+	for _, h := range hiers {
+
+		for _, h_id := range h {
+			references_map.Store(h_id, true)
+		}
+
+		enc_h, err := json.Marshal(h)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal hierarchy for %d, %w", collection_id, err)
+		}
+
+		md5_h := fmt.Sprintf("%x", md5.Sum(enc_h))
+		hierarchies_hash_map.Store(md5_h, h)
+
+		hier_mu.Lock()
+
+		if !slices.Contains(hier_hashes, md5_h) {
+			hier_hashes = append(hier_hashes, md5_h)
+		}
+
+		hier_mu.Unlock()
+	}
+
+	for _, md5_h := range hier_hashes {
+
+		v, exists := hierarchies_hash_map.Load(md5_h)
+
+		if !exists {
+			return nil, fmt.Errorf("Failed to load hashed hierarchy (%s) for %d", md5_h, depiction_id)
+		}
+
+		h := v.(map[string]int64)
+		subject_hierarchies = append(subject_hierarchies, h)
+	}
+
 	// Things to update in the subject (object) record
 
 	subject_updates := map[string]interface{}{
-		"properties.src:geom": depiction_updates["properties.src:geom"],
+		"properties.src:geom":      depiction_updates["properties.src:geom"],
+		"properties.wof:hierarchy": subject_hierarchies,
 	}
 
 	// Things to remove from the subject record - this is tightly integrated with the
@@ -618,30 +750,24 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	subject_removals := make([]string, 0)
 
-	// Lookup table for all the flightcover properties across all the images for an objects
+	// Lookup table for all the flightcover properties across all the images for an object
 
 	georef_properties_lookup := new(sync.Map)
 
 	// Assign the reference pointers to the subject record
 
-	fq_from := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_FROM)
-	fq_to := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_TO)
-	fq_sent := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_SENT)
-	fq_received := fmt.Sprintf("properties.%s", PROPERTY_FLIGHTCOVER_RECEIVED)
+	georeferences_paths := make([]string, len(refs))
 
-	georeferences_paths := []string{
-		fq_from,
-		fq_to,
-		fq_sent,
-		fq_received,
+	for idx, r := range refs {
+		path := fmt.Sprintf("properties.%s", r.Property)
+		georeferences_paths[idx] = path
 	}
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 
 		path := k.(string)
 
-		switch path {
-		case fq_from, fq_to, fq_sent, fq_received:
+		if slices.Contains(georeferences_paths, path) {
 
 			georef_ids_lookup := new(sync.Map)
 
@@ -656,7 +782,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			// subject record georeference properties are not updated until
 			// the combined properties for all the images are gathered (below)
 
-		default:
+		} else {
 			subject_updates[path] = v
 		}
 
@@ -693,7 +819,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	georefs_lookup.Store(depiction_id, true)
 	geoms_lookup.Store(depiction_id, true)
 
-	geotag_depictions_rsp := gjson.GetBytes(subject_body, "properties.geotag:depictions")
+	path_geotag_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
+	path_georeference_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+
+	geotag_depictions_rsp := gjson.GetBytes(subject_body, path_geotag_depictions)
 
 	for _, r := range geotag_depictions_rsp.Array() {
 		id := r.Int()
@@ -705,7 +834,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// below. Even if we have (written the changes) they won't be able to be read
 	// if we are using different readers/writers (for example repo:// and stdout://)
 
-	georefs_depictions_rsp := gjson.GetBytes(subject_body, "properties.georeference:depictions")
+	georefs_depictions_rsp := gjson.GetBytes(subject_body, path_georeference_depictions)
 
 	for _, r := range georefs_depictions_rsp.Array() {
 		id := r.Int()
@@ -721,7 +850,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
-	subject_updates["properties.georeference:depictions"] = georeferences
+	subject_updates[path_georeference_depictions] = georeferences
 
 	// START OF derive geometry from depictions (media/image files)
 
@@ -921,7 +1050,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
 	}
 
-	//
+	// Now write the subject (object) being depicted
 
 	local_depiction_buf_writer.Flush()
 	local_subject_buf_writer.Flush()

@@ -1,12 +1,10 @@
-package flightcover
-
-// For example:
-// 	./bin/assign-flight-cover -depiction-id 1527853781 -sent 85632163 -to 85977539
+package georeference
 
 import (
 	"context"
 	"flag"
 	"fmt"
+	_ "log/slog"
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
@@ -74,22 +72,44 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create whosonfirst reader, %v", err)
 	}
 
+	sfomuseum_reader, err := reader.NewReader(ctx, sfomuseum_reader_uri)
+
+	if err != nil {
+		return fmt.Errorf("Failed to create architecture reader, %v", err)
+	}
+
 	opts := &georeference.AssignReferencesOptions{
 		DepictionReader:    depiction_reader,
 		DepictionWriter:    depiction_writer,
 		SubjectReader:      subject_reader,
 		SubjectWriter:      subject_writer,
 		WhosOnFirstReader:  whosonfirst_reader,
-		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v3 (Clone) release
-		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
+		SFOMuseumReader:    sfomuseum_reader,
+		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v4 (Clone) release
+		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v4 (Clone) release
 	}
 
 	switch mode {
 	case "cli":
-		return runCommandLine(ctx, opts)
-	case "lambda":
-		return runLambda(ctx, opts)
+
+		refs, err := georeference.MultiKeyValueStringsToReferences(references)
+
+		if err != nil {
+			return fmt.Errorf("Failed to derive references from flags, %w", err)
+		}
+
+		for _, id := range depictions {
+
+			_, err := georeference.AssignReferences(ctx, opts, id, refs...)
+
+			if err != nil {
+				return fmt.Errorf("Failed to georeference depiction %d, %w", id, err)
+			}
+		}
+
 	default:
 		return fmt.Errorf("Invalid or unsupported mode")
 	}
+
+	return nil
 }
