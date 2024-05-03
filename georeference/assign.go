@@ -632,11 +632,41 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
+	// Update wof:hierarchy (ies) for depiction
+
+	depiction_hierarchies := make([]map[string]int64, 0)
+
+	v, exists := hierarchies_map.Load(depiction_id)
+
+	if !exists {
+		return nil, fmt.Errorf("Failed to load hierarchy hashes for %s from lookup map", depiction_id)
+	}
+
+	hier_hashes := v.([]string)
+
+	for _, md5_h := range hier_hashes {
+
+		v, exists := hierarchies_hash_map.Load(md5_h)
+
+		if !exists {
+			return nil, fmt.Errorf("Failed to load hashed hierarchy (%s) for %d", md5_h, depiction_id)
+		}
+
+		h := v.(map[string]int64)
+		depiction_hierarchies = append(depiction_hierarchies, h)
+	}
+
+	depiction_updates["properties.wof:hierarchy"] = depiction_hierarchies
+
+	// Has anything changed?
+
 	depiction_has_changed, new_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, depiction_updates)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to assign depiction properties, %w", err)
 	}
+
+	// Write changes
 
 	if depiction_has_changed {
 
