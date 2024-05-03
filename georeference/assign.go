@@ -16,6 +16,7 @@ import (
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/go-sfomuseum-geo"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
@@ -231,6 +232,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 					for _, h_id := range h {
 						references_map.Store(h_id, true)
 					}
+
+					// TBD... store hash of enc hier too...
 				}
 
 				pt, _, err := properties.Centroid(body)
@@ -695,7 +698,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	georefs_lookup.Store(depiction_id, true)
 	geoms_lookup.Store(depiction_id, true)
 
-	geotag_depictions_rsp := gjson.GetBytes(subject_body, "properties.geotag:depictions")
+	path_geotag_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
+	path_georeference_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+
+	geotag_depictions_rsp := gjson.GetBytes(subject_body, path_geotag_depictions)
 
 	for _, r := range geotag_depictions_rsp.Array() {
 		id := r.Int()
@@ -707,7 +713,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// below. Even if we have (written the changes) they won't be able to be read
 	// if we are using different readers/writers (for example repo:// and stdout://)
 
-	georefs_depictions_rsp := gjson.GetBytes(subject_body, "properties.georeference:depictions")
+	georefs_depictions_rsp := gjson.GetBytes(subject_body, path_georeference_depictions)
 
 	for _, r := range georefs_depictions_rsp.Array() {
 		id := r.Int()

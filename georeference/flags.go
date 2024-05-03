@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/sfomuseum/go-flags/multi"
+	"github.com/sfomuseum/go-sfomuseum-geo"
 )
 
 // MultiKeyValueStringsToReferences converts a list of `multi.KeyValueString` key-value pairs in to a list of `Reference` instances.
@@ -19,6 +20,14 @@ func MultiKeyValueStringsToReferences(kv_references multi.KeyValueString) ([]*Re
 		v := kv.Value().(string)
 
 		prop := k
+
+		switch prop {
+		case geo.RESERVED_GEOTAG_DEPICTIONS, geo.RESERVED_GEOREFERENCE_DEPICTIONS:
+			return nil, fmt.Errorf("'%s' is a reserved property", prop)
+		default:
+			// pass
+		}
+
 		str_ids := strings.Split(v, ",")
 
 		ids := make([]int64, len(str_ids))
