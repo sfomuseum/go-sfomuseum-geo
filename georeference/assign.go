@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -181,11 +182,32 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	depiction_reader = opts.DepictionReader
 
+	// Okay, so there's a lot going on here. Given a depiction (image) and (n) references we want to:
+	// * Create or update the list of alt files (one alt file per reference) associated with the depiction
+	// * Update the depiction file with the:
+	//   * Updated list of alt files
+	//   * An updated list of references (the `georeference:depictions` property)
+	//   * An updated list of `wof:hierarchy` elements derived from `georeference:depictions` and `geotag:depictions` and... SFO? <-- this is not being done yet
+	//   * An updated MultiPoint geometry derived from the geometries of the pointers in `georeference:depictions` and `geotag:depictions`
+	// * Update the "subject" file of the depiction (for example the object associated with an image) with the:
+	//   * Updated list of alt files
+	//   * An updated list of references derived from the `georeference:depictions` property of all the depictions (images)
+	//   * An updated list of `wof:hierarchy` elements derived from `georeference:depictions` and `geotag:depictions` and... SFO (?) derived from all the depictions (images) <-- this is not being done yet
+	//   * An updated MultiPoint geometry derived from all the depictions (images)
+
 	// START OF update the depiction record
 
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
 	alt_ch := make(chan *alt.WhosOnFirstAltFeature)
+
+	// Map of any given wof:hierarchy dictionary where the value is the dictionary
+	// and the key is the hash of the md5 sum of the JSON-encoded dictionary
+	hierarchies_hash_map := new(sync.Map)
+
+	// Map of hashed wof:hierarchy dictionaries (above) where the values is a list
+	// of hash values (stored in hierarchies_hash_map) and the key is a WOF ID
+	hierarchies_map := new(sync.Map)
 
 	references_map := new(sync.Map)
 	updates_map := new(sync.Map)
@@ -194,6 +216,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	new_alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
 	other_alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
+
+	// Start iterating references to assign
 
 	for _, r := range refs {
 
@@ -216,6 +240,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			count := len(r.Ids)
 			points := make([]orb.Point, count)
 
+			// Remember any given reference (label) can have mutiple WOF IDs
+
 			for idx, id := range r.Ids {
 
 				body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
@@ -226,15 +252,28 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				}
 
 				hiers := properties.Hierarchies(body)
+				hier_hashes := make([]string, len(hiers))
 
-				for _, h := range hiers {
+				for h_idx, h := range hiers {
 
 					for _, h_id := range h {
 						references_map.Store(h_id, true)
 					}
 
-					// TBD... store hash of enc hier too...
+					enc_h, err := json.Marshal(h)
+
+					if err != nil {
+						err_ch <- fmt.Errorf("Failed to marshal hierarchy for %d, %w", id, err)
+						return
+					}
+
+					md5_h := fmt.Sprintf("%x", md5.Sum(enc_h))
+					hier_hashes[h_idx] = md5_h
+
+					hierarchies_hash_map.Store(md5_h, h)
 				}
+
+				hierarchies_map.Store(id, hier_hashes)
 
 				pt, _, err := properties.Centroid(body)
 
@@ -729,7 +768,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
-	subject_updates["properties.georeference:depictions"] = georeferences
+	subject_updates[path_georeference_depictions] = georeferences
 
 	// START OF derive geometry from depictions (media/image files)
 
@@ -929,7 +968,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
 	}
 
-	//
+	// Now write the subject (object) being depicted
 
 	local_depiction_buf_writer.Flush()
 	local_subject_buf_writer.Flush()
