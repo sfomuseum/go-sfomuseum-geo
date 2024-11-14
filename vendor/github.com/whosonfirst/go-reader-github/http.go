@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	_ "log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -82,7 +82,12 @@ func (r *GitHubReader) Read(ctx context.Context, uri string) (io.ReadSeekCloser,
 
 	<-r.throttle
 
+	logger := slog.Default()
+	logger = logger.With("uri", uri)
+
 	url := r.ReaderURI(ctx, uri)
+
+	logger.Debug("Read URL", "url", url)
 
 	rsp, err := http.Get(url)
 
