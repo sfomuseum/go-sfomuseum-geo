@@ -14,6 +14,7 @@ import (
 
 type RunOptions struct {
 	Mode                 string
+	Verbose              bool
 	SubjectReaderURI     string
 	SubjectWriterURI     string
 	DepictionReaderURI   string
@@ -43,6 +44,7 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 
 	opts := &RunOptions{
 		Mode:                 mode,
+		Verbose:              verbose,
 		SubjectReaderURI:     subject_reader_uri,
 		SubjectWriterURI:     subject_writer_uri,
 		DepictionReaderURI:   depiction_reader_uri,

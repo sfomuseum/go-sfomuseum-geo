@@ -36,13 +36,13 @@ import (
 // A depiction is assumed to be the record for an image or some other piece of media. A subject is assumed to be
 // the record for an object.
 type AssignReferencesOptions struct {
-	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
+	// A valid whosonfirst/go-reader.Reader instance for reading depiction features. A depiction might be an image of a collection object.
 	DepictionReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
+	// A valid whosonfirst/go-writer.Writer instance for writing depiction features. A depiction might be an image of a collection object.
 	DepictionWriter writer.Writer
-	// A valid whosonfirst/go-reader.Reader instance for reading subject features.
+	// A valid whosonfirst/go-reader.Reader instance for reading subject features. A subject might be a collection object (rather than any one image (depiction) of that object).
 	SubjectReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
+	// A valid whosonfirst/go-writer.Writer instance for writing subject features. A subject might be a collection object (rather than any one image (depiction) of that object).
 	SubjectWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	WhosOnFirstReader reader.Reader
@@ -73,6 +73,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if opts.SourceGeomSuffix != "" {
 		src_geom = fmt.Sprintf("%s-%s", src_geom, opts.SourceGeomSuffix)
+		logger.Debug("Automatically assign source geom suffix", "suffix", src_geom)
 	}
 
 	depiction_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
@@ -1007,7 +1008,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	// END OF denormalize all the georeferenced properties (flightcover, etc.) from all the images in to the object record
+	// END OF denormalize all the georeferenced propertiesfrom all the images in to the object record
 
 	if len(subject_removals) > 0 {
 

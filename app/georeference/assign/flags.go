@@ -11,6 +11,7 @@ import (
 )
 
 var mode string
+var verbose bool
 
 var depiction_reader_uri string
 var depiction_writer_uri string
@@ -31,6 +32,7 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 	fs := flagset.NewFlagSet("reference")
 
 	fs.StringVar(&mode, "mode", "cli", "Valid options are: cli, lambda.")
+	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 
 	// Assumed to be something in sfomuseum-data-media-collection
 
@@ -50,8 +52,8 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
-	fs.Var(&references, "reference", "...")
-	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
+	fs.Var(&references, "reference", "One or more {LABEL}={WHOSONFIRST_ID} key-value pairs denoting a place that is being (geo)referenced in a depiction.")
+	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted (for example an object image).")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "...\n")

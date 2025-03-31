@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	_ "log/slog"
+	"log/slog"
 
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
 	"github.com/whosonfirst/go-reader"
@@ -31,6 +31,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 }
 
 func RunWithOptions(ctx context.Context, opts *RunOptions) error {
+
+	if opts.Verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.Debug("Verbose logging enabled")
+	}
 
 	var err error
 
