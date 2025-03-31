@@ -263,7 +263,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
 
 				if err != nil {
-					err_ch <- fmt.Errorf("Failed to read body for %d, %w", id, err)
+					err_ch <- fmt.Errorf("Failed to read record for WOF ID %d, %w", id, err)
 					return
 				}
 
@@ -428,6 +428,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, ok_remove := to_remove[label]
 
 		if !ok_lookup && !ok_remove {
+			logger.Debug("Append to fetch", "label", label)
 			to_fetch = append(to_fetch, label)
 		}
 	}
@@ -450,6 +451,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 					done_ch <- true
 				}()
 
+				logger.Debug("Fetch alt feature", "label", label)
+				
 				alt_uri_geom := &uri.AltGeom{
 					Source: label,
 				}
@@ -469,7 +472,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				r, err := depiction_reader.Read(ctx, alt_uri)
 
 				if err != nil {
-					err_ch <- fmt.Errorf("Failed to read %s, %w", alt_uri, err)
+					err_ch <- fmt.Errorf("Failed to read depiction alt file %s, %w", alt_uri, err)
 					return
 				}
 
@@ -481,7 +484,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				err = dec.Decode(&f)
 
 				if err != nil {
-					err_ch <- fmt.Errorf("Failed to decode %s, %w", alt_uri, err)
+					err_ch <- fmt.Errorf("Failed to decode depiction alt_file %s, %w", alt_uri, err)
 					return
 				}
 
@@ -980,6 +983,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	images_rsp := gjson.GetBytes(subject_body, "properties.millsfield:images")
 	images_list := images_rsp.Array()
 
+	logger.Debug("Process images for subject", "count", len(images_list))
+	
 	for _, r := range images_list {
 
 		image_id := r.Int()
@@ -998,10 +1003,12 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				im_done_ch <- true
 			}()
 
+			logger.Debug("Load image", "image id", image_id)
+			
 			image_body, err := wof_reader.LoadBytes(ctx, depiction_reader, image_id)
 
 			if err != nil {
-				im_err_ch <- fmt.Errorf("Failed to read %d, %w", image_id, err)
+				im_err_ch <- fmt.Errorf("Failed to read image ID %d, %w", image_id, err)
 				return
 			}
 
@@ -1045,6 +1052,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// Once all the images have been reviewed for flightcover (georeference) properties
 	// figure out which ones need to be updated in or removed from the subject record
 
+	logger.Debug("Determine properties to update or remove in subject record")
+	
 	for _, path := range georeferences_paths {
 
 		ids_v, ok := georef_properties_lookup.Load(path)
