@@ -1,0 +1,224 @@
+{
+  "id": 1527829811,
+  "type": "Feature",
+  "properties": {
+    "date:cessation_lower": "1947-01-10",
+    "date:cessation_upper": "1947-01-10",
+    "date:inception_lower": "1947-01-10",
+    "date:inception_upper": "1947-01-10",
+    "edtf:cessation": "1947-01-10",
+    "edtf:date": "1947-01-10",
+    "edtf:inception": "1947-01-10",
+    "geom:area": 0,
+    "geom:bbox": "-122.386155,37.616358,-122.386155,37.616358",
+    "geom:latitude": 37.616358,
+    "geom:longitude": -122.386155,
+    "iso:country": "AU",
+    "media:fingerprint": "885ba7fd7d3da1b2b49e3bc2bf5c9940a558dfbf",
+    "media:imagehash_avg": "a:8b98983c1f1b0fff",
+    "media:imagehash_diff": "d:3b31317979727a2a",
+    "media:imagetext": "PAN AMERICAN WORLD AIRWAYS\nFirst Clipper Flight\nSydney, Australia\nto\nNoumea, New Caledonia.\nFIRST AIRMAIL FLIGHT BY\nPAN AMERICAN WORLD AIRWAYS\nFAN AMERICAN\nWORLD AIRWAYS\nSYONEY, AUSTRALIA\nCANTON ISLAER,\nMONOLVIN, SI#\n16 AUSTRALIA\n16\n9-PICUY47 6\nVIA AIR MAIL\n% Pan American Airways,\nNoumea, New Caledonia",
+    "media:imagetext_created": 1701940637,
+    "media:imagetext_source": "com.apple.visionkit.VNImageRequestHandler#Version 14.1.2 (Build 23B92)",
+    "media:medium": "image",
+    "media:mimetype": "image/tiff",
+    "media:properties": {
+      "colours": [
+        {
+          "hex": "#cd331a",
+          "name": "#cd331a",
+          "reference": "vibrant"
+        },
+        {
+          "hex": "#e7b9a6",
+          "name": "#e7b9a6",
+          "reference": "vibrant"
+        },
+        {
+          "hex": "#813d3a",
+          "name": "#813d3a",
+          "reference": "vibrant"
+        },
+        {
+          "hex": "#937871",
+          "name": "#937871",
+          "reference": "vibrant"
+        },
+        {
+          "hex": "#cec2aa",
+          "name": "#cec2aa",
+          "reference": "vibrant"
+        }
+      ],
+      "sizes": {
+        "b": {
+          "extension": "jpg",
+          "height": 612,
+          "mimetype": "image/jpeg",
+          "secret": "M2t6naSxsSU1VC4rR5d9aExCoNDIz40c",
+          "width": 1023
+        },
+        "c": {
+          "extension": "jpg",
+          "height": 478,
+          "mimetype": "image/jpeg",
+          "secret": "M2t6naSxsSU1VC4rR5d9aExCoNDIz40c",
+          "width": 800
+        },
+        "dc": {
+          "extension": "jpg",
+          "height": 478,
+          "mimetype": "image/jpeg",
+          "secret": "M2t6naSxsSU1VC4rR5d9aExCoNDIz40c",
+          "width": 800
+        },
+        "ds": {
+          "extension": "jpg",
+          "height": 320,
+          "mimetype": "image/jpeg",
+          "secret": "M2t6naSxsSU1VC4rR5d9aExCoNDIz40c",
+          "width": 320
+        },
+        "k": {
+          "extension": "jpg",
+          "height": 1225,
+          "mimetype": "image/jpeg",
+          "secret": "M2t6naSxsSU1VC4rR5d9aExCoNDIz40c",
+          "width": 2047
+        },
+        "n": {
+          "extension": "jpg",
+          "height": 191,
+          "mimetype": "image/jpeg",
+          "secret": "M2t6naSxsSU1VC4rR5d9aExCoNDIz40c",
+          "width": 320
+        },
+        "o": {
+          "extension": "jpg",
+          "height": 1224,
+          "mimetype": "image/jpeg",
+          "secret": "EXjUhtApi9d4yjZh4DlD3Qye0MH0F3Mk",
+          "width": 2045
+        },
+        "s": {
+          "extension": "jpg",
+          "height": 320,
+          "mimetype": "image/jpeg",
+          "secret": "M2t6naSxsSU1VC4rR5d9aExCoNDIz40c",
+          "width": 320
+        },
+        "z": {
+          "extension": "jpg",
+          "height": 383,
+          "mimetype": "image/jpeg",
+          "secret": "M2t6naSxsSU1VC4rR5d9aExCoNDIz40c",
+          "width": 640
+        }
+      }
+    },
+    "media:source": "sfomuseum",
+    "media:status_id": 1,
+    "media:uri_template": "https://static.sfomuseum.org/media/152/782/981/1/1527829811_{secret}_{label}.{extension}",
+    "millsfield:airline_id": [
+      1159284989
+    ],
+    "millsfield:category_id": 1511214215,
+    "millsfield:collection_id": 1511214207,
+    "millsfield:company_id": [
+      1159286839
+    ],
+    "millsfield:images_texts": [
+      "PAN AMERICAN WORLD AIRWAYS\nFirst Clipper Flight\nSydney, Australia\nto\nNoumea, New Caledonia.\nFIRST AIRMAIL FLIGHT BY\nPAN AMERICAN WORLD AIRWAYS\nFAN AMERICAN\nWORLD AIRWAYS\nSYONEY, AUSTRALIA\nCANTON ISLAER,\nMONOLVIN, SI#\n16 AUSTRALIA\n16\n9-PICUY47 6\nVIA AIR MAIL\n% Pan American Airways,\nNoumea, New Caledonia",
+      "19-34\n199618.2000\nMEA",
+      "Another First Flight Cover\nCarried by\nThe System of the Flying Clippers\nWhen You Think of Air Travel Think of\nPAN AMERICAN WORLD AIRWAYS"
+    ],
+    "millsfield:images_texts_ids": [
+      1527829811,
+      1527829813,
+      1527829815
+    ],
+    "millsfield:subcategory_id": 1511213159,
+    "mz:hierarchy_label": 1,
+    "mz:is_current": -1,
+    "sfomuseum:filename": "48731.tif",
+    "sfomuseum:image_id": 48731,
+    "sfomuseum:image_index": 5,
+    "sfomuseum:image_type": "studio",
+    "sfomuseum:object_id": 43734,
+    "sfomuseum:placetype": "image",
+    "sfomuseum:primary_image": 1,
+    "src:geom": "sfomuseum",
+    "wof:belongsto": [
+      102191583,
+      1511907389,
+      85632793,
+      136253039,
+      1511214215,
+      102527513,
+      102191575,
+      85633793,
+      1511213159,
+      85922583,
+      102087579,
+      1511214277,
+      1511214203,
+      85688637
+    ],
+    "wof:breaches": [],
+    "wof:country": "AU",
+    "wof:created": 1578950896,
+    "wof:depicts": [
+      1511907389,
+      1159284989,
+      1159286839
+    ],
+    "wof:geomhash": "bd906905ce4be6c0651c90b0fc24804c",
+    "wof:hierarchy": [
+      {
+        "continent_id": 102191583,
+        "country_id": 85632793,
+        "custom_id": 1527829811,
+        "empire_id": 136253039,
+        "image_id": 1527829811,
+        "media_id": 1527829811,
+        "venue_id": 1511907389
+      },
+      {
+        "arcade_id": 1511213159,
+        "building_id": 1511214277,
+        "campus_id": 102527513,
+        "concourse_id": 1511214215,
+        "continent_id": 102191575,
+        "country_id": 85633793,
+        "county_id": 102087579,
+        "custom_id": 1527829811,
+        "image_id": 1527829811,
+        "locality_id": 85922583,
+        "media_id": 1527829811,
+        "neighbourhood_id": -1,
+        "region_id": 85688637,
+        "venue_id": 1511907389,
+        "wing_id": 1511214203
+      }
+    ],
+    "wof:id": 1527829811,
+    "wof:lastmodified": 1716595757,
+    "wof:name": "airmail flight cover: Pan American World Airways, first Clipper flight, Sydney - Noumea (New Caledonia) route",
+    "wof:parent_id": 1511907389,
+    "wof:placetype": "custom",
+    "wof:placetype_alt": [
+      "image"
+    ],
+    "wof:repo": "sfomuseum-data-media-collection",
+    "wof:superseded_by": [],
+    "wof:supersedes": [],
+    "wof:tags": []
+  },
+  "bbox": [
+    -122.386155,
+    37.616358,
+    -122.386155,
+    37.616358
+  ],
+  "geometry": {"coordinates":[-122.386155,37.616358],"type":"Point"}
+}

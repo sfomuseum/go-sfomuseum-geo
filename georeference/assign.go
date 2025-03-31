@@ -85,7 +85,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	depiction_repo, err := properties.Repo(depiction_body)
 
 	if err != nil {
-		return nil, fmt.Errorf("Unabled to derive wof:repo, %w", err)
+		slog.Info("WTF", "body", string(depiction_body))
+		return nil, fmt.Errorf("Unable to derive wof:repo for depiction, %w", err)
 	}
 
 	subject_id, err := properties.ParentId(depiction_body)
