@@ -693,7 +693,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	collection_id, err := properties.ParentId(subject_body)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to load parent record for subject, %w", err)
+		return nil, fmt.Errorf("Failed to load parent record for subject %d, %w", subject_id, err)
 	}
 
 	col_body, err := wof_reader.LoadBytes(ctx, opts.SFOMuseumReader, collection_id)

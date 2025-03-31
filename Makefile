@@ -49,9 +49,10 @@ debug-georef-photo:
 debug-georef-flightcover:
 	go run -mod $(GOMOD) cmd/assign-georeferences/main.go \
 		-depiction-reader-uri repo://$(CWD)/fixtures/sfomuseum-data-media-collection \
-		-depiction-writer-uri stdout:// \
+		-depiction-writer-uri null:// \
 		-subject-reader-uri repo://$(CWD)/fixtures/sfomuseum-data-collection \
-		-subject-writer-uri stdout:// \
+		-subject-writer-uri null:// \
 		-depiction-id 1527829811 \
 		-reference sfomuseum:to_address=890413117 \
-		-reference sfomuseum:return_address=101932003
+		-reference sfomuseum:return_address=101932003 \
+		-verbose
