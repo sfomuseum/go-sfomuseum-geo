@@ -1,4 +1,4 @@
-package georeference
+package assign
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package georeference
+package assign
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	_ "log/slog"
 
-	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
 	"github.com/whosonfirst/go-reader"
 	gh_writer "github.com/whosonfirst/go-writer-github/v3"
@@ -22,63 +21,68 @@ func Run(ctx context.Context) error {
 // RunWithFlagSet executes the "assign flight cover georeferences" application with a `flag.FlagSet` instance defined by 'fs'.
 func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
-	flagset.Parse(fs)
-
-	err := flagset.SetFlagsFromEnvVars(fs, "SFOMUSEUM")
+	opts, err := RunOptionsFromFlagSet(ctx, fs)
 
 	if err != nil {
-		return fmt.Errorf("Failed to set flags from environment variables, %w", err)
+		return err
 	}
 
-	depiction_writer_uri, err = gh_writer.EnsureGitHubAccessToken(ctx, depiction_writer_uri, access_token_uri)
+	return RunWithOptions(ctx, opts)
+}
+
+func RunWithOptions(ctx context.Context, opts *RunOptions) error {
+
+	var err error
+
+	opts.DepictionWriterURI, err = gh_writer.EnsureGitHubAccessToken(ctx, opts.DepictionWriterURI, opts.GitHubAccessTokenURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to ensure access token for depiction writer URI, %v", err)
 	}
 
-	subject_writer_uri, err = gh_writer.EnsureGitHubAccessToken(ctx, subject_writer_uri, access_token_uri)
+	opts.SubjectWriterURI, err = gh_writer.EnsureGitHubAccessToken(ctx, opts.SubjectWriterURI, opts.GitHubAccessTokenURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to ensure access token for subject writer URI, %v", err)
 	}
 
-	depiction_reader, err := reader.NewReader(ctx, depiction_reader_uri)
+	depiction_reader, err := reader.NewReader(ctx, opts.DepictionReaderURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create depiction reader, %v", err)
 	}
 
-	depiction_writer, err := writer.NewWriter(ctx, depiction_writer_uri)
+	depiction_writer, err := writer.NewWriter(ctx, opts.DepictionWriterURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create depiction writer, %v", err)
 	}
 
-	subject_reader, err := reader.NewReader(ctx, subject_reader_uri)
+	subject_reader, err := reader.NewReader(ctx, opts.SubjectReaderURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create subject reader, %v", err)
 	}
 
-	subject_writer, err := writer.NewWriter(ctx, subject_writer_uri)
+	subject_writer, err := writer.NewWriter(ctx, opts.SubjectWriterURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create subject writer, %v", err)
 	}
 
-	whosonfirst_reader, err := reader.NewReader(ctx, whosonfirst_reader_uri)
+	whosonfirst_reader, err := reader.NewReader(ctx, opts.WhosOnFirstReaderURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create whosonfirst reader, %v", err)
 	}
 
-	sfomuseum_reader, err := reader.NewReader(ctx, sfomuseum_reader_uri)
+	sfomuseum_reader, err := reader.NewReader(ctx, opts.SFOMuseumReaderURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create architecture reader, %v", err)
 	}
 
-	opts := &georeference.AssignReferencesOptions{
+	assign_opts := &georeference.AssignReferencesOptions{
 		DepictionReader:    depiction_reader,
 		DepictionWriter:    depiction_writer,
 		SubjectReader:      subject_reader,
@@ -92,15 +96,9 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 	switch mode {
 	case "cli":
 
-		refs, err := georeference.MultiKeyValueStringsToReferences(references)
+		for _, id := range opts.Depictions {
 
-		if err != nil {
-			return fmt.Errorf("Failed to derive references from flags, %w", err)
-		}
-
-		for _, id := range depictions {
-
-			_, err := georeference.AssignReferences(ctx, opts, id, refs...)
+			_, err := georeference.AssignReferences(ctx, assign_opts, id, opts.References...)
 
 			if err != nil {
 				return fmt.Errorf("Failed to georeference depiction %d, %w", id, err)

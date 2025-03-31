@@ -1,25 +1,23 @@
 package main
 
 import (
+	"context"
+	"log"
+
 	_ "github.com/whosonfirst/go-reader-findingaid"
 	_ "github.com/whosonfirst/go-reader-github"
 	_ "gocloud.dev/runtimevar/awsparamstore"
 	_ "gocloud.dev/runtimevar/constantvar"
 	_ "gocloud.dev/runtimevar/filevar"
-)
 
-import (
-	"context"
-	"log"
-
-	"github.com/sfomuseum/go-sfomuseum-geo/app/georeference"
+	"github.com/sfomuseum/go-sfomuseum-geo/app/georeference/assign"
 )
 
 func main() {
 
 	ctx := context.Background()
 
-	err := georeference.Run(ctx)
+	err := assign.Run(ctx)
 
 	if err != nil {
 		log.Fatalf("Failed to assign references, %v", err)
