@@ -201,6 +201,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF update the depiction record
 
+	logger.Debug("Start updating depiction record")
+
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
 	alt_ch := make(chan *alt.WhosOnFirstAltFeature)
@@ -227,6 +229,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range refs {
 
+		logger.Debug("Process reference", "ref", r)
+
 		go func(ctx context.Context, r *Reference) {
 
 			defer func() {
@@ -250,6 +254,12 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 			for idx, id := range r.Ids {
 
+				logger := slog.Default()
+				logger = logger.With("label", prop_label)
+				logger = logger.With("id", id)
+
+				logger.Debug("Process reference")
+
 				body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
 
 				if err != nil {
@@ -268,6 +278,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 					enc_h, err := json.Marshal(h)
 
 					if err != nil {
+						logger.Error("Failed to marshal hierarchy", "error", err)
 						err_ch <- fmt.Errorf("Failed to marshal hierarchy for %d, %w", id, err)
 						return
 					}
@@ -287,6 +298,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				pt, _, err := properties.Centroid(body)
 
 				if err != nil {
+					logger.Error("Failed to derive centroid", "error", err)
 					err_ch <- fmt.Errorf("Failed to derive centroid for %d, %w", id, err)
 					return
 				}
@@ -313,6 +325,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				Geometry:   alt_geom,
 			}
 
+			logger.Debug("Return alt feature", "label", alt_label)
 			alt_ch <- alt_feature
 
 		}(ctx, r)
@@ -332,10 +345,13 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, err
 		case alt_f := <-alt_ch:
 			new_alt_features = append(new_alt_features, alt_f)
+			logger.Debug("Append new alt feature", "count", len(new_alt_features))
 		}
 	}
 
 	// START OF create/update alt files for references
+
+	logger.Debug("Create/update alt files for references")
 
 	depiction_updates := map[string]interface{}{
 		"properties.src:geom": src_geom,
@@ -355,6 +371,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
+	// logger.Debug("References for depiction", "count", len(references))
+
 	depiction_updates["properties.wof:references"] = references
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
@@ -364,6 +382,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	})
 
 	// START OF resolve alt files
+
+	logger.Debug("Resolve alt files")
 
 	// Create a lookup table of the new alt geom labels
 
@@ -375,6 +395,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	// Fetch the existing alt geom labels associated with this record
+
+	logger.Debug("Fetch existing alt geometries")
 
 	existing_alt, err := properties.AltGeometries(depiction_body)
 
@@ -413,6 +435,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// Fetch any extra alt geometries, if necessary
 
 	if len(to_fetch) > 0 {
+
+		logger.Debug("Fetch additional alt features", "count", len(to_fetch))
 
 		done_ch := make(chan bool)
 		err_ch := make(chan error)
@@ -482,6 +506,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Combine new and other alt features
 
+	logger.Debug("Compile new and existing alt features")
+
 	alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
 
 	for _, f := range new_alt_features {
@@ -493,6 +519,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	// Use this new list to catalog alt geoms and derived a multipoint geometry
+
+	logger.Debug("Calculate multipoint geometry for alt geoms")
 
 	alt_geoms := make([]string, len(alt_features))
 
@@ -517,9 +545,13 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Now save the new alt files
 
+	logger.Debug("Save alt files")
+
 	for _, f := range new_alt_features {
 
 		label := f.Properties["src:alt_label"].(string)
+
+		logger.Debug("Save alt feature", "label", label)
 
 		alt_uri_geom := &uri.AltGeom{
 			Source: label,
@@ -535,6 +567,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		if err != nil {
 			return nil, fmt.Errorf("Failed to derive rel path for alt file, %w", err)
 		}
+
+		logger.Debug("Save alt feature", "uri", alt_uri)
 
 		enc_f, err := alt.FormatAltFeature(f)
 
@@ -556,7 +590,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Now rewrite alt files that need to be "removed"
 
+	logger.Debug("Rewrite alt files to \"remove\"")
+
 	for _, ref := range to_remove {
+
+		logger.Debug("Remove alt file", "label", ref.AltLabel)
 
 		alt_uri_geom := &uri.AltGeom{
 			Source: ref.AltLabel,
@@ -572,6 +610,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		if err != nil {
 			return nil, fmt.Errorf("Failed to derive rel path for alt file, %w", err)
 		}
+
+		logger.Debug("Remove alt file", "label", alt_uri)
 
 		// In advance of a generic "exists" method/package this will have to do...
 
@@ -634,6 +674,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if len(depiction_removals) > 0 {
 
+		logger.Debug("Remove depiction properties")
+
 		depiction_body, err = export.RemoveProperties(ctx, depiction_body, depiction_removals)
 
 		if err != nil {
@@ -642,6 +684,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	// Update wof:hierarchy (ies) for depiction
+
+	logger.Debug("Update depiction hierarchies")
 
 	depiction_hierarchies := make([]map[string]int64, 0)
 
@@ -669,6 +713,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Write changes
 
+	logger.Debug("Has depiction changed", "changes", depiction_has_changed)
+
 	if depiction_has_changed {
 
 		_, err = sfom_writer.WriteBytes(ctx, depiction_mw, new_body)
@@ -680,6 +726,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF update the depiction record
 
+	logger.Debug("Finished updating depiction")
+	logger.Debug("Start updating subject")
+
 	// START OF update the subject (parent) record
 
 	subject_hierarchies := make([]map[string]int64, 0)
@@ -690,17 +739,22 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to load subject (parent) for depiction, %w", err)
 	}
 
+	// As in: Aviation Museum, Library, etc.
 	collection_id, err := properties.ParentId(subject_body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load parent record for subject %d, %w", subject_id, err)
 	}
 
+	logger = logger.With("collection", collection_id)
+
 	col_body, err := wof_reader.LoadBytes(ctx, opts.SFOMuseumReader, collection_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load collection (%d) record, %w", collection_id, err)
 	}
+
+	logger.Debug("Derive hierarchies for collection")
 
 	hiers := properties.Hierarchies(col_body)
 
@@ -740,6 +794,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		subject_hierarchies = append(subject_hierarchies, h)
 	}
 
+	logger.Debug("Subject hierarchies", "count", len(subject_hierarchies))
+
 	// Things to update in the subject (object) record
 
 	subject_updates := map[string]interface{}{
@@ -757,6 +813,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	georef_properties_lookup := new(sync.Map)
 
 	// Assign the reference pointers to the subject record
+
+	logger.Debug("Assign reference pointers to subject record")
 
 	georeferences_paths := make([]string, len(refs))
 
@@ -813,7 +871,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	subject_updates["properties.wof:references"] = subject_references
 
-	//
+	logger.Debug("Something something something...")
 
 	geoms_lookup := new(sync.Map)
 	georefs_lookup := new(sync.Map)
