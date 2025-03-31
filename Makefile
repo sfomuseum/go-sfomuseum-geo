@@ -19,12 +19,39 @@ cli:
 # depiction (image):
 # https://collection.sfomuseum.org/images/1897903961/
 # https://github.com/sfomuseum-data/sfomuseum-data-media-collection/blob/main/data/189/790/396/1/1897903961.geojson
+#
+# reference (bangkok):
+# https://spelunker.whosonfirst.org/id/102025263
 
-debug-georef:
+debug-georef-photo:
 	go run -mod $(GOMOD) cmd/assign-georeferences/main.go \
 		-depiction-reader-uri repo://$(CWD)/fixtures/sfomuseum-data-media-collection \
 		-depiction-writer-uri stdout:// \
 		-subject-reader-uri repo://$(CWD)/fixtures/sfomuseum-data-collection \
 		-subject-writer-uri stdout:// \
 		-depiction-id 1897903961 \
-		-reference debug=102025263
+		-reference sfomuseum:depicts=102025263
+
+
+# subject (object):
+# https://collection.sfomuseum.org/objects/1511907389
+# https://static.sfomuseum.org/data/151/190/738/9/1511907389.geojson
+#
+# depiction (image):
+# https://collection.sfomuseum.org/images/1527829811/
+# https://static.sfomuseum.org/data/152/782/981/1/1527829811.geojson
+#
+# reference (noumea)
+# https://spelunker.whosonfirst.org/id/890413117
+# reference (sydney)
+# https://spelunker.whosonfirst.org/id/101932003
+
+debug-georef-flightcover:
+	go run -mod $(GOMOD) cmd/assign-georeferences/main.go \
+		-depiction-reader-uri repo://$(CWD)/fixtures/sfomuseum-data-media-collection \
+		-depiction-writer-uri stdout:// \
+		-subject-reader-uri repo://$(CWD)/fixtures/sfomuseum-data-collection \
+		-subject-writer-uri stdout:// \
+		-depiction-id 1527829811 \
+		-reference sfomuseum:to_address=890413117 \
+		-reference sfomuseum:return_address=101932003
