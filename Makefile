@@ -53,6 +53,6 @@ debug-georef-flightcover:
 		-subject-reader-uri repo://$(CWD)/fixtures/sfomuseum-data-collection \
 		-subject-writer-uri repo://$(CWD)/fixtures/debug \
 		-depiction-id 1527829811 \
-		-reference sfomuseum:to_address=890413117 \
-		-reference sfomuseum:return_address=101932003 \
+		-reference sfomuseum:flightcover_to=890413117 \
+		-reference sfomuseum:flightcover_from=101932003 \
 		-verbose
