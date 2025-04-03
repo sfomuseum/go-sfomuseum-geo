@@ -58,6 +58,7 @@ type AssignReferencesOptions struct {
 	SFOMuseumReader reader.Reader
 }
 
+// The top-level property (dictionary) name to store (geo) references in
 const MILLSFIELD_REFERENCES_KEY string = "millsfield:georeferences"
 
 // AssignReferences updates records associated with 'depiction_id' (that is the depiction record itself and it's "parent" object record)
