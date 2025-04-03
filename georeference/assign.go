@@ -58,9 +58,6 @@ type AssignReferencesOptions struct {
 	SFOMuseumReader reader.Reader
 }
 
-// The top-level property (dictionary) name to store (geo) references in
-const MILLSFIELD_REFERENCES_KEY string = "millsfield:georeferences"
-
 // AssignReferences updates records associated with 'depiction_id' (that is the depiction record itself and it's "parent" object record)
 // and 'refs'. An alternate geometry file will be created for each element in 'ref' and a multi-point geometry (derived from 'refs') will
 // be assigned to the depiction and parent (subject) record.
@@ -247,7 +244,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			prop_label := r.Property
 			alt_label := r.AltLabel
 
-			prop_path := fmt.Sprintf("properties.%s.%s", MILLSFIELD_REFERENCES_KEY, prop_label)
+			prop_path := fmt.Sprintf("properties.%s.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS, prop_label)
 			updates_map.Store(prop_path, r.Ids)
 
 			count := len(r.Ids)
@@ -362,7 +359,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	references := make([]int64, 0)
 
-	refs_rsp := gjson.GetBytes(depiction_body, "properties.wof:references")
+	refs_rsp := gjson.GetBytes(depiction_body, fmt.Sprintf("properties.%s", geo.RESERVED_WOF_REFERENCES))
 
 	for _, r := range refs_rsp.Array() {
 		references_map.Store(r.Int(), true)
@@ -376,7 +373,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// logger.Debug("References for depiction", "count", len(references))
 
-	depiction_updates["properties.wof:references"] = references
+	depiction_updates[fmt.Sprintf("properties.%s", geo.RESERVED_WOF_REFERENCES)] = references
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 		path := k.(string)
@@ -674,7 +671,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range refs {
 		if len(r.Ids) == 0 {
-			path := fmt.Sprintf("properties.%s.%s", MILLSFIELD_REFERENCES_KEY, r.Property)
+			path := fmt.Sprintf("properties.%s.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS, r.Property)
 			depiction_removals = append(depiction_removals, path)
 		}
 	}
@@ -826,7 +823,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	georeferences_paths := make([]string, len(refs))
 
 	for idx, r := range refs {
-		path := fmt.Sprintf("properties.%s.%s", MILLSFIELD_REFERENCES_KEY, r.Property)
+		path := fmt.Sprintf("properties.%s.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS, r.Property)
 		georeferences_paths[idx] = path
 	}
 
@@ -862,7 +859,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		references_lookup.Store(r, true)
 	}
 
-	subject_refs := gjson.GetBytes(subject_body, "properties.wof:references")
+	subject_refs := gjson.GetBytes(subject_body, fmt.Sprintf("properties.%s", geo.RESERVED_WOF_REFERENCES))
 
 	for _, r := range subject_refs.Array() {
 		references_lookup.Store(r.Int(), true)
@@ -876,9 +873,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
-	subject_updates["properties.wof:references"] = subject_references
-
-	logger.Debug("Something something something...")
+	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_WOF_REFERENCES)] = subject_references
 
 	geoms_lookup := new(sync.Map)
 	georefs_lookup := new(sync.Map)
@@ -1094,6 +1089,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	subject_has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
 	if err != nil {
+		for k, v := range subject_updates {
+			logger.Debug("WUT", "k", k, "v", v)
+		}
+		
 		return nil, fmt.Errorf("Failed to assign subject properties, %w", err)
 	}
 

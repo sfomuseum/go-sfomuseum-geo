@@ -1,5 +1,7 @@
 module github.com/sfomuseum/go-sfomuseum-geo
 
+// replace github.com/tidwall/sjson v1.2.5 => github.com/sfomuseum/sjson v0.0.0-20250403211343-34be55140410
+
 go 1.24
 
 toolchain go1.24.0
