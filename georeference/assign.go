@@ -36,13 +36,13 @@ import (
 // A depiction is assumed to be the record for an image or some other piece of media. A subject is assumed to be
 // the record for an object.
 type AssignReferencesOptions struct {
-	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
+	// A valid whosonfirst/go-reader.Reader instance for reading depiction features. A depiction might be an image of a collection object.
 	DepictionReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
+	// A valid whosonfirst/go-writer.Writer instance for writing depiction features. A depiction might be an image of a collection object.
 	DepictionWriter writer.Writer
-	// A valid whosonfirst/go-reader.Reader instance for reading subject features.
+	// A valid whosonfirst/go-reader.Reader instance for reading subject features. A subject might be a collection object (rather than any one image (depiction) of that object)
 	SubjectReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
+	// A valid whosonfirst/go-writer.Writer instance for writing subject features. A subject might be a collection object (rather than any one image (depiction) of that object.
 	SubjectWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	WhosOnFirstReader reader.Reader
@@ -73,6 +73,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if opts.SourceGeomSuffix != "" {
 		src_geom = fmt.Sprintf("%s-%s", src_geom, opts.SourceGeomSuffix)
+		logger.Debug("Automatically assign source geom suffix", "suffix", src_geom)
 	}
 
 	depiction_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
@@ -84,7 +85,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	depiction_repo, err := properties.Repo(depiction_body)
 
 	if err != nil {
-		return nil, fmt.Errorf("Unabled to derive wof:repo, %w", err)
+		return nil, fmt.Errorf("Unable to derive wof:repo for depiction %d, %w", depiction_id, err)
 	}
 
 	subject_id, err := properties.ParentId(depiction_body)
@@ -199,6 +200,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF update the depiction record
 
+	logger.Debug("Start updating depiction record")
+
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
 	alt_ch := make(chan *alt.WhosOnFirstAltFeature)
@@ -225,6 +228,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range refs {
 
+		logger.Debug("Process reference", "ref", r)
+
 		go func(ctx context.Context, r *Reference) {
 
 			defer func() {
@@ -238,20 +243,30 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			prop_label := r.Property
 			alt_label := r.AltLabel
 
-			path := fmt.Sprintf("properties.%s", prop_label)
-			updates_map.Store(path, r.Ids)
+			// Note we are only assigning the base path for this key (prop_label)
+			// updates_map is "range-ed" below and we build a new new_depictions
+			// dict which is then assigned to properties.{geo.RESERVED_GEOREFERENCE_DEPICTIONS}
+
+			updates_map.Store(prop_label, r.Ids)
 
 			count := len(r.Ids)
 			points := make([]orb.Point, count)
 
 			// Remember any given reference (label) can have mutiple WOF IDs
+			// Fetch centroid and hierarchy for each ID in a reference
 
 			for idx, id := range r.Ids {
+
+				logger := slog.Default()
+				logger = logger.With("label", prop_label)
+				logger = logger.With("id", id)
+
+				logger.Debug("Process reference")
 
 				body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
 
 				if err != nil {
-					err_ch <- fmt.Errorf("Failed to read body for %d, %w", id, err)
+					err_ch <- fmt.Errorf("Failed to read record for WOF ID %d, %w", id, err)
 					return
 				}
 
@@ -266,6 +281,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 					enc_h, err := json.Marshal(h)
 
 					if err != nil {
+						logger.Error("Failed to marshal hierarchy", "error", err)
 						err_ch <- fmt.Errorf("Failed to marshal hierarchy for %d, %w", id, err)
 						return
 					}
@@ -285,6 +301,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				pt, _, err := properties.Centroid(body)
 
 				if err != nil {
+					logger.Error("Failed to derive centroid", "error", err)
 					err_ch <- fmt.Errorf("Failed to derive centroid for %d, %w", id, err)
 					return
 				}
@@ -311,6 +328,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				Geometry:   alt_geom,
 			}
 
+			logger.Debug("Return alt feature", "label", alt_label)
 			alt_ch <- alt_feature
 
 		}(ctx, r)
@@ -330,21 +348,26 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, err
 		case alt_f := <-alt_ch:
 			new_alt_features = append(new_alt_features, alt_f)
+			logger.Debug("Append new alt feature", "count", len(new_alt_features))
 		}
 	}
 
 	// START OF create/update alt files for references
 
+	logger.Debug("Create/update alt files for references")
+
 	depiction_updates := map[string]interface{}{
 		"properties.src:geom": src_geom,
 	}
 
+	// START OF assign/update wof:references for depiction
+
 	references := make([]int64, 0)
 
-	refs_rsp := gjson.GetBytes(depiction_body, "properties.wof:references")
-
-	for _, r := range refs_rsp.Array() {
-		references_map.Store(r.Int(), true)
+	for _, r := range refs {
+		for _, i := range r.Ids {
+			references_map.Store(i, true)
+		}
 	}
 
 	references_map.Range(func(k interface{}, v interface{}) bool {
@@ -353,15 +376,30 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
-	depiction_updates["properties.wof:references"] = references
+	// logger.Debug("References for depiction", "count", len(references))
+
+	depiction_updates[fmt.Sprintf("properties.%s", geo.RESERVED_WOF_REFERENCES)] = references
+
+	// END OF assign/update wof:references for depictionx
+
+	// START OF assign/update georeference:depictions here
+
+	new_depictions := make(map[string][]int64)
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 		path := k.(string)
-		depiction_updates[path] = v
+		ids := v.([]int64)
+		new_depictions[path] = ids
 		return true
 	})
 
+	depiction_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)] = new_depictions
+
+	// END OF assign/update georeference:depictions here
+
 	// START OF resolve alt files
+
+	logger.Debug("Resolve alt files for depictions")
 
 	// Create a lookup table of the new alt geom labels
 
@@ -373,6 +411,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	// Fetch the existing alt geom labels associated with this record
+
+	logger.Debug("Fetch existing alt geometries")
 
 	existing_alt, err := properties.AltGeometries(depiction_body)
 
@@ -404,6 +444,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, ok_remove := to_remove[label]
 
 		if !ok_lookup && !ok_remove {
+			logger.Debug("Append to fetch", "label", label)
 			to_fetch = append(to_fetch, label)
 		}
 	}
@@ -411,6 +452,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// Fetch any extra alt geometries, if necessary
 
 	if len(to_fetch) > 0 {
+
+		logger.Debug("Fetch additional alt features", "count", len(to_fetch))
 
 		done_ch := make(chan bool)
 		err_ch := make(chan error)
@@ -423,6 +466,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				defer func() {
 					done_ch <- true
 				}()
+
+				logger.Debug("Fetch alt feature", "label", label)
 
 				alt_uri_geom := &uri.AltGeom{
 					Source: label,
@@ -443,7 +488,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				r, err := depiction_reader.Read(ctx, alt_uri)
 
 				if err != nil {
-					err_ch <- fmt.Errorf("Failed to read %s, %w", alt_uri, err)
+					err_ch <- fmt.Errorf("Failed to read depiction alt file %s, %w", alt_uri, err)
 					return
 				}
 
@@ -455,7 +500,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				err = dec.Decode(&f)
 
 				if err != nil {
-					err_ch <- fmt.Errorf("Failed to decode %s, %w", alt_uri, err)
+					err_ch <- fmt.Errorf("Failed to decode depiction alt_file %s, %w", alt_uri, err)
 					return
 				}
 
@@ -480,6 +525,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Combine new and other alt features
 
+	logger.Debug("Compile new and existing alt features")
+
 	alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
 
 	for _, f := range new_alt_features {
@@ -491,6 +538,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	// Use this new list to catalog alt geoms and derived a multipoint geometry
+
+	logger.Debug("Calculate multipoint geometry for alt geoms")
 
 	alt_geoms := make([]string, len(alt_features))
 
@@ -515,9 +564,13 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Now save the new alt files
 
+	logger.Debug("Save alt files")
+
 	for _, f := range new_alt_features {
 
 		label := f.Properties["src:alt_label"].(string)
+
+		logger.Debug("Save alt feature", "label", label)
 
 		alt_uri_geom := &uri.AltGeom{
 			Source: label,
@@ -533,6 +586,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		if err != nil {
 			return nil, fmt.Errorf("Failed to derive rel path for alt file, %w", err)
 		}
+
+		logger.Debug("Save alt feature", "uri", alt_uri)
 
 		enc_f, err := alt.FormatAltFeature(f)
 
@@ -554,7 +609,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Now rewrite alt files that need to be "removed"
 
+	logger.Debug("Rewrite alt files to \"remove\"")
+
 	for _, ref := range to_remove {
+
+		logger.Debug("Remove alt file", "label", ref.AltLabel)
 
 		alt_uri_geom := &uri.AltGeom{
 			Source: ref.AltLabel,
@@ -570,6 +629,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		if err != nil {
 			return nil, fmt.Errorf("Failed to derive rel path for alt file, %w", err)
 		}
+
+		logger.Debug("Remove alt file", "label", alt_uri)
 
 		// In advance of a generic "exists" method/package this will have to do...
 
@@ -621,25 +682,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF resolve alt files
 
-	depiction_removals := make([]string, 0)
-
-	for _, r := range refs {
-		if len(r.Ids) == 0 {
-			path := fmt.Sprintf("properties.%s", r.Property)
-			depiction_removals = append(depiction_removals, path)
-		}
-	}
-
-	if len(depiction_removals) > 0 {
-
-		depiction_body, err = export.RemoveProperties(ctx, depiction_body, depiction_removals)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to remove depiction properties, %w", err)
-		}
-	}
-
 	// Update wof:hierarchy (ies) for depiction
+
+	logger.Debug("Update depiction hierarchies")
 
 	depiction_hierarchies := make([]map[string]int64, 0)
 
@@ -667,6 +712,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Write changes
 
+	logger.Debug("Has depiction changed", "changes", depiction_has_changed)
+
 	if depiction_has_changed {
 
 		_, err = sfom_writer.WriteBytes(ctx, depiction_mw, new_body)
@@ -678,6 +725,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF update the depiction record
 
+	logger.Debug("Finished updating depiction")
+	logger.Debug("Start updating subject")
+
 	// START OF update the subject (parent) record
 
 	subject_hierarchies := make([]map[string]int64, 0)
@@ -688,17 +738,22 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to load subject (parent) for depiction, %w", err)
 	}
 
+	// As in: Aviation Museum, Library, etc.
 	collection_id, err := properties.ParentId(subject_body)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to load parent record for subject, %w", err)
+		return nil, fmt.Errorf("Failed to load parent record for subject %d, %w", subject_id, err)
 	}
+
+	logger = logger.With("collection", collection_id)
 
 	col_body, err := wof_reader.LoadBytes(ctx, opts.SFOMuseumReader, collection_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load collection (%d) record, %w", collection_id, err)
 	}
+
+	logger.Debug("Derive hierarchies for collection")
 
 	hiers := properties.Hierarchies(col_body)
 
@@ -738,6 +793,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		subject_hierarchies = append(subject_hierarchies, h)
 	}
 
+	logger.Debug("Subject hierarchies", "count", len(subject_hierarchies))
+
 	// Things to update in the subject (object) record
 
 	subject_updates := map[string]interface{}{
@@ -745,83 +802,17 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		"properties.wof:hierarchy": subject_hierarchies,
 	}
 
-	// Things to remove from the subject record - this is tightly integrated with the
-	// georef_properties_lookup table below
+	// Lookup table for all the georeference properties across all the images for an object
 
-	subject_removals := make([]string, 0)
+	// START OF derive geometry from depictions (media/image files)
 
-	// Lookup table for all the flightcover properties across all the images for an object
-
-	georef_properties_lookup := new(sync.Map)
-
-	// Assign the reference pointers to the subject record
-
-	georeferences_paths := make([]string, len(refs))
-
-	for idx, r := range refs {
-		path := fmt.Sprintf("properties.%s", r.Property)
-		georeferences_paths[idx] = path
-	}
-
-	updates_map.Range(func(k interface{}, v interface{}) bool {
-
-		path := k.(string)
-
-		if slices.Contains(georeferences_paths, path) {
-
-			georef_ids_lookup := new(sync.Map)
-
-			ids := v.([]int64)
-
-			for _, id := range ids {
-				georef_ids_lookup.Store(id, true)
-			}
-
-			georef_properties_lookup.Store(path, georef_ids_lookup)
-
-			// subject record georeference properties are not updated until
-			// the combined properties for all the images are gathered (below)
-
-		} else {
-			subject_updates[path] = v
-		}
-
-		return true
-	})
-
-	references_lookup := new(sync.Map)
-
-	for _, r := range references {
-		references_lookup.Store(r, true)
-	}
-
-	subject_refs := gjson.GetBytes(subject_body, "properties.wof:references")
-
-	for _, r := range subject_refs.Array() {
-		references_lookup.Store(r.Int(), true)
-	}
-
-	subject_references := make([]int64, 0)
-
-	references_lookup.Range(func(k interface{}, v interface{}) bool {
-		id := k.(int64)
-		subject_references = append(subject_references, id)
-		return true
-	})
-
-	subject_updates["properties.wof:references"] = subject_references
-
-	//
+	// Build a list of IDs for geotag AND georeference pointer from which
+	// a multipoint geometry will be derived for the subject record
 
 	geoms_lookup := new(sync.Map)
-	georefs_lookup := new(sync.Map)
-
-	georefs_lookup.Store(depiction_id, true)
-	geoms_lookup.Store(depiction_id, true)
+	geom_ids := make([]int64, 0)
 
 	path_geotag_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
-	path_georeference_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
-
 	geotag_depictions_rsp := gjson.GetBytes(subject_body, path_geotag_depictions)
 
 	for _, r := range geotag_depictions_rsp.Array() {
@@ -829,32 +820,16 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		geoms_lookup.Store(id, true)
 	}
 
-	// The problem here is that we haven't written/published the geom changes so
-	// they won't be picked up by the depiction_reader passed to geometry.DeriveMultiPointFromIds
-	// below. Even if we have (written the changes) they won't be able to be read
-	// if we are using different readers/writers (for example repo:// and stdout://)
+	path_georeference_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+	georef_depictions_rsp := gjson.GetBytes(subject_body, path_georeference_depictions)
 
-	georefs_depictions_rsp := gjson.GetBytes(subject_body, path_georeference_depictions)
+	for _, r := range georef_depictions_rsp.Map() {
 
-	for _, r := range georefs_depictions_rsp.Array() {
-		id := r.Int()
-		geoms_lookup.Store(id, true)
-		georefs_lookup.Store(id, true)
+		for _, i := range r.Array() {
+			id := i.Int()
+			geoms_lookup.Store(id, true)
+		}
 	}
-
-	georeferences := make([]int64, 0)
-
-	georefs_lookup.Range(func(k interface{}, v interface{}) bool {
-		id := k.(int64)
-		georeferences = append(georeferences, id)
-		return true
-	})
-
-	subject_updates[path_georeference_depictions] = georeferences
-
-	// START OF derive geometry from depictions (media/image files)
-
-	geom_ids := make([]int64, 0)
 
 	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
 		id := k.(int64)
@@ -869,6 +844,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		return true
 	})
+
+	logger.Debug("Additional geometries", "count", len(geom_ids))
 
 	if len(geom_ids) > 0 {
 
@@ -902,7 +879,21 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// END OF derive geometry from depictions (media/image files)
 
-	// START OF denormalize all the georeferenced properties (flightcover, etc.) from all the images in to the object record
+	// START OF denormalize all the georeferenced properties from all the images (depictions) in to the object record
+
+	// START OF update wof:references and georeference:depictions for subject
+
+	subject_references_lookup := new(sync.Map)
+	subject_depictions_lookup := new(sync.Map)
+
+	// Add the references assigned to the depiction being updated
+
+	for _, r := range refs {
+		for _, i := range r.Ids {
+			subject_references_lookup.Store(i, true)
+		}
+		subject_depictions_lookup.Store(r.Property, r.Ids)
+	}
 
 	type image_ref struct {
 		path string
@@ -920,6 +911,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	images_rsp := gjson.GetBytes(subject_body, "properties.millsfield:images")
 	images_list := images_rsp.Array()
 
+	logger.Debug("Process images for subject", "count", len(images_list))
+
 	for _, r := range images_list {
 
 		image_id := r.Int()
@@ -927,6 +920,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		// Remember these have been assigned above
 
 		if image_id == depiction_id {
+			logger.Debug("Skip current depiction", "id", image_id)
 			continue
 		}
 
@@ -938,19 +932,23 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				im_done_ch <- true
 			}()
 
+			logger.Debug("Load image", "image id", image_id)
+
 			image_body, err := wof_reader.LoadBytes(ctx, depiction_reader, image_id)
 
 			if err != nil {
-				im_err_ch <- fmt.Errorf("Failed to read %d, %w", image_id, err)
+				im_err_ch <- fmt.Errorf("Failed to read image ID %d, %w", image_id, err)
 				return
 			}
 
-			for _, path := range georeferences_paths {
+			georefs_path := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+			georefs_rsp := gjson.GetBytes(image_body, georefs_path)
 
-				rsp := gjson.GetBytes(image_body, path)
+			for k, ids := range georefs_rsp.Map() {
 
-				for _, r := range rsp.Array() {
-					im_ref_ch <- image_ref{path: path, id: r.Int()}
+				for _, r := range ids.Array() {
+					logger.Debug("Dispatch image", "image", image_id, "key", k, "depiction", r.Int())
+					im_ref_ch <- image_ref{path: k, id: r.Int()}
 				}
 			}
 
@@ -967,56 +965,64 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, fmt.Errorf("Failed to denormalize georeference properties, %w", err)
 		case ref := <-im_ref_ch:
 
-			var georef_ids_lookup *sync.Map
+			path := ref.path
+			id := ref.id
 
-			ids_v, ok := georef_properties_lookup.Load(ref.path)
+			// Update wof:references for subject
+			subject_references_lookup.Store(id, true)
 
-			if !ok {
-				georef_ids_lookup = new(sync.Map)
+			// Update georeference:depictions for subject
+			var ids []int64
+
+			v, exists := subject_depictions_lookup.Load(path)
+
+			if exists {
+				ids = v.([]int64)
 			} else {
-				georef_ids_lookup = ids_v.(*sync.Map)
+				ids = make([]int64, 0)
 			}
 
-			georef_ids_lookup.Store(ref.id, true)
-			georef_properties_lookup.Store(ref.path, georef_ids_lookup)
+			if !slices.Contains(ids, id) {
+				ids = append(ids, id)
+				subject_depictions_lookup.Store(path, ids)
+			}
+
 		}
 	}
 
-	// Once all the images have been reviewed for flightcover (georeference) properties
-	// figure out which ones need to be updated in or removed from the subject record
+	// Assign wof:references for subject
 
-	for _, path := range georeferences_paths {
+	logger.Debug("Assign wof:references for subject")
 
-		ids_v, ok := georef_properties_lookup.Load(path)
+	subject_wof_references := make([]int64, 0)
 
-		if ok {
+	subject_references_lookup.Range(func(k interface{}, v interface{}) bool {
+		subject_wof_references = append(subject_wof_references, k.(int64))
+		return true
+	})
 
-			ids := make([]int64, 0)
+	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_WOF_REFERENCES)] = subject_wof_references
 
-			georef_ids_lookup := ids_v.(*sync.Map)
+	// Assign georeference:depictions for subject
 
-			georef_ids_lookup.Range(func(k interface{}, v interface{}) bool {
-				ids = append(ids, k.(int64))
-				return true
-			})
+	logger.Debug("Assign georeference:depictions for subject")
 
-			subject_updates[path] = ids
+	subject_depictions := make(map[string][]int64)
 
-		} else {
-			subject_removals = append(subject_removals, path)
+	subject_depictions_lookup.Range(func(k interface{}, v interface{}) bool {
+		path := k.(string)
+		ids := v.([]int64)
+		subject_depictions[path] = ids
+		return true
+	})
+
+	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)] = subject_depictions
+
+	/*
+		for k, v := range subject_updates {
+			slog.Debug("UPDATE", "k", k, "v", v)
 		}
-	}
-
-	// END OF denormalize all the georeferenced properties (flightcover, etc.) from all the images in to the object record
-
-	if len(subject_removals) > 0 {
-
-		subject_body, err = export.RemoveProperties(ctx, subject_body, subject_removals)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to remove depiction properties, %w", err)
-		}
-	}
+	*/
 
 	subject_has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
