@@ -47,6 +47,8 @@ debug-georef-photo:
 # https://spelunker.whosonfirst.org/id/101932003
 
 debug-georef-flightcover:
+	mkdir -p $(CWD)/fixtures/debug/data
+	rm -rf $(CWD)/fixtures/debug/data/*
 	go run -mod $(GOMOD) cmd/assign-georeferences/main.go \
 		-depiction-reader-uri repo://$(CWD)/fixtures/sfomuseum-data-media-collection \
 		-depiction-writer-uri repo://$(CWD)/fixtures/debug \

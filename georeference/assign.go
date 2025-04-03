@@ -40,9 +40,9 @@ type AssignReferencesOptions struct {
 	DepictionReader reader.Reader
 	// A valid whosonfirst/go-writer.Writer instance for writing depiction features. A depiction might be an image of a collection object.
 	DepictionWriter writer.Writer
-	// A valid whosonfirst/go-reader.Reader instance for reading subject features. A subject might be a collection object (rather than any one image (depiction) of that object).
+	// A valid whosonfirst/go-reader.Reader instance for reading subject features. A subject might be a collection object (rather than any one image (depiction) of that object)
 	SubjectReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing subject features. A subject might be a collection object (rather than any one image (depiction) of that object).
+	// A valid whosonfirst/go-writer.Writer instance for writing subject features. A subject might be a collection object (rather than any one image (depiction) of that object.
 	SubjectWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	WhosOnFirstReader reader.Reader
@@ -57,6 +57,8 @@ type AssignReferencesOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading "sfomuseum" features (for example the aviation collection).
 	SFOMuseumReader reader.Reader
 }
+
+const MILLSFIELD_REFERENCES_KEY string = "millsfield:georeferences"
 
 // AssignReferences updates records associated with 'depiction_id' (that is the depiction record itself and it's "parent" object record)
 // and 'refs'. An alternate geometry file will be created for each element in 'ref' and a multi-point geometry (derived from 'refs') will
@@ -244,8 +246,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			prop_label := r.Property
 			alt_label := r.AltLabel
 
-			path := fmt.Sprintf("properties.%s", prop_label)
-			updates_map.Store(path, r.Ids)
+			prop_path := fmt.Sprintf("properties.%s.%s", MILLSFIELD_REFERENCES_KEY, prop_label)
+			updates_map.Store(prop_path, r.Ids)
 
 			count := len(r.Ids)
 			points := make([]orb.Point, count)
@@ -378,6 +380,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 		path := k.(string)
 		depiction_updates[path] = v
+		logger.Debug("Update depiction", "path", path, "value", v)
 		return true
 	})
 
@@ -452,7 +455,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				}()
 
 				logger.Debug("Fetch alt feature", "label", label)
-				
+
 				alt_uri_geom := &uri.AltGeom{
 					Source: label,
 				}
@@ -670,7 +673,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range refs {
 		if len(r.Ids) == 0 {
-			path := fmt.Sprintf("properties.%s", r.Property)
+			path := fmt.Sprintf("properties.%s.%s", MILLSFIELD_REFERENCES_KEY, r.Property)
 			depiction_removals = append(depiction_removals, path)
 		}
 	}
@@ -822,7 +825,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	georeferences_paths := make([]string, len(refs))
 
 	for idx, r := range refs {
-		path := fmt.Sprintf("properties.%s", r.Property)
+		path := fmt.Sprintf("properties.%s.%s", MILLSFIELD_REFERENCES_KEY, r.Property)
 		georeferences_paths[idx] = path
 	}
 
@@ -984,7 +987,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	images_list := images_rsp.Array()
 
 	logger.Debug("Process images for subject", "count", len(images_list))
-	
+
 	for _, r := range images_list {
 
 		image_id := r.Int()
@@ -1004,7 +1007,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			}()
 
 			logger.Debug("Load image", "image id", image_id)
-			
+
 			image_body, err := wof_reader.LoadBytes(ctx, depiction_reader, image_id)
 
 			if err != nil {
@@ -1053,7 +1056,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// figure out which ones need to be updated in or removed from the subject record
 
 	logger.Debug("Determine properties to update or remove in subject record")
-	
+
 	for _, path := range georeferences_paths {
 
 		ids_v, ok := georef_properties_lookup.Load(path)
