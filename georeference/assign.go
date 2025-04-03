@@ -85,8 +85,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	depiction_repo, err := properties.Repo(depiction_body)
 
 	if err != nil {
-		slog.Info("WTF", "body", string(depiction_body))
-		return nil, fmt.Errorf("Unable to derive wof:repo for depiction, %w", err)
+		return nil, fmt.Errorf("Unable to derive wof:repo for depiction %d, %w", depiction_id, err)
 	}
 
 	subject_id, err := properties.ParentId(depiction_body)
@@ -845,6 +844,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		return true
 	})
+
+	logger.Debug("Additional geometries", "count", len(geom_ids))
 
 	if len(geom_ids) > 0 {
 
