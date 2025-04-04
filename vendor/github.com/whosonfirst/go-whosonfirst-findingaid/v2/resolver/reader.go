@@ -3,12 +3,13 @@ package resolver
 import (
 	"context"
 	"fmt"
-	"github.com/tidwall/gjson"
-	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-uri"
 	"io"
 	_ "log"
 	"net/url"
+
+	"github.com/tidwall/gjson"
+	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-whosonfirst-uri"
 )
 
 // type ReaderResolver implements the `Resolver` interface for data that can be resolved using a whosonfirst/go-reader.Reader instance.
@@ -109,6 +110,11 @@ func (r *ReaderResolver) GetRepo(ctx context.Context, id int64) (string, error) 
 	body, err := io.ReadAll(fh)
 
 	if err != nil {
+
+		// To do: Determine if the reason we can't read this is because the file
+		// doesn't exist. TBD: Does go-reader need an Exists() method or a NotFound
+		// error or both.
+
 		return "", fmt.Errorf("Failed to read body, %w", err)
 	}
 

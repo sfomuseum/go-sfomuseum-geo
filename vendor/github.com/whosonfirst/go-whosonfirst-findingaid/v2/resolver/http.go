@@ -79,8 +79,14 @@ func (r *HTTPResolver) GetRepo(ctx context.Context, id int64) (string, error) {
 		return "", fmt.Errorf("Failed to execute request, %w", err)
 	}
 
-	if rsp.StatusCode != 200 {
-		return "", fmt.Errorf("Unexpected status code: %s", rsp.Status)
+	if rsp.StatusCode != http.StatusOK {
+
+		switch rsp.StatusCode {
+		case http.StatusNotFound:
+			return "", ErrNotFound
+		default:
+			return "", fmt.Errorf("Unexpected status code: %s", rsp.Status)
+		}
 	}
 
 	body, err := io.ReadAll(rsp.Body)

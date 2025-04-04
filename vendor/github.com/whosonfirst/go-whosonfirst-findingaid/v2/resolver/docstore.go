@@ -19,12 +19,10 @@ $> make cli && ./bin/read -reader-uri 'findingaid://awsdynamodb/findingaid?regio
 import (
 	"context"
 	"fmt"
-	"github.com/aaronland/go-aws-dynamodb"
+
+	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"gocloud.dev/docstore"
-	gc_dynamodb "gocloud.dev/docstore/awsdynamodb"
-	_ "log"
-	"net/url"
-	"strings"
+	"gocloud.dev/gcerrors"
 )
 
 // type DocstoreResolver implements the `Resolver` interface for data stored in a gocloud.dev/docstore compatible collection.
@@ -54,57 +52,7 @@ func init() {
 // and IDs stored in a gocloud.dev/docstore Collection.
 func NewDocstoreResolver(ctx context.Context, uri string) (Resolver, error) {
 
-	u, err := url.Parse(uri)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse URL, %w", err)
-	}
-
-	// START OF put me in a package function or something
-
-	var collection *docstore.Collection
-
-	if u.Scheme == "awsdynamodb" {
-
-		// Connect local dynamodb using Golang
-		// https://gist.github.com/Tamal/02776c3e2db7eec73c001225ff52e827
-		// https://gocloud.dev/howto/docstore/#dynamodb-ctor
-
-		client, err := dynamodb.NewClientWithURI(ctx, uri)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create client, %v", err)
-		}
-
-		u, _ := url.Parse(uri)
-		table_name := u.Host
-
-		table_name = strings.TrimLeft(table_name, "/")
-
-		q := u.Query()
-
-		partition_key := q.Get("partition_key")
-
-		col, err := gc_dynamodb.OpenCollection(client, table_name, partition_key, "", nil)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to open collection, %w", err)
-		}
-
-		collection = col
-
-	} else {
-
-		col, err := docstore.OpenCollection(ctx, uri)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create database for '%s', %w", uri, err)
-		}
-
-		collection = col
-	}
-
-	// END OF put me in a package function or something
+	collection, err := aa_docstore.OpenCollection(ctx, uri)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open collection, %w", err)
@@ -130,7 +78,15 @@ func (r *DocstoreResolver) GetRepo(ctx context.Context, id int64) (string, error
 	err := r.collection.Get(ctx, doc)
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to get record for %d, %w", id, err)
+
+		err_code := gcerrors.Code(err)
+
+		switch err_code {
+		case gcerrors.NotFound:
+			return "", ErrNotFound
+		default:
+			return "", fmt.Errorf("Failed to get record for %d, %w", id, err)
+		}
 	}
 
 	repo := doc["repo_name"].(string)
