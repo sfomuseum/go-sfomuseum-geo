@@ -69,6 +69,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	logger := slog.Default()
 	logger = logger.With("depiction id", depiction_id)
 
+	if len(refs) == 0 {
+		return nil, fmt.Errorf("No references to assign")
+	}
+	
 	src_geom := "sfomuseum#georeference"
 
 	if opts.SourceGeomSuffix != "" {
