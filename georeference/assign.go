@@ -4,7 +4,7 @@ package georeference
 // but not today...
 
 import (
-	// "bufio"
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/md5"
@@ -28,7 +28,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	// "github.com/whosonfirst/go-writer-featurecollection/v3"
+	"github.com/whosonfirst/go-writer-featurecollection/v3"
 	"github.com/whosonfirst/go-writer/v3"
 )
 
