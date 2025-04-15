@@ -403,8 +403,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		ids := v.([]int64)
 
 		d := map[string]any{
-			"label":   label,
-			"wof:ids": ids,
+			geo.RESERVED_GEOREFERENCE_LABEL:   label,
+			geo.RESERVED_WOF_DEPICTS: ids,
 		}
 
 		new_depictions = append(new_depictions, d)
