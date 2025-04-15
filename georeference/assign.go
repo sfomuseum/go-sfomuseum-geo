@@ -240,7 +240,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				return
 			}
 
-			prop_label := r.Property
+			prop_label := r.Label
 			alt_label := r.AltLabel
 
 			// Note we are only assigning the base path for this key (prop_label)
@@ -384,12 +384,30 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF assign/update georeference:depictions here
 
-	new_depictions := make(map[string][]int64)
+	/*
+		new_depictions := make(map[string][]int64)
+
+		updates_map.Range(func(k interface{}, v interface{}) bool {
+			path := k.(string)
+			ids := v.([]int64)
+			new_depictions[path] = ids
+			return true
+		})
+	*/
+
+	new_depictions := make([]map[string]any, 0)
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
-		path := k.(string)
+
+		label := k.(string)
 		ids := v.([]int64)
-		new_depictions[path] = ids
+
+		d := map[string]any{
+			"label":   label,
+			"wof:ids": ids,
+		}
+
+		new_depictions = append(new_depictions, d)
 		return true
 	})
 
@@ -892,7 +910,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		for _, i := range r.Ids {
 			subject_references_lookup.Store(i, true)
 		}
-		subject_depictions_lookup.Store(r.Property, r.Ids)
+		subject_depictions_lookup.Store(r.Label, r.Ids)
 	}
 
 	type image_ref struct {
