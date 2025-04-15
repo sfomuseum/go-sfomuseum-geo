@@ -228,7 +228,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range refs {
 
-		logger.Debug("Process reference", "ref", r)
+		logger.Info("Process reference", "ref", r.Label, "ids", r.Ids, "alt", r.AltLabel)
 
 		go func(ctx context.Context, r *Reference) {
 
@@ -384,21 +384,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF assign/update georeference:depictions here
 
-	/*
-		new_depictions := make(map[string][]int64)
-
-		updates_map.Range(func(k interface{}, v interface{}) bool {
-			path := k.(string)
-			ids := v.([]int64)
-			new_depictions[path] = ids
-			return true
-		})
-	*/
-
 	new_depictions := make([]map[string]any, 0)
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
-
+		
 		label := k.(string)
 		ids := v.([]int64)
 
