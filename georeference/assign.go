@@ -243,6 +243,14 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			}()
 
 			if len(r.Ids) == 0 {
+				slog.Error("Ref is missing ids")
+				err_ch <- fmt.Errorf("Ref is missing IDs")
+				return
+			}
+
+			if r.Label == "" {
+				slog.Error("Ref is missing label")
+				err_ch <- fmt.Errorf("Ref is missing label")
 				return
 			}
 
@@ -393,13 +401,13 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	new_depictions := make([]map[string]any, 0)
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
-		
+
 		label := k.(string)
 		ids := v.([]int64)
 
 		d := map[string]any{
-			geo.RESERVED_GEOREFERENCE_LABEL:   label,
-			geo.RESERVED_WOF_DEPICTS: ids,
+			geo.RESERVED_GEOREFERENCE_LABEL: label,
+			geo.RESERVED_WOF_DEPICTS:        ids,
 		}
 
 		new_depictions = append(new_depictions, d)
