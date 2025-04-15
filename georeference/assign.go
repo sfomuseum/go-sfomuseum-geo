@@ -169,12 +169,14 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// The writer.MultiWriter where we will write updated Feature information
 	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_wr)
+	// depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
 	}
 
 	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_wr)
+	// subject_mw, err := writer.NewMultiWriter(ctx, subject_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
@@ -232,25 +234,39 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range refs {
 
-		logger.Debug("Process reference", "ref", r)
-
 		go func(ctx context.Context, r *Reference) {
+
+			logger.Info("Process reference", "ref", r.Label, "ids", r.Ids, "alt", r.AltLabel)
 
 			defer func() {
 				done_ch <- true
 			}()
 
 			if len(r.Ids) == 0 {
+				logger.Error("Ref is missing ids")
+				err_ch <- fmt.Errorf("Ref is missing IDs")
 				return
 			}
 
-			prop_label := r.Property
+			if r.Label == "" {
+				logger.Error("Ref is missing label")
+				err_ch <- fmt.Errorf("Ref is missing label")
+				return
+			}
+
+			prop_label := r.Label
 			alt_label := r.AltLabel
+
+			if alt_label == "" {
+				alt_label = DeriveAltLabel(prop_label)
+				logger.Debug("Alt label derived from property label", "alt label", alt_label)
+			}
 
 			// Note we are only assigning the base path for this key (prop_label)
 			// updates_map is "range-ed" below and we build a new new_depictions
 			// dict which is then assigned to properties.{geo.RESERVED_GEOREFERENCE_DEPICTIONS}
 
+			logger.Debug("Store in updates map", "label", prop_label, "ids", r.Ids)
 			updates_map.Store(prop_label, r.Ids)
 
 			count := len(r.Ids)
@@ -262,14 +278,17 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			for idx, id := range r.Ids {
 
 				logger := slog.Default()
+				logger = logger.With("depection id", depiction_id)
+				logger = logger.With("ref id", id)
 				logger = logger.With("label", prop_label)
-				logger = logger.With("id", id)
+				logger = logger.With("alt_label", alt_label)
 
 				logger.Debug("Process reference")
 
 				body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
 
 				if err != nil {
+					logger.Error("Failed to load record for reference", "error", err)
 					err_ch <- fmt.Errorf("Failed to read record for WOF ID %d, %w", id, err)
 					return
 				}
@@ -332,7 +351,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				Geometry:   alt_geom,
 			}
 
-			logger.Debug("Return alt feature", "label", alt_label)
+			logger.Debug("Return new alt feature")
 			alt_ch <- alt_feature
 
 		}(ctx, r)
@@ -388,12 +407,19 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF assign/update georeference:depictions here
 
-	new_depictions := make(map[string][]int64)
+	new_depictions := make([]map[string]any, 0)
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
-		path := k.(string)
+
+		label := k.(string)
 		ids := v.([]int64)
-		new_depictions[path] = ids
+
+		d := map[string]any{
+			geo.RESERVED_GEOREFERENCE_LABEL: label,
+			geo.RESERVED_WOF_DEPICTS:        ids,
+		}
+
+		new_depictions = append(new_depictions, d)
 		return true
 	})
 
@@ -607,7 +633,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, err = depiction_mw.Write(ctx, alt_uri, r)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to write %s, %w", alt_uri, err)
+			return nil, fmt.Errorf("Failed to write new alt feature %s, %w", alt_uri, err)
 		}
 	}
 
@@ -679,7 +705,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, err = depiction_mw.Write(ctx, alt_uri, r)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to write %s, %w", alt_uri, err)
+			return nil, fmt.Errorf("Failed to write deprecate alt feature %s, %w", alt_uri, err)
 		}
 
 	}
@@ -896,7 +922,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		for _, i := range r.Ids {
 			subject_references_lookup.Store(i, true)
 		}
-		subject_depictions_lookup.Store(r.Property, r.Ids)
+		subject_depictions_lookup.Store(r.Label, r.Ids)
 	}
 
 	type image_ref struct {
