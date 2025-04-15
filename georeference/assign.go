@@ -4,7 +4,7 @@ package georeference
 // but not today...
 
 import (
-	"bufio"
+	// "bufio"
 	"bytes"
 	"context"
 	"crypto/md5"
@@ -28,7 +28,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"github.com/whosonfirst/go-writer-featurecollection/v3"
+	// "github.com/whosonfirst/go-writer-featurecollection/v3"
 	"github.com/whosonfirst/go-writer/v3"
 )
 
@@ -138,6 +138,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// formatting, exporting and writing a byte slice in advance of better support for alternate
 	// geometries in the tooling.
 
+	/*
+	
 	// The buffers where we will write updated Feature information
 	var local_depiction_buf bytes.Buffer
 	var local_subject_buf bytes.Buffer
@@ -163,14 +165,18 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to create IOWriter for subject, %w", err)
 	}
 
+	*/
+	
 	// The writer.MultiWriter where we will write updated Feature information
-	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_wr)
+	// depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_wr)
+	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer)	
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
 	}
 
-	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_wr)
+	// subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_wr)
+	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
@@ -1065,15 +1071,15 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Now write the subject (object) being depicted
 
-	local_depiction_buf_writer.Flush()
-	local_subject_buf_writer.Flush()
+	// local_depiction_buf_writer.Flush()
+	// local_subject_buf_writer.Flush()
 
 	fc := geojson.NewFeatureCollection()
 
 	var new_subject_b []byte
 
 	if subject_has_changed {
-		new_subject_b = local_subject_buf.Bytes()
+		// new_subject_b = local_subject_buf.Bytes()
 	} else {
 		new_subject_b = subject_body
 	}
@@ -1086,6 +1092,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	fc.Append(new_subject_f)
 
+	/*
 	if depiction_has_changed {
 
 		new_depiction_b := local_depiction_buf.Bytes()
@@ -1100,7 +1107,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			fc.Append(f)
 		}
 	}
-
+	*/
+	
 	fc_body, err := fc.MarshalJSON()
 
 	if err != nil {
