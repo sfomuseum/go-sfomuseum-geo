@@ -72,7 +72,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	if len(refs) == 0 {
 		return nil, fmt.Errorf("No references to assign")
 	}
-	
+
 	src_geom := "sfomuseum#georeference"
 
 	if opts.SourceGeomSuffix != "" {
@@ -169,14 +169,12 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// The writer.MultiWriter where we will write updated Feature information
 	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_wr)
-	// depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
 	}
 
 	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_wr)
-	// subject_mw, err := writer.NewMultiWriter(ctx, subject_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
@@ -229,6 +227,20 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	new_alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
 	other_alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
+
+	// Ensure unique reference labels. This is mostly to ensure that any alt files
+	// which need to be created are unique. This decision may need to be revisted
+	// or finessed in the future. We'll see.
+	labels_map := new(sync.Map)
+
+	for _, r := range refs {
+
+		_, exists := labels_map.LoadOrStore(r.Label, true)
+
+		if exists {
+			return nil, fmt.Errorf("Multiple references with duplicate label, '%s'", r.Label)
+		}
+	}
 
 	// Start iterating references to assign
 
