@@ -138,8 +138,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// formatting, exporting and writing a byte slice in advance of better support for alternate
 	// geometries in the tooling.
 
-	/*
-	
 	// The buffers where we will write updated Feature information
 	var local_depiction_buf bytes.Buffer
 	var local_subject_buf bytes.Buffer
@@ -165,18 +163,16 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to create IOWriter for subject, %w", err)
 	}
 
-	*/
-	
 	// The writer.MultiWriter where we will write updated Feature information
-	// depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_wr)
-	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer)	
+	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_wr)
+	// depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
 	}
 
-	// subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_wr)
-	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer)
+	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_wr)
+	// subject_mw, err := writer.NewMultiWriter(ctx, subject_writer)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
@@ -234,22 +230,22 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range refs {
 
-		logger.Info("Process reference", "ref", r.Label, "ids", r.Ids, "alt", r.AltLabel)
-
 		go func(ctx context.Context, r *Reference) {
+
+			logger.Info("Process reference", "ref", r.Label, "ids", r.Ids, "alt", r.AltLabel)
 
 			defer func() {
 				done_ch <- true
 			}()
 
 			if len(r.Ids) == 0 {
-				slog.Error("Ref is missing ids")
+				logger.Error("Ref is missing ids")
 				err_ch <- fmt.Errorf("Ref is missing IDs")
 				return
 			}
 
 			if r.Label == "" {
-				slog.Error("Ref is missing label")
+				logger.Error("Ref is missing label")
 				err_ch <- fmt.Errorf("Ref is missing label")
 				return
 			}
@@ -257,10 +253,16 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			prop_label := r.Label
 			alt_label := r.AltLabel
 
+			if alt_label == "" {
+				alt_label = DeriveAltLabel(prop_label)
+				logger.Debug("Alt label derived from property label", "alt label", alt_label)
+			}
+
 			// Note we are only assigning the base path for this key (prop_label)
 			// updates_map is "range-ed" below and we build a new new_depictions
 			// dict which is then assigned to properties.{geo.RESERVED_GEOREFERENCE_DEPICTIONS}
 
+			logger.Debug("Store in updates map", "label", prop_label, "ids", r.Ids)
 			updates_map.Store(prop_label, r.Ids)
 
 			count := len(r.Ids)
@@ -272,14 +274,17 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			for idx, id := range r.Ids {
 
 				logger := slog.Default()
+				logger = logger.With("depection id", depiction_id)
+				logger = logger.With("ref id", id)
 				logger = logger.With("label", prop_label)
-				logger = logger.With("id", id)
+				logger = logger.With("alt_label", alt_label)
 
 				logger.Debug("Process reference")
 
 				body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
 
 				if err != nil {
+					logger.Error("Failed to load record for reference", "error", err)
 					err_ch <- fmt.Errorf("Failed to read record for WOF ID %d, %w", id, err)
 					return
 				}
@@ -342,7 +347,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				Geometry:   alt_geom,
 			}
 
-			logger.Debug("Return alt feature", "label", alt_label)
+			logger.Debug("Return new alt feature")
 			alt_ch <- alt_feature
 
 		}(ctx, r)
@@ -624,7 +629,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, err = depiction_mw.Write(ctx, alt_uri, r)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to write %s, %w", alt_uri, err)
+			return nil, fmt.Errorf("Failed to write new alt feature %s, %w", alt_uri, err)
 		}
 	}
 
@@ -696,7 +701,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, err = depiction_mw.Write(ctx, alt_uri, r)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to write %s, %w", alt_uri, err)
+			return nil, fmt.Errorf("Failed to write deprecate alt feature %s, %w", alt_uri, err)
 		}
 
 	}
@@ -1079,15 +1084,15 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Now write the subject (object) being depicted
 
-	// local_depiction_buf_writer.Flush()
-	// local_subject_buf_writer.Flush()
+	local_depiction_buf_writer.Flush()
+	local_subject_buf_writer.Flush()
 
 	fc := geojson.NewFeatureCollection()
 
 	var new_subject_b []byte
 
 	if subject_has_changed {
-		// new_subject_b = local_subject_buf.Bytes()
+		new_subject_b = local_subject_buf.Bytes()
 	} else {
 		new_subject_b = subject_body
 	}
@@ -1100,7 +1105,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	fc.Append(new_subject_f)
 
-	/*
 	if depiction_has_changed {
 
 		new_depiction_b := local_depiction_buf.Bytes()
@@ -1115,8 +1119,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			fc.Append(f)
 		}
 	}
-	*/
-	
+
 	fc_body, err := fc.MarshalJSON()
 
 	if err != nil {
