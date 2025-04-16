@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -272,6 +273,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			if alt_label == "" {
 				alt_label = DeriveAltLabel(prop_label)
 				logger.Debug("Alt label derived from property label", "alt label", alt_label)
+			}
+
+			if !strings.HasPrefix(alt_label, "georef_") {
+				alt_label = fmt.Sprintf("georef_%s", alt_label)
+				logger.Debug("Alt label assigned 'georef_' prefix", "alt label", alt_label)
 			}
 
 			// Note we are only assigning the base path for this key (prop_label)
