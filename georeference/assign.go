@@ -866,8 +866,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range geotag_depictions_rsp.Array() {
 		id := r.Int()
+		logger.Debug("Add subject geom ID (geotag) to lookup", "id", id)
 		geoms_lookup.Store(id, true)
 	}
+
+	// START OF iterate through images rather than reading past list...
 
 	path_georeference_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
 	georef_depictions_rsp := gjson.GetBytes(subject_body, path_georeference_depictions)
@@ -876,9 +879,12 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		for _, i := range r.Array() {
 			id := i.Int()
+			logger.Debug("Add subject geom ID (georef) to lookup", "id", id)
 			geoms_lookup.Store(id, true)
 		}
 	}
+
+	// END OF iterate through images rather than reading past list...
 
 	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
 		id := k.(int64)
@@ -898,9 +904,12 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if len(geom_ids) > 0 {
 
-		geom, err := geometry.DeriveMultiPointFromIds(ctx, depiction_reader, geom_ids...)
+		logger.Debug("Derive multipoint from geometries (with WOF reader)", "count", len(geom_ids))
+
+		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, geom_ids...)
 
 		if err != nil {
+			logger.Error("Failed to derive multipoint from geometries (with WOF reader)", "error", err)
 			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
 		}
 
