@@ -47,6 +47,8 @@ type AssignReferencesOptions struct {
 	SubjectWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	WhosOnFirstReader reader.Reader
+	// A valid whosonfirst/go-reader.Reader instance for reading a "default geometry" features.
+	DefaultGeometryFeatureId int64
 	// Author is the name of a person to associate with commit messages if using a `githubapi://` writer
 	Author string
 	// SourceGeomSuffix is an additional suffix to append to 'src:geom' properties (default is "sfomuseum#geoference")
@@ -71,7 +73,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	logger = logger.With("depiction id", depiction_id)
 
 	if len(refs) == 0 {
-		// return nil, fmt.Errorf("No references to assign")
 		logger.Warn("No references to assign. This will remove all previous references")
 	}
 
@@ -492,6 +493,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, ok_lookup := lookup[label]
 		_, ok_remove := to_remove[label]
 
+		logger.Debug("Compare existing alt file", "label", label, "ok lookup", ok_lookup, "ok remove", ok_remove)
+
 		if !ok_lookup && !ok_remove {
 			logger.Debug("Append to fetch", "label", label)
 			to_fetch = append(to_fetch, label)
@@ -574,7 +577,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Combine new and other alt features
 
-	logger.Debug("Compile new and existing alt features")
+	logger.Debug("Compile new and existing alt features", "new", len(new_alt_features), "other", len(other_alt_features))
 
 	alt_features := make([]*alt.WhosOnFirstAltFeature, 0)
 
@@ -588,32 +591,70 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Use this new list to catalog alt geoms and derived a multipoint geometry
 
-	logger.Debug("Calculate multipoint geometry for alt geoms")
+	logger.Debug("Calculate multipoint geometry for alt geoms", "count", len(alt_features))
 
 	alt_geoms := make([]string, len(alt_features))
 
 	for idx, f := range alt_features {
 		label := f.Properties["src:alt_label"].(string)
+		logger.Debug("Assign alt label", "label", label)
 		alt_geoms[idx] = label
 	}
 
 	depiction_updates["properties.src:geom_alt"] = alt_geoms
 
-	// Derive a MultiPoint geometry
+	// Derive geometry for depiction. This is either a MultiPoint geometry
+	// of all the (not-deprecated) alt files OR the geometry of the "default" feature
 
-	mp_geom, err := alt.DeriveMultiPointGeometry(ctx, alt_features...)
+	if len(alt_features) == 0 {
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to derive multi point geometry, %w", err)
+		logger.Debug("No alt features, assign geometry and hierarchies from default geometry record", "id", opts.DefaultGeometryFeatureId)
+
+		body, err := wof_reader.LoadBytes(ctx, opts.SFOMuseumReader, opts.DefaultGeometryFeatureId)
+
+		if err != nil {
+			logger.Error("Failed to read default geometry record", "id", opts.DefaultGeometryFeatureId, "error", err)
+			return nil, fmt.Errorf("Failed to read default geometry record, %w", err)
+		}
+
+		default_f, err := geojson.UnmarshalFeature(body)
+
+		if err != nil {
+			logger.Error("Failed to unmarshal default geometry record", "id", opts.DefaultGeometryFeatureId, "error", err)
+			return nil, fmt.Errorf("Failed to unmarshal default geometry record, %w", err)
+		}
+
+		depiction_updates["geometry"] = default_f.Geometry
+
+		// hierarchies are actually assigned below
+
+		default_h := properties.Hierarchies(body)
+		enc_h, err := json.Marshal(default_h)
+
+		if err != nil {
+			logger.Error("Failed to marshal hierarchy", "error", err)
+			return nil, fmt.Errorf("Failed to marshal hierarchy for default feature, %w", err)
+		}
+
+		md5_h := fmt.Sprintf("%x", md5.Sum(enc_h))
+		hierarchies_hash_map.Store(md5_h, default_h)
+
+	} else {
+
+		mp_geom, err := alt.DeriveMultiPointGeometry(ctx, alt_features...)
+
+		if err != nil {
+			logger.Error("Failed to derive multi point geometry from alt files", "error", err)
+			return nil, fmt.Errorf("Failed to derive multi point geometry, %w", err)
+		}
+
+		mp_geojson_geom := geojson.NewGeometry(mp_geom)
+		depiction_updates["geometry"] = mp_geojson_geom
 	}
-
-	mp_geojson_geom := geojson.NewGeometry(mp_geom)
-
-	depiction_updates["geometry"] = mp_geojson_geom
 
 	// Now save the new alt files
 
-	logger.Debug("Save alt files")
+	logger.Debug("Save new alt files", "count", len(new_alt_features))
 
 	for _, f := range new_alt_features {
 
@@ -658,7 +699,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Now rewrite alt files that need to be "removed"
 
-	logger.Debug("Rewrite alt files to \"remove\"")
+	logger.Debug("Rewrite alt files to \"remove\" (deprecate)", "count", len(to_remove))
 
 	for _, ref := range to_remove {
 
@@ -679,7 +720,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, fmt.Errorf("Failed to derive rel path for alt file, %w", err)
 		}
 
-		logger.Debug("Remove alt file", "label", alt_uri)
+		logger.Debug("Deprecate alt file", "label", alt_uri)
 
 		// In advance of a generic "exists" method/package this will have to do...
 
@@ -756,6 +797,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	depiction_has_changed, new_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, depiction_updates)
 
 	if err != nil {
+		logger.Error("Failed to assign depiction properties", "error", err)
 		return nil, fmt.Errorf("Failed to assign depiction properties, %w", err)
 	}
 
@@ -768,6 +810,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, err = sfom_writer.WriteBytes(ctx, depiction_mw, new_body)
 
 		if err != nil {
+			logger.Error("Failed to write depiction", "error", err)
 			return nil, fmt.Errorf("Failed to write depiction update, %w", err)
 		}
 	}
@@ -850,92 +893,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		"properties.src:geom":      depiction_updates["properties.src:geom"],
 		"properties.wof:hierarchy": subject_hierarchies,
 	}
-
-	// Lookup table for all the georeference properties across all the images for an object
-
-	// START OF derive geometry from depictions (media/image files)
-
-	// Build a list of IDs for geotag AND georeference pointer from which
-	// a multipoint geometry will be derived for the subject record
-
-	geoms_lookup := new(sync.Map)
-	geom_ids := make([]int64, 0)
-
-	path_geotag_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
-	geotag_depictions_rsp := gjson.GetBytes(subject_body, path_geotag_depictions)
-
-	for _, r := range geotag_depictions_rsp.Array() {
-		id := r.Int()
-		logger.Debug("Add subject geom ID (geotag) to lookup", "id", id)
-		geoms_lookup.Store(id, true)
-	}
-
-	// START OF iterate through images rather than reading past list...
-
-	path_georeference_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
-	georef_depictions_rsp := gjson.GetBytes(subject_body, path_georeference_depictions)
-
-	for _, r := range georef_depictions_rsp.Map() {
-
-		for _, i := range r.Array() {
-			id := i.Int()
-			logger.Debug("Add subject geom ID (georef) to lookup", "id", id)
-			geoms_lookup.Store(id, true)
-		}
-	}
-
-	// END OF iterate through images rather than reading past list...
-
-	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
-		id := k.(int64)
-
-		// Do not try to fetch the geometry for depiction ID from depiction_reader
-		// because it hasn't been written/published yet and we will update things from
-		// memory below
-
-		if id != depiction_id {
-			geom_ids = append(geom_ids, id)
-		}
-
-		return true
-	})
-
-	logger.Debug("Additional geometries", "count", len(geom_ids))
-
-	if len(geom_ids) > 0 {
-
-		logger.Debug("Derive multipoint from geometries (with WOF reader)", "count", len(geom_ids))
-
-		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, geom_ids...)
-
-		if err != nil {
-			logger.Error("Failed to derive multipoint from geometries (with WOF reader)", "error", err)
-			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
-		}
-
-		// Now append the geometry for the depiction
-
-		subject_orb_geom := geom.Geometry()
-		subject_points := subject_orb_geom.(orb.MultiPoint)
-
-		depiction_geom := depiction_updates["geometry"].(*geojson.Geometry)
-		depiction_orb_geom := depiction_geom.Geometry()
-		depiction_points := depiction_orb_geom.(orb.MultiPoint)
-
-		for _, pt := range depiction_points {
-			subject_points = append(subject_points, pt)
-		}
-
-		new_mp := orb.MultiPoint(subject_points)
-		new_geom := geojson.NewGeometry(new_mp)
-
-		subject_updates["geometry"] = new_geom
-	} else {
-		// No other gemoetries so just append the geometry for the depiction
-		subject_updates["geometry"] = depiction_updates["geometry"]
-	}
-
-	// END OF derive geometry from depictions (media/image files)
 
 	// START OF denormalize all the georeferenced properties from all the images (depictions) in to the object record
 
@@ -1076,15 +1033,90 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)] = subject_depictions
 
-	/*
-		for k, v := range subject_updates {
-			slog.Debug("UPDATE", "k", k, "v", v)
+	// Start of derive geometry from geotags and georeferences
+
+	geoms_lookup := new(sync.Map)
+	geom_ids := make([]int64, 0)
+
+	// Read geotag pointers from subject file
+
+	path_geotag_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
+	geotag_depictions_rsp := gjson.GetBytes(subject_body, path_geotag_depictions)
+
+	for _, r := range geotag_depictions_rsp.Array() {
+		id := r.Int()
+		logger.Debug("Add subject geom ID (geotag) to lookup", "id", id)
+		geoms_lookup.Store(id, true)
+	}
+
+	// Read georeference points from subject_depictions (which is compiled above)
+
+	for _, ids := range subject_depictions {
+
+		for _, id := range ids {
+			logger.Debug("Add depiction geom ID (georef) to lookup", "id", id)
+			geoms_lookup.Store(id, true)
 		}
-	*/
+	}
+
+	// De-duplicate geotag and georeference pointers
+
+	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
+		id := k.(int64)
+
+		// Do not try to fetch the geometry for depiction ID from depiction_reader
+		// because it hasn't been written/published yet and we will update things from
+		// memory below
+
+		if id != depiction_id {
+			geom_ids = append(geom_ids, id)
+		}
+
+		return true
+	})
+
+	logger.Debug("Additional geometries", "count", len(geom_ids))
+
+	if len(geom_ids) > 0 {
+
+		logger.Debug("Derive multipoint from geometries (with WOF reader)", "count", len(geom_ids))
+
+		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, geom_ids...)
+
+		if err != nil {
+			logger.Error("Failed to derive multipoint from geometries (with WOF reader)", "error", err)
+			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
+		}
+
+		// Now append the geometry for the depiction
+
+		subject_orb_geom := geom.Geometry()
+		subject_points := subject_orb_geom.(orb.MultiPoint)
+
+		depiction_geom := depiction_updates["geometry"].(*geojson.Geometry)
+		depiction_orb_geom := depiction_geom.Geometry()
+		depiction_points := depiction_orb_geom.(orb.MultiPoint)
+
+		for _, pt := range depiction_points {
+			subject_points = append(subject_points, pt)
+		}
+
+		new_mp := orb.MultiPoint(subject_points)
+		new_geom := geojson.NewGeometry(new_mp)
+
+		subject_updates["geometry"] = new_geom
+	} else {
+		// No other geometries so just append the geometry for the depiction
+		// Which might be the "default" geometry if there are no pointers
+		subject_updates["geometry"] = depiction_updates["geometry"]
+	}
+
+	// END OF derive geometry from depictions (media/image files)
 
 	subject_has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
 	if err != nil {
+		logger.Error("Failed to assign properties for subject record", "error", err)
 		return nil, fmt.Errorf("Failed to assign subject properties, %w", err)
 	}
 
@@ -1093,6 +1125,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, err = sfom_writer.WriteBytes(ctx, subject_mw, new_subject)
 
 		if err != nil {
+			logger.Error("Failed to write subject record", "error", err)
 			return nil, fmt.Errorf("Failed to write subject update, %w", err)
 		}
 	}
@@ -1105,12 +1138,14 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	err = depiction_mw.Close(ctx)
 
 	if err != nil {
+		logger.Error("Failed to close depiction writer", "error", err)
 		return nil, fmt.Errorf("Failed to close depiction writer, %w", err)
 	}
 
 	err = subject_mw.Close(ctx)
 
 	if err != nil {
+		logger.Error("Failed to close subject writer", "error", err)
 		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
 	}
 
