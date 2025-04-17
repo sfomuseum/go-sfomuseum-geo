@@ -270,17 +270,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			}
 
 			prop_label := r.Label
-			alt_label := r.AltLabel
-
-			if alt_label == "" {
-				alt_label = DeriveAltLabel(prop_label)
-				logger.Debug("Alt label derived from property label", "alt label", alt_label)
-			}
-
-			if !strings.HasPrefix(alt_label, "georef_") {
-				alt_label = fmt.Sprintf("georef_%s", alt_label)
-				logger.Debug("Alt label assigned 'georef_' prefix", "alt label", alt_label)
-			}
+			alt_label := DeriveAltLabelFromReference(r)
 
 			// Note we are only assigning the base path for this key (prop_label)
 			// updates_map is "range-ed" below and we build a new new_depictions
@@ -478,8 +468,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range refs {
 
+		// This should never really happen...
 		if len(r.Ids) == 0 {
-			to_remove[r.AltLabel] = r
+			alt_label := DeriveAltLabelFromReference(r)
+			to_remove[alt_label] = r
 		}
 	}
 
@@ -494,6 +486,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		_, ok_remove := to_remove[label]
 
 		logger.Debug("Compare existing alt file", "label", label, "ok lookup", ok_lookup, "ok remove", ok_remove)
+
+		if len(refs) == 0 && strings.HasPrefix(label, GEOREF_ALT_PREFIX) {
+			logger.Debug("Refs count is 0 and (alt) label is georef, flag alt file for removal", "label", label)
+			ok_remove = true
+		}
 
 		if !ok_lookup && !ok_remove {
 			logger.Debug("Append to fetch", "label", label)
