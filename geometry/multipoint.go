@@ -3,6 +3,7 @@ package geometry
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
@@ -31,6 +32,11 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 
 		go func(id int64) {
 
+			logger := slog.Default()
+			logger = logger.With("id", id)
+
+			logger.Debug("Derive geometry")
+
 			defer func() {
 				done_ch <- true
 			}()
@@ -38,6 +44,7 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 			body, err := wof_reader.LoadBytes(ctx, r, id)
 
 			if err != nil {
+				logger.Error("Failed to read data", "error", err)
 				err_ch <- fmt.Errorf("Failed to read %d, %w", id, err)
 				return
 			}
@@ -47,7 +54,11 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 				"lbl",
 			}
 
+			logger.Debug("Derive centroid from properties")
+
 			for _, prefix := range prefixes {
+
+				logger.Debug("Check properties", "prefix", prefix)
 
 				lat_path := fmt.Sprintf("properties.%s:latitude", prefix)
 				lon_path := fmt.Sprintf("properties.%s:longitude", prefix)
@@ -57,15 +68,22 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 
 				if lat_rsp.Exists() && lon_rsp.Exists() {
 
-					pt := orb.Point{lon_rsp.Float(), lat_rsp.Float()}
+					lat := lat_rsp.Float()
+					lon := lon_rsp.Float()
+
+					logger.Debug("Return centroid", "prefix", prefix)
+					pt := orb.Point{lon, lat}
 					centroid_ch <- pt
 					return
 				}
 			}
 
+			logger.Debug("Derive centroid from geometry")
+
 			geom, err := geometry.Geometry(body)
 
 			if err != nil {
+				logger.Error("Failed to derive geometry", "error", err)
 				err_ch <- fmt.Errorf("Failed to derive geometry for %d, %w", id, err)
 				return
 			}
@@ -75,12 +93,14 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 			switch orb_geom.GeoJSONType() {
 			case "MultiPoint":
 
+				logger.Debug("Return centroids from multipoint")
 				for _, pt := range orb_geom.(orb.MultiPoint) {
 					centroid_ch <- pt
 				}
 
 			default:
 
+				logger.Debug("Return planar centroid")
 				pt, _ := planar.CentroidArea(orb_geom)
 				centroid_ch <- pt
 			}
