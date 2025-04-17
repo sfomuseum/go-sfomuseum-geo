@@ -71,7 +71,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	logger = logger.With("depiction id", depiction_id)
 
 	if len(refs) == 0 {
-		return nil, fmt.Errorf("No references to assign")
+		// return nil, fmt.Errorf("No references to assign")
+		logger.Warn("No references to assign. This will remove all previous references")
 	}
 
 	src_geom := "sfomuseum#georeference"
