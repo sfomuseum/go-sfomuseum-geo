@@ -621,7 +621,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, fmt.Errorf("Failed to unmarshal default geometry record, %w", err)
 		}
 
-		depiction_updates["geometry"] = default_f.Geometry
+		depiction_updates["geometry"] = geojson.NewGeometry(default_f.Geometry)
 
 		// hierarchies are actually assigned below
 
