@@ -11,7 +11,7 @@ import (
 
 	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/tidwall/gjson"
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-writer/v3"
 )
 

@@ -9,9 +9,9 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/planar"
 	"github.com/tidwall/gjson"
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
-	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
+	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 )
 
 // DeriveMultiPointFromIds generates a new `geojson.Geometry` MultiPoint instance derived from the (planar)

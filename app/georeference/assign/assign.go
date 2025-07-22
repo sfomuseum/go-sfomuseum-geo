@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	gh_writer "github.com/whosonfirst/go-writer-github/v3"
 	"github.com/whosonfirst/go-writer/v3"
 )

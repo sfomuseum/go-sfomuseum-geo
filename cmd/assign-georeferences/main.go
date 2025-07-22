@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	_ "github.com/whosonfirst/go-reader-findingaid"
-	_ "github.com/whosonfirst/go-reader-github"
+	_ "github.com/whosonfirst/go-reader-findingaid/v2"
+	_ "github.com/whosonfirst/go-reader-github/v2"
 	_ "gocloud.dev/runtimevar/awsparamstore"
 	_ "gocloud.dev/runtimevar/constantvar"
 	_ "gocloud.dev/runtimevar/filevar"

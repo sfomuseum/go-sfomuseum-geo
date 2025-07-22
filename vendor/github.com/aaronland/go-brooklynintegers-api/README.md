@@ -64,12 +64,8 @@ Usage of ./bin/int:
     	The number of Brooklyn Integers to mint (default 1)
 ```
 
-### proxy-server
-
-This tool has been moved to the [go-brooklynintegers-proxy](https://github.com/aaronland/go-brooklynintegers-proxy#proxy-server) package.
-
 ## See also
 
 * http://brooklynintegers.com/
 * http://brooklynintegers.com/api
-* https://github.com/aaronland/go-brooklynintegers-proxy
+* https://github.com/aaronland/go-artisanal-integers
