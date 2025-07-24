@@ -12,7 +12,7 @@ import (
 	"github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
-	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v3"
+	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader/v2"
@@ -419,7 +419,7 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	if subject_changed {
 
-		_, err := sfom_writer.WriteBytes(ctx, subject_mw, subject_f)
+		_, err := wof_writer.WriteBytes(ctx, subject_mw, subject_f)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write subject record %d, %w", subject_id, err)
@@ -493,8 +493,8 @@ func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *
 
 	if depiction_changed {
 
-		// _, err := sfom_writer.WriteBytes(ctx, depiction_writer, depiction_f)
-		_, err := sfom_writer.WriteBytes(ctx, depiction_mw, depiction_f)
+		// _, err := wof_writer.WriteBytes(ctx, depiction_writer, depiction_f)
+		_, err := wof_writer.WriteBytes(ctx, depiction_mw, depiction_f)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write depiction record %d, %w", depiction_id, err)

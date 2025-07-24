@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v74/github"
 	wof_writer "github.com/whosonfirst/go-writer/v3"
 	"golang.org/x/oauth2"
 )
@@ -122,6 +122,8 @@ func NewGitHubAPIPullRequestWriter(ctx context.Context, uri string) (wof_writer.
 	if pr_branch == branch {
 		return nil, fmt.Errorf("pr-branch can not be the same as branch")
 	}
+
+	pr_branch = AssignBranchPrefix(pr_branch)
 
 	pr_title := q.Get("pr-title")
 
@@ -397,7 +399,7 @@ func (wr *GitHubAPIPullRequestWriter) pushCommit(ctx context.Context, ref *githu
 	date := time.Now()
 
 	author := &github.CommitAuthor{
-		Date:  &date,
+		Date:  &github.Timestamp{date},
 		Name:  &wr.pr_author,
 		Email: &wr.pr_email,
 	}
@@ -413,7 +415,9 @@ func (wr *GitHubAPIPullRequestWriter) pushCommit(ctx context.Context, ref *githu
 		Parents: parents,
 	}
 
-	newCommit, _, err := wr.client.Git.CreateCommit(ctx, wr.pr_owner, wr.pr_repo, commit)
+	commit_opts := &github.CreateCommitOptions{}
+
+	newCommit, _, err := wr.client.Git.CreateCommit(ctx, wr.pr_owner, wr.pr_repo, commit, commit_opts)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create commit, %w", err)

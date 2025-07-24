@@ -17,11 +17,12 @@ import (
 	"context"
 	"flag"
 	"fmt"	
-	"github.com/whosonfirst/go-writer/v3"
-	_ "github.com/whosonfirst/go-writer-github/v3"		
 	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/whosonfirst/go-writer/v3"
+	_ "github.com/whosonfirst/go-writer-github/v3"		
 )
 
 func main() {
@@ -109,7 +110,7 @@ The following query parameters are supported for `githubapi-pr` writers:
 | prefix | string | no | An optional path to prepend URIs (for writing) with. |
 | pr-owner | string | no | The user or organization name where the pull request will be created. If empty will default to GitHub owner or organization defined in URI host field. |
 | pr-repo | string | no | The repository name where the pull request will be created. If empty will default to GitHub owner or organization defined in URI path field. |
-| pr-branch | string | yes | The name of branch that the pull request will be created for. |
+| pr-branch | string | yes | The name of branch that the pull request will be created for. _If `pr-branch` starts with the value of the `writer.BRANCH_UUID_PREFIX` constant ("{prefix}-") then that string will be replaced with the value of the current Unix timestamp followed by "-" followed by a new UUID (v4) string. For example if `pr-branch` is "{prefix}-test" it would become "{TIMESTAMP}-{UUID}-test"._ |
 | pr-title | string | yes | The title of the pull request being created. |
 | pr-description | string | yes | The description of the pull request being created. |
 | pr-author | string | no | The author of the pull request being created. If empty the name associated with the GitHub access token will be used (must not be empty). |
@@ -156,7 +157,7 @@ The following query parameters are supported for `githubapi-tree` writers:
 | access_token | string | yes | A valid GitHub API access token |
 | branch | string | no | A valid Git repository branch. Default is `main`. |
 | prefix | string | no | An optional path to prepend URIs (for writing) with. |
-| to-branch | string | yes | The name of branch that the pull request will be created for. |
+| to-branch | string | yes | The name of branch that the pull request will be created for. _If `to-branch` starts with the value of the `writer.BRANCH_UUID_PREFIX` constant ("{prefix}-") then that string will be replaced with the value of the current Unix timestamp followed by "-" followed by a new UUID (v4) string. For example if `to-branch` is "{prefix}-test" it would become "{TIMESTAMP}-{UUID}-test"._ |
 | description | string | yes | The description of the pull request being created. |
 | author | string | no | The author of the pull request being created. If empty the name associated with the GitHub access token will be used (must not be empty). |
 | email | string | no | The email address associated with the pull request being created. If empty the email address associated with the GitHub access token will be used (must not be empty). |
@@ -193,7 +194,7 @@ The following query parameters are supported for `githubapi-branch` writers:
 | access_token | string | yes | A valid GitHub API access token |
 | branch | string | no | A valid Git repository branch. Default is `main`. |
 | prefix | string | no | An optional path to prepend URIs (for writing) with. |
-| to-branch | string | yes | The name of branch that the pull request will be created for. |
+| to-branch | string | yes | The name of branch that the pull request will be created for. _If `to-branch` starts with the value of the `writer.BRANCH_UUID_PREFIX` constant ("{prefix}-") then that string will be replaced with the value of the current Unix timestamp followed by "-" followed by a new UUID (v4) string. For example if `to-branch` is "{prefix}-test" it would become "{TIMESTAMP}-{UUID}-test"._ |
 | description | string | yes | The description of the pull request being created. |
 | author | string | no | The author of the pull request being created. If empty the name associated with the GitHub access token will be used (must not be empty). |
 | email | string | no | The email address associated with the pull request being created. If empty the email address associated with the GitHub access token will be used (must not be empty). |

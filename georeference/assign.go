@@ -22,7 +22,7 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
-	sfom_writer "github.com/sfomuseum/go-sfomuseum-writer/v3"
+	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-export/v3"
@@ -804,7 +804,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if depiction_has_changed {
 
-		_, err = sfom_writer.WriteBytes(ctx, depiction_mw, new_body)
+		_, err = wof_writer.WriteBytes(ctx, depiction_mw, new_body)
 
 		if err != nil {
 			logger.Error("Failed to write depiction", "error", err)
@@ -1119,7 +1119,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if subject_has_changed {
 
-		_, err = sfom_writer.WriteBytes(ctx, subject_mw, new_subject)
+		_, err = wof_writer.WriteBytes(ctx, subject_mw, new_subject)
 
 		if err != nil {
 			logger.Error("Failed to write subject record", "error", err)

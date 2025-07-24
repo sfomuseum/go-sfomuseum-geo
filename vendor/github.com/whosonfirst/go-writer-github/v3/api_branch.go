@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v74/github"
 	wof_writer "github.com/whosonfirst/go-writer/v3"
 	"golang.org/x/oauth2"
 )
@@ -108,7 +108,7 @@ func NewGitHubAPIBranchWriter(ctx context.Context, uri string) (wof_writer.Write
 		return nil, fmt.Errorf("Commit branch can not be the same as base branch")
 	}
 
-	commit_branch := to_branch
+	commit_branch := AssignBranchPrefix(to_branch)
 
 	commit_description := q.Get("description")
 
@@ -354,7 +354,7 @@ func (wr *GitHubAPIBranchWriter) pushCommit(ctx context.Context, ref *github.Ref
 	date := time.Now()
 
 	author := &github.CommitAuthor{
-		Date:  &date,
+		Date:  &github.Timestamp{date},
 		Name:  &wr.commit_author,
 		Email: &wr.commit_email,
 	}
@@ -370,7 +370,9 @@ func (wr *GitHubAPIBranchWriter) pushCommit(ctx context.Context, ref *github.Ref
 		Parents: parents,
 	}
 
-	newCommit, _, err := wr.client.Git.CreateCommit(ctx, wr.commit_owner, wr.commit_repo, commit)
+	commit_opts := &github.CreateCommitOptions{}
+
+	newCommit, _, err := wr.client.Git.CreateCommit(ctx, wr.commit_owner, wr.commit_repo, commit, commit_opts)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create commit, %w", err)
