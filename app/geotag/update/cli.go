@@ -10,7 +10,7 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 )
 
-func runCommandLine(ctx context.Context, opts *geotag.UpdateDepictionOptions) error {
+func runCommandLine(ctx context.Context, opts *geotag.GeotagDepictionOptions) error {
 
 	var f *geojson.GeotagFeature
 
@@ -28,10 +28,10 @@ func runCommandLine(ctx context.Context, opts *geotag.UpdateDepictionOptions) er
 			Feature:     f,
 		}
 
-		_, err := geotag.UpdateDepiction(ctx, opts, update)
+		_, err := geotag.GeotagDepiction(ctx, opts, update)
 
 		if err != nil {
-			return fmt.Errorf("Failed to update depiction %d, %v", depiction_id, err)
+			return fmt.Errorf("Failed to geotag depiction %d, %v", depiction_id, err)
 		}
 	}
 

@@ -12,7 +12,6 @@ import (
 	"github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
-	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader/v2"
@@ -21,6 +20,7 @@ import (
 	wof "github.com/whosonfirst/go-whosonfirst-id"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
+	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
 	"github.com/whosonfirst/go-writer/v3"
 )
 
@@ -32,8 +32,8 @@ type Depiction struct {
 	Feature *geotag.GeotagFeature `json:"feature"`
 }
 
-// UpdateDepictionOptions defines a struct for reading/writing options when updating geotagging information in depictions.
-type UpdateDepictionOptions struct {
+// GeotagDepictionOptions defines a struct for reading/writing options when updating geotagging information in depictions.
+type GeotagDepictionOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
 	DepictionReader reader.Reader
 	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
@@ -50,7 +50,7 @@ type UpdateDepictionOptions struct {
 	Author string
 }
 
-// UpdateDepiction will update the geometries and relevant properties for SFOM/WOF records 'depiction_id' and 'subject_id' using
+// GeotagDepiction will update the geometries and relevant properties for SFOM/WOF records 'depiction_id' and 'subject_id' using
 // data defined in 'geotag_f' and 'parent_id'.
 //
 // 'geotag_f' is a GeoJSON Feature produced by the https://github.com/sfomuseum/Leaflet.GeotagPhoto package. There is also
@@ -81,7 +81,7 @@ type UpdateDepictionOptions struct {
 // - Its geometry is assigned the field of view (line string) of the 'geotag_f' feature.
 //
 // Finally the alternate geometry is exported and written (to `opts.DepictionWriter`).
-func UpdateDepiction(ctx context.Context, opts *UpdateDepictionOptions, update *Depiction) ([]byte, error) {
+func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *Depiction) ([]byte, error) {
 
 	depiction_id := update.DepictionId
 	geotag_f := update.Feature

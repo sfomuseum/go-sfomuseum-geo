@@ -69,7 +69,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create architecture reader, %v", err)
 	}
 
-	opts := &geotag.UpdateDepictionOptions{
+	opts := &geotag.GeotagDepictionOptions{
 		DepictionReader:    depiction_reader,
 		DepictionWriter:    depiction_writer,
 		SubjectReader:      subject_reader,
