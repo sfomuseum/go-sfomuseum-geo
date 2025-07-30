@@ -388,7 +388,7 @@ github.com/whosonfirst/go-reader/v2
 # github.com/whosonfirst/go-rfc-5646 v0.1.0
 ## explicit; go 1.12
 github.com/whosonfirst/go-rfc-5646
-# github.com/whosonfirst/go-whosonfirst-export/v2 v2.8.4
+# github.com/whosonfirst/go-whosonfirst-export/v2 v2.8.5
 ## explicit; go 1.22
 github.com/whosonfirst/go-whosonfirst-export/v2
 github.com/whosonfirst/go-whosonfirst-export/v2/properties
@@ -436,7 +436,7 @@ github.com/whosonfirst/go-whosonfirst-uri
 # github.com/whosonfirst/go-whosonfirst-validate v0.6.1
 ## explicit; go 1.24
 github.com/whosonfirst/go-whosonfirst-validate
-# github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.4
+# github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.6
 ## explicit; go 1.22.1
 github.com/whosonfirst/go-whosonfirst-writer/v3
 # github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.2

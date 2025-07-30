@@ -19,7 +19,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-id v1.3.1
 	github.com/whosonfirst/go-whosonfirst-reader/v2 v2.0.0
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
-	github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.4
+	github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.6
 	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.2
 	github.com/whosonfirst/go-writer-github/v3 v3.1.0
 	github.com/whosonfirst/go-writer/v3 v3.1.1
@@ -96,7 +96,7 @@ require (
 	github.com/tidwall/rtree v1.3.1 // indirect
 	github.com/whosonfirst/go-reader v1.0.2 // indirect
 	github.com/whosonfirst/go-rfc-5646 v0.1.0 // indirect
-	github.com/whosonfirst/go-whosonfirst-export/v2 v2.8.4 // indirect
+	github.com/whosonfirst/go-whosonfirst-export/v2 v2.8.5 // indirect
 	github.com/whosonfirst/go-whosonfirst-findingaid/v2 v2.9.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.5.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-names v0.1.0 // indirect

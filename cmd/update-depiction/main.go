@@ -34,7 +34,7 @@ import (
 	_ "gocloud.dev/runtimevar/awsparamstore"
 	_ "gocloud.dev/runtimevar/constantvar"
 	_ "gocloud.dev/runtimevar/filevar"
-	
+
 	"github.com/sfomuseum/go-sfomuseum-geo/app/geotag/update"
 )
 
