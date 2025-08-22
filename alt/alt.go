@@ -24,15 +24,10 @@ type WhosOnFirstAltFeature struct {
 // FormatAltFeature formats 'f' and removes any top-level `bbox` properties.
 func FormatAltFeature(f *WhosOnFirstAltFeature) ([]byte, error) {
 
-	// please standardize on a common whosonfirst geojson/feature package
-	// (20200413/thisisaaronland)
-
-	ff := &format.Feature{
-		Type:       f.Type,
-		ID:         f.Id,
-		Properties: f.Properties,
-		Geometry:   f.Geometry,
-	}
+	orb_geom := f.Geometry.Geometry()
+	ff := geojson.NewFeature(orb_geom)
+	ff.Properties = f.Properties
+	ff.ID = f.Id
 
 	body, err := format.FormatFeature(ff)
 
