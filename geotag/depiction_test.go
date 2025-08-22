@@ -94,7 +94,7 @@ func TestUpdateDepiction(t *testing.T) {
 		t.Fatalf("Failed to create architecture reader, %v", err)
 	}
 
-	opts := &UpdateDepictionOptions{
+	opts := &GeotagDepictionOptions{
 		DepictionReader:    img_reader,
 		DepictionWriter:    img_writer,
 		SubjectReader:      obj_reader,
@@ -104,7 +104,7 @@ func TestUpdateDepiction(t *testing.T) {
 		SubjectWriterURI:   obj_writer_uri,
 	}
 
-	body, err := UpdateDepiction(ctx, opts, update)
+	body, err := GeotagDepiction(ctx, opts, update)
 
 	if err != nil {
 		t.Fatalf("Failed to update depiction, %v", err)
