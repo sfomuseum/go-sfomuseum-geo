@@ -3,8 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"log"
+	"log/slog"
+	"slices"
 
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v3"
 )
 
@@ -26,6 +30,10 @@ func main() {
 
 	sources := flag.Args()
 
+	path_camera := "properties.geotag:camera_whosonfirst"
+	path_target := "properties.geotag:target_whosonfirst"
+	// path_depictions := "properties.geotag:depictions"
+
 	for rec, err := range iter.Iterate(ctx, sources...) {
 
 		if err != nil {
@@ -34,7 +42,88 @@ func main() {
 
 		defer rec.Body.Close()
 
-		log.Printf("Process %s\n", rec.Path)
+		logger := slog.Default()
+		logger = logger.With("path", rec.Path)
+
+		logger.Info("Process record")
+
+		body, err := io.ReadAll(rec.Body)
+
+		if err != nil {
+			logger.Error("Failed to read body", "error", err)
+			log.Fatal(err)
+		}
+
+		pt := gjson.GetBytes(body, "properties.sfomuseum:placetype").String()
+
+		to_update := make(map[string]any)
+		to_remove := make([]string, 0)
+
+		wof_depicts := make([]int64, 0)
+
+		// geotag:camera_whosonfirst
+		// geotag:target_whosonfirst
+
+		foo := []string{
+			path_camera,
+			path_target,
+		}
+
+		for _, path := range foo {
+
+			rsp := gjson.GetBytes(body, path)
+
+			if !rsp.Exists() {
+				continue
+			}
+
+			to_remove = append(to_remove, path)
+
+			id_rsp := rsp.Get("wof:id")
+			hier_rsp := rsp.Get("wof:hierarchy")
+
+			if id_rsp.Exists() {
+				id := id_rsp.Int()
+
+				switch path {
+				case path_camera:
+					to_update["properties.geotag:whosonfirst_camera"] = id
+				case path_target:
+					to_update["properties.geotag:whosonfirst_target"] = id
+				default:
+					// pass
+				}
+
+				wof_depicts = append(wof_depicts, id)
+			}
+
+			if hier_rsp.Exists() {
+
+				for _, h := range hier_rsp.Array() {
+
+					for _, i := range h.Map() {
+
+						id := i.Int()
+
+						if !slices.Contains(wof_depicts, id) {
+							wof_depicts = append(wof_depicts, id)
+						}
+					}
+				}
+			}
+		}
+
+		// geotag:depictions (if object)
+
+		if pt == "object" {
+			to_remove = append(to_remove, "properties.geotag:depictions")
+		}
+
+		if len(wof_depicts) > 0 {
+			to_update["properties.geotag:whosonfirst_depicts"] = wof_depicts
+		}
+
+		logger.Info("Update", "update", to_update, "remove", to_remove)
 	}
 
 }
