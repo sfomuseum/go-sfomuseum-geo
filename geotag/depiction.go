@@ -318,7 +318,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		camera_parent_id,
 		target_parent_id,
 	}
-	
+
 	// Update the parent ID and hierarchy for the subject
 
 	if camera_parent_f != nil {
@@ -328,12 +328,12 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		for _, parent_h := range parent_hierarchies {
 
 			for _, h_id := range parent_h {
-				
+
 				if h_id == wof.EARTH {
 					continue
 				}
 
-				if slices.Contains(wof_depicts, h_id){
+				if slices.Contains(wof_depicts, h_id) {
 					continue
 				}
 
@@ -360,15 +360,14 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 		parent_hierarchies := properties.Hierarchies(target_parent_f)
 
-
 		for _, parent_h := range parent_hierarchies {
 
 			for _, h_id := range parent_h {
 				if h_id == wof.EARTH {
 					continue
 				}
-				
-				if slices.Contains(wof_depicts, h_id){
+
+				if slices.Contains(wof_depicts, h_id) {
 					continue
 				}
 
@@ -402,7 +401,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 	subject_updates["properties.geotag:whosonfirst_camera"] = camera_parent_id
 	subject_updates["properties.geotag:whosonfirst_target"] = target_parent_id
 	subject_updates["properties.geotag:whosonfirst_depicts"] = wof_depicts
-	
+
 	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
 
 	if err != nil {
