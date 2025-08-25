@@ -9,14 +9,19 @@ import (
 	"slices"
 
 	"github.com/tidwall/gjson"
+	"github.com/whosonfirst/go-whosonfirst-export/v3"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v3"
+	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
+	"github.com/whosonfirst/go-writer/v3"
 )
 
 func main() {
 
 	var iterator_uri string
+	var writer_uri string
 
 	flag.StringVar(&iterator_uri, "iterator-uri", "repo://?include=properties.geotag:depictions=.*", "A registered whosonfirst/go-whosonfirst-iterate/v3.Iterator URI.")
+	flag.StringVar(&writer_uri, "writer-uri", "stdout://", "A registered whosnfirst/go-whosonfirst-writer/v3.Writer URI.")
 
 	flag.Parse()
 
@@ -26,6 +31,12 @@ func main() {
 
 	if err != nil {
 		log.Fatalf("Failed to create iterator, %v", err)
+	}
+
+	wr, err := writer.NewWriter(ctx, writer_uri)
+
+	if err != nil {
+		log.Fatalf("Failed to create writer, %v", err)
 	}
 
 	sources := flag.Args()
@@ -116,14 +127,33 @@ func main() {
 		// geotag:depictions (if object)
 
 		if pt == "object" {
-			to_remove = append(to_remove, "properties.geotag:depictions")
+			//to_remove = append(to_remove, "properties.geotag:depictions")
 		}
 
 		if len(wof_depicts) > 0 {
 			to_update["properties.geotag:whosonfirst_depicts"] = wof_depicts
 		}
 
-		logger.Info("Update", "update", to_update, "remove", to_remove)
+		new_body, err := export.AssignProperties(ctx, body, to_update)
+
+		if err != nil {
+			logger.Error("Failed to assign update properties", "error", err)
+			log.Fatal(err)
+		}
+
+		new_body, err = export.RemoveProperties(ctx, new_body, to_remove)
+
+		if err != nil {
+			logger.Error("Failed to remove properties", "error", err)
+			log.Fatal(err)
+		}
+
+		_, err = wof_writer.WriteBytes(ctx, wr, new_body)
+
+		if err != nil {
+			logger.Error("Failed to write changes", "error", err)
+			log.Fatal(err)
+		}
 	}
 
 }
