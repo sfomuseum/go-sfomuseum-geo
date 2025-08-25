@@ -115,36 +115,35 @@ func TestUpdateDepiction(t *testing.T) {
 	count_features := len(features_rsp.Array())
 
 	if count_features != 3 {
-		t.Fatalf("Expected to find 2 features,, but got %d", count_features)
+		t.Fatalf("Expected to find 3 features,, but got %d", count_features)
 	}
 
 	for idx, f_rsp := range features_rsp.Array() {
 
-		if idx < 2 {
+		switch idx {
+		case 0: // subject
 
-			wof_rsp := f_rsp.Get("properties.geotag:whosonfirst")
+			depicts_rsp := f_rsp.Get("properties.geotag:depictions")
+
+			if !depicts_rsp.Exists() {
+				t.Fatalf("Failed to find geotag:depictions property in feature at offset %d", idx)
+			}
+
+		case 1: // depiction
+
+			subject_rsp := f_rsp.Get("properties.geotag:subject")
+
+			if !subject_rsp.Exists() {
+				t.Fatalf("Failed to find geotag:subject property in feature at offset %d", idx)
+			}
+
+			wof_rsp := f_rsp.Get("properties.geotag:whosonfirst_target")
 
 			if !wof_rsp.Exists() {
-				t.Fatalf("Failed to find geotag:whosonfirst property in feature at offset %d", idx)
+				t.Fatalf("Failed to find geotag:whosonfirst_target property in feature at offset %d", idx)
 			}
 
-			hier_rsp := wof_rsp.Get("wof:hierarchy")
-
-			if !hier_rsp.Exists() {
-				t.Fatalf("Failed to find geotag:whosonfirst.wof:hierarchy property in feature at offset %d", idx)
-			}
-
-			id_rsp := wof_rsp.Get("wof:id")
-
-			if !id_rsp.Exists() {
-				t.Fatalf("Failed to find geotag:whosonfirst.wof:id property in feature at offset %d", idx)
-			}
-
-			/*
-				if id_rsp.Int() != parent_id {
-					t.Fatalf("Invalid geotag:whosonfirst.wof:id property. Expected %d but got %d", parent_id, id_rsp.Int())
-				}
-			*/
+		case 2: // alt file
 		}
 	}
 
