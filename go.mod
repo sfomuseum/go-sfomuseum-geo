@@ -17,7 +17,6 @@ require (
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.29
 	github.com/whosonfirst/go-whosonfirst-format v1.0.1
 	github.com/whosonfirst/go-whosonfirst-id v1.3.1
-	github.com/whosonfirst/go-whosonfirst-iterate/v3 v3.1.0
 	github.com/whosonfirst/go-whosonfirst-reader/v2 v2.0.0
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.7
@@ -34,7 +33,6 @@ require (
 	github.com/aaronland/go-aws-dynamodb v0.4.2 // indirect
 	github.com/aaronland/go-aws-session v0.2.1 // indirect
 	github.com/aaronland/go-brooklynintegers-api v1.2.10 // indirect
-	github.com/aaronland/go-json-query v0.1.6 // indirect
 	github.com/aaronland/go-pool/v2 v2.0.0 // indirect
 	github.com/aaronland/go-roster v1.0.0 // indirect
 	github.com/aaronland/go-string v1.0.0 // indirect
