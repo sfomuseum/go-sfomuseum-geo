@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
+	"slices"
 
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-geojson-geotag/v2"
@@ -314,40 +314,32 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 	subject_updates["geometry.type"] = "MultiPoint"
 	subject_updates["geometry.coordinates"] = coords
 
-	subject_camera_wof := map[string]interface{}{
-		"wof:id": camera_parent_id,
+	wof_depicts := []int64{
+		camera_parent_id,
+		target_parent_id,
 	}
-
-	subject_target_wof := map[string]interface{}{
-		"wof:id": target_parent_id,
-	}
-
+	
 	// Update the parent ID and hierarchy for the subject
 
 	if camera_parent_f != nil {
 
 		parent_hierarchies := properties.Hierarchies(camera_parent_f)
-		subject_camera_wof["wof:hierarchy"] = parent_hierarchies
-
-		belongsto_map := new(sync.Map)
 
 		for _, parent_h := range parent_hierarchies {
 
 			for _, h_id := range parent_h {
-				if h_id >= wof.EARTH {
-					belongsto_map.Store(h_id, true)
+				
+				if h_id == wof.EARTH {
+					continue
 				}
+
+				if slices.Contains(wof_depicts, h_id){
+					continue
+				}
+
+				wof_depicts = append(wof_depicts, h_id)
 			}
 		}
-
-		belongsto := make([]int64, 0)
-
-		belongsto_map.Range(func(k interface{}, v interface{}) bool {
-			belongsto = append(belongsto, k.(int64))
-			return true
-		})
-
-		subject_camera_wof["wof:belongsto"] = belongsto
 
 		to_copy := []string{
 			"properties.iso:country",
@@ -367,27 +359,22 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 	if target_parent_f != nil {
 
 		parent_hierarchies := properties.Hierarchies(target_parent_f)
-		subject_target_wof["wof:hierarchy"] = parent_hierarchies
 
-		belongsto_map := new(sync.Map)
 
 		for _, parent_h := range parent_hierarchies {
 
 			for _, h_id := range parent_h {
-				if h_id >= wof.EARTH {
-					belongsto_map.Store(h_id, true)
+				if h_id == wof.EARTH {
+					continue
 				}
+				
+				if slices.Contains(wof_depicts, h_id){
+					continue
+				}
+
+				wof_depicts = append(wof_depicts, h_id)
 			}
 		}
-
-		belongsto := make([]int64, 0)
-
-		belongsto_map.Range(func(k interface{}, v interface{}) bool {
-			belongsto = append(belongsto, k.(int64))
-			return true
-		})
-
-		subject_target_wof["wof:belongsto"] = belongsto
 
 		to_copy := []string{
 			"properties.iso:country",
@@ -405,12 +392,17 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 	}
 
 	// v1 (deprecated)
-	subject_updates["properties.geotag:whosonfirst"] = subject_camera_wof
+	// subject_updates["properties.geotag:whosonfirst"] = subject_camera_wof
 
 	// v2
-	subject_updates["properties.geotag:camera_whosonfirst"] = subject_camera_wof
-	subject_updates["properties.geotag:target_whosonfirst"] = subject_target_wof
+	// subject_updates["properties.geotag:camera_whosonfirst"] = subject_camera_wof
+	// subject_updates["properties.geotag:target_whosonfirst"] = subject_target_wof
 
+	// v3 (I guess...)
+	subject_updates["properties.geotag:whosonfirst_camera"] = camera_parent_id
+	subject_updates["properties.geotag:whosonfirst_target"] = target_parent_id
+	subject_updates["properties.geotag:whosonfirst_depicts"] = wof_depicts
+	
 	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
 
 	if err != nil {
