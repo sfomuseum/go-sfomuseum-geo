@@ -393,9 +393,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		"properties.src:geom": src_geom,
 	}
 
-	// START OF assign/update wof:references for depiction
+	// START OF assign/update georef:whosonfirst_belongsto for depiction
 
-	references := make([]int64, 0)
+	georef_belongsto := make([]int64, 0)
 
 	for _, r := range refs {
 		for _, i := range r.Ids {
@@ -405,15 +405,15 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	references_map.Range(func(k interface{}, v interface{}) bool {
 		id := k.(int64)
-		references = append(references, id)
+		georef_belongsto = append(georef_belongsto, id)
 		return true
 	})
 
-	// logger.Debug("References for depiction", "count", len(references))
+	// logger.Debug("Georef_belongsto for depiction", "count", len(georef_belongsto))
 
-	depiction_updates[fmt.Sprintf("properties.%s", geo.RESERVED_WOF_REFERENCES)] = references
+	depiction_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_BELONGSTO)] = georef_belongsto
 
-	// END OF assign/update wof:references for depictionx
+	// END OF assign/update georef:whosonfirst_belongsto for depictionx
 
 	// START OF assign/update georeference:depictions here
 
@@ -1013,7 +1013,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
-	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_WOF_REFERENCES)] = subject_wof_references
+	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_BELONGSTO)] = subject_wof_references
 
 	// Assign georeference:depictions for subject
 
