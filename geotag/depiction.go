@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
+	"slices"
 
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-geojson-geotag/v2"
@@ -224,26 +224,33 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		"properties.src:geom": "sfomuseum#geotagged",
 	}
 
-	// Update geotag:depictions array to include depiction_id
+	depiction_wof_belongsto := []int64{
+		camera_parent_id,
+		target_parent_id,
+	}
 
-	tmp := map[int64]bool{
-		depiction_id: true,
+	subject_wof_belongsto := []int64{
+		camera_parent_id,
+		target_parent_id,
+	}
+
+	// Update the (subject) geotag:depictions array to include depiction_id
+
+	subject_depictions := []int64{
+		depiction_id,
 	}
 
 	depictions_rsp := gjson.GetBytes(subject_f, "properties.geotag:depictions")
 
 	for _, r := range depictions_rsp.Array() {
 		id := r.Int()
-		tmp[id] = true
+
+		if !slices.Contains(subject_depictions, id) {
+			subject_depictions = append(subject_depictions, id)
+		}
 	}
 
-	depictions := make([]int64, 0)
-
-	for id, _ := range tmp {
-		depictions = append(depictions, id)
-	}
-
-	subject_updates["properties.geotag:depictions"] = depictions
+	subject_updates["properties.geotag:depictions"] = subject_depictions
 
 	// Update the subject geometry
 
@@ -275,7 +282,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 	// Fetch other depictions for a given subject; we do this in order to generate
 	// a MultiPoint geometry of all the depictions for a subject
 
-	for _, other_id := range depictions {
+	for _, other_id := range subject_depictions {
 
 		// Skip current depiction as its been added above
 
@@ -309,45 +316,46 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		}
 
 		coords = append(coords, other_coord)
+
+		belongsto_rsp := gjson.GetBytes(other_f, "properties.geotag:whosonfirst_belongsto")
+
+		for _, i := range belongsto_rsp.Array() {
+
+			id := i.Int()
+
+			if !slices.Contains(subject_wof_belongsto, id) {
+				subject_wof_belongsto = append(subject_wof_belongsto, id)
+			}
+		}
+
 	}
 
 	subject_updates["geometry.type"] = "MultiPoint"
 	subject_updates["geometry.coordinates"] = coords
 
-	subject_camera_wof := map[string]interface{}{
-		"wof:id": camera_parent_id,
-	}
-
-	subject_target_wof := map[string]interface{}{
-		"wof:id": target_parent_id,
-	}
+	subject_updates["properties.geotag:whosonfirst_belongsto"] = subject_wof_belongsto
 
 	// Update the parent ID and hierarchy for the subject
 
 	if camera_parent_f != nil {
 
 		parent_hierarchies := properties.Hierarchies(camera_parent_f)
-		subject_camera_wof["wof:hierarchy"] = parent_hierarchies
-
-		belongsto_map := new(sync.Map)
 
 		for _, parent_h := range parent_hierarchies {
 
 			for _, h_id := range parent_h {
-				if h_id >= wof.EARTH {
-					belongsto_map.Store(h_id, true)
+
+				if h_id == wof.EARTH {
+					continue
 				}
+
+				if slices.Contains(depiction_wof_belongsto, h_id) {
+					continue
+				}
+
+				depiction_wof_belongsto = append(depiction_wof_belongsto, h_id)
 			}
 		}
-
-		belongsto := make([]int64, 0)
-
-		belongsto_map.Range(func(k interface{}, v interface{}) bool {
-			belongsto = append(belongsto, k.(int64))
-			return true
-		})
-
-		subject_camera_wof["wof:belongsto"] = belongsto
 
 		to_copy := []string{
 			"properties.iso:country",
@@ -367,27 +375,21 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 	if target_parent_f != nil {
 
 		parent_hierarchies := properties.Hierarchies(target_parent_f)
-		subject_target_wof["wof:hierarchy"] = parent_hierarchies
-
-		belongsto_map := new(sync.Map)
 
 		for _, parent_h := range parent_hierarchies {
 
 			for _, h_id := range parent_h {
-				if h_id >= wof.EARTH {
-					belongsto_map.Store(h_id, true)
+				if h_id == wof.EARTH {
+					continue
 				}
+
+				if slices.Contains(depiction_wof_belongsto, h_id) {
+					continue
+				}
+
+				depiction_wof_belongsto = append(depiction_wof_belongsto, h_id)
 			}
 		}
-
-		belongsto := make([]int64, 0)
-
-		belongsto_map.Range(func(k interface{}, v interface{}) bool {
-			belongsto = append(belongsto, k.(int64))
-			return true
-		})
-
-		subject_target_wof["wof:belongsto"] = belongsto
 
 		to_copy := []string{
 			"properties.iso:country",
@@ -403,13 +405,6 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 			}
 		}
 	}
-
-	// v1 (deprecated)
-	subject_updates["properties.geotag:whosonfirst"] = subject_camera_wof
-
-	// v2
-	subject_updates["properties.geotag:camera_whosonfirst"] = subject_camera_wof
-	subject_updates["properties.geotag:target_whosonfirst"] = subject_target_wof
 
 	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
 
@@ -429,40 +424,19 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 	// Update the depiction
 
 	depiction_updates := map[string]interface{}{
-		"geometry":                           pov,
-		"properties.src:geom":                "sfomuseum",
-		"properties.geotag:angle":            geotag_f.Properties.Angle,
-		"properties.geotag:bearing":          geotag_f.Properties.Bearing,
-		"properties.geotag:distance":         geotag_f.Properties.Distance,
-		"properties.geotag:camera_longitude": camera_coords[0],
-		"properties.geotag:camera_latitude":  camera_coords[1],
-		"properties.geotag:target_longitude": target_coords[0],
-		"properties.geotag:target_latitude":  target_coords[1],
-	}
-
-	to_copy := []string{
-
-		// v1
-		"properties.geotag:whosonfirst",
-		// v2
-		"properties.geotag:camera_whosonfirst",
-		"properties.geotag:target_whosonfirst",
-
-		"properties.geotag:depictions",
-		"properties.iso:country",
-		"properties.wof:country",
-		"properties.edtf:inception",
-		"properties.edtf:cessation",
-		"properties.edtf:date",
-	}
-
-	for _, path := range to_copy {
-
-		rsp := gjson.GetBytes(subject_f, path)
-
-		if rsp.Exists() {
-			depiction_updates[path] = rsp.Value()
-		}
+		"geometry":                                pov,
+		"properties.src:geom":                     "sfomuseum",
+		"properties.geotag:angle":                 geotag_f.Properties.Angle,
+		"properties.geotag:bearing":               geotag_f.Properties.Bearing,
+		"properties.geotag:distance":              geotag_f.Properties.Distance,
+		"properties.geotag:camera_longitude":      camera_coords[0],
+		"properties.geotag:camera_latitude":       camera_coords[1],
+		"properties.geotag:target_longitude":      target_coords[0],
+		"properties.geotag:target_latitude":       target_coords[1],
+		"properties.geotag:whosonfirst_camera":    camera_parent_id,
+		"properties.geotag:whosonfirst_target":    target_parent_id,
+		"properties.geotag:whosonfirst_belongsto": depiction_wof_belongsto,
+		"properties.geotag:subject":               subject_id,
 	}
 
 	geom_alt := []string{
