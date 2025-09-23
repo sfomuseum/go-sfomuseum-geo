@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/sfomuseum/runtimevar"
+	"github.com/aaronland/gocloud/runtimevar"
 )
 
 // EnsureGitHubAccessToken ensures that 'writer_uri' contains a '?access_token=VALUE' parameter. This only
