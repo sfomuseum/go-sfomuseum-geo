@@ -220,6 +220,9 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	// Update the subject
 
+	// FIX ME: account for multitple camera/target properties (as in multiple images (depictions)
+	// with different geotagging properties
+	
 	subject_updates := map[string]interface{}{
 		"properties.src:geom": "sfomuseum#geotagged",
 	}
@@ -234,8 +237,9 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		target_parent_id,
 	}
 
+	// FIX ME: tbd if we're really keeping geotag:depictions
 	// Update the (subject) geotag:depictions array to include depiction_id
-
+	
 	subject_depictions := []int64{
 		depiction_id,
 	}
