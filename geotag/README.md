@@ -34,10 +34,10 @@ A subject is a "thing" with zero or more depictions. For example an object (subj
 
 | Name | Type | Notes |
 | --- | --- | --- |
-| `geotag:depictions | []float64 | The list of geotagged depictions (images) IDs for this subject (object) |
-| `geotag:whosonfirst_belongsto | []float64 | The unique set of Who's on First IDs that are parents or ancestors for the set of geotagged depictions (images) IDs for this subject (object) |
-| `geotag:whosonfirst_camera | []float64 | The unique set of `geotag:whosonfirst_camera` values for the geotagged depictions (images) IDs for this subject (object). _This is currently being encoded as a single ID rather than a list._ |
-| `geotag:whosonfirst_target | []float64 | The unique set of `geotag:whosonfist_target` values for the geotagged depictions (images) IDs for this subject (object). _This is currently being encoded as a single ID rather than a list._ |
+| `geotag:depictions` | []float64 | The list of geotagged depictions (images) IDs for this subject (object) |
+| `geotag:whosonfirst_belongsto` | []float64 | The unique set of Who's on First IDs that are parents or ancestors for the set of geotagged depictions (images) IDs for this subject (object) |
+| `geotag:whosonfirst_camera` | []float64 | The unique set of `geotag:whosonfirst_camera` values for the geotagged depictions (images) IDs for this subject (object). _This is currently being encoded as a single ID rather than a list._ |
+| `geotag:whosonfirst_target` | []float64 | The unique set of `geotag:whosonfist_target` values for the geotagged depictions (images) IDs for this subject (object). _This is currently being encoded as a single ID rather than a list._ |
 
 ## Geometries
 
