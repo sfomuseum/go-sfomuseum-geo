@@ -222,7 +222,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	// FIX ME: account for multitple camera/target properties (as in multiple images (depictions)
 	// with different geotagging properties
-	
+
 	subject_updates := map[string]interface{}{
 		"properties.src:geom": "sfomuseum#geotagged",
 	}
@@ -237,9 +237,16 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		target_parent_id,
 	}
 
-	// FIX ME: tbd if we're really keeping geotag:depictions
+	subject_wof_camera := []int64{
+		camera_parent_id,
+	}
+
+	subject_wof_target := []int64{
+		target_parent_id,
+	}
+
 	// Update the (subject) geotag:depictions array to include depiction_id
-	
+
 	subject_depictions := []int64{
 		depiction_id,
 	}
@@ -332,12 +339,40 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 			}
 		}
 
+		camera_rsp := gjson.GetBytes(other_f, "properties.geotag:whosonfirst_camera")
+		target_rsp := gjson.GetBytes(other_f, "properties.geotag:whosonfirst_target")
+
+		if camera_rsp.Exists() {
+
+			camera_id := camera_rsp.Int()
+
+			if camera_id > -1 && !slices.Contains(subject_wof_camera, camera_id) {
+				subject_wof_camera = append(subject_wof_camera, camera_id)
+			}
+		}
+
+		if target_rsp.Exists() {
+
+			target_id := target_rsp.Int()
+
+			if target_id > -1 && !slices.Contains(subject_wof_target, target_id) {
+				subject_wof_camera = append(subject_wof_target, target_id)
+			}
+		}
 	}
 
 	subject_updates["geometry.type"] = "MultiPoint"
 	subject_updates["geometry.coordinates"] = coords
 
 	subject_updates["properties.geotag:whosonfirst_belongsto"] = subject_wof_belongsto
+
+	if len(subject_wof_camera) > 0 {
+		subject_updates["properties.geotag:whosonfirst_camera"] = subject_wof_camera
+	}
+
+	if len(subject_wof_target) > 0 {
+		subject_updates["properties.geotag:whosonfirst_target"] = subject_wof_target
+	}
 
 	// Update the parent ID and hierarchy for the subject
 
