@@ -34,10 +34,10 @@ A subject is a "thing" with zero or more depictions. For example an object (subj
 
 ### Depiction
 
-...stored as a `MultiPoint` geometry in a `alt-georef-{LABEL}` alternate geometry file.
+Every depiction has a per-label alternate geometry file for each label `georef:depicted`. These alternate geometry files take the name of `alt-georef-{LABEL}` and has a `MultiPoint` geometry composed of the set of (primary) centroids for each of the Who's On First IDs associated with that label.
 
-A `MultiPoint` geometry derived from the `alt-georef-{LABEL}` alternate geometry files.
+The geometry for the depiction itself is a `MultiPoint` geometry composed of all the `alt-georef-{LABEL}` alternate geometries associated with it.
 
 ### Subject
 
-A `MultiPoint` geometry derived from the (`Point`) geometries of all the depictions associated with a subject.
+A `MultiPoint` geometry derived from the (`MultiPoint`) geometries of all the depictions associated with the subject.
