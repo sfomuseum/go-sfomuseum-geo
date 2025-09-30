@@ -94,6 +94,12 @@ func NewFindingAidReader(ctx context.Context, uri string) (wof_reader.Reader, er
 
 		ru.RawQuery = u.RawQuery
 
+	case "multi":
+
+		ru = &url.URL{}
+		ru.Scheme = u.Host
+		ru.RawQuery = u.RawQuery
+
 	default:
 
 		path := u.Path

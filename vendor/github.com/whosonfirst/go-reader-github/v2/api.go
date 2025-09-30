@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v73/github"
+	"github.com/google/go-github/v74/github"
 	"github.com/whosonfirst/go-ioutil"
 	wof_reader "github.com/whosonfirst/go-reader/v2"
 	"golang.org/x/oauth2"

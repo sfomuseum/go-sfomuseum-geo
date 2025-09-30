@@ -201,7 +201,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, camera_parent_id)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to load parent record %d, %w", camera_parent_id, err)
+			return nil, fmt.Errorf("Failed to load parent record for camera %d, %w", camera_parent_id, err)
 		}
 
 		camera_parent_f = f
@@ -212,7 +212,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, target_parent_id)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to load parent record %d, %w", target_parent_id, err)
+			return nil, fmt.Errorf("Failed to load parent record for target %d, %w", target_parent_id, err)
 		}
 
 		target_parent_f = f
