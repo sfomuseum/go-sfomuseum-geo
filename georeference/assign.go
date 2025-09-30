@@ -273,8 +273,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			alt_label := DeriveAltLabelFromReference(r)
 
 			// Note we are only assigning the base path for this key (prop_label)
-			// updates_map is "range-ed" below and we build a new new_depictions
-			// dict which is then assigned to properties.{geo.RESERVED_GEOREFERENCE_DEPICTIONS}
+			// updates_map is "range-ed" below and we build a new new_depicted
+			// dict which is then assigned to properties.{geo.RESERVED_GEOREFERENCE_DEPICTED}
 
 			logger.Debug("Store in updates map", "label", prop_label, "ids", r.Ids)
 			updates_map.Store(prop_label, r.Ids)
@@ -417,7 +417,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF assign/update georeference:depictions here
 
-	new_depictions := make([]map[string]any, 0)
+	new_depicted := make([]map[string]any, 0)
 
 	updates_map.Range(func(k interface{}, v interface{}) bool {
 
@@ -429,11 +429,11 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			geo.RESERVED_WOF_DEPICTS:        ids,
 		}
 
-		new_depictions = append(new_depictions, d)
+		new_depicted = append(new_depicted, d)
 		return true
 	})
 
-	depiction_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)] = new_depictions
+	depiction_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)] = new_depicted
 
 	// END OF assign/update georeference:depictions here
 
@@ -896,7 +896,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// START OF update wof:references and georeference:depictions for subject
 
 	subject_references_lookup := new(sync.Map)
-	subject_depictions_lookup := new(sync.Map)
+	subject_depicted_lookup := new(sync.Map)
 
 	// Add the references assigned to the depiction being updated
 
@@ -904,7 +904,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		for _, i := range r.Ids {
 			subject_references_lookup.Store(i, true)
 		}
-		subject_depictions_lookup.Store(r.Label, r.Ids)
+		subject_depicted_lookup.Store(r.Label, r.Ids)
 	}
 
 	type image_ref struct {
@@ -953,7 +953,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 				return
 			}
 
-			georefs_path := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+			georefs_path := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)
 			georefs_rsp := gjson.GetBytes(image_body, georefs_path)
 
 			for k, ids := range georefs_rsp.Map() {
@@ -986,7 +986,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			// Update georeference:depictions for subject
 			var ids []int64
 
-			v, exists := subject_depictions_lookup.Load(path)
+			v, exists := subject_depicted_lookup.Load(path)
 
 			if exists {
 				ids = v.([]int64)
@@ -996,7 +996,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 			if !slices.Contains(ids, id) {
 				ids = append(ids, id)
-				subject_depictions_lookup.Store(path, ids)
+				subject_depicted_lookup.Store(path, ids)
 			}
 
 		}
@@ -1019,16 +1019,19 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	logger.Debug("Assign georeference:depictions for subject")
 
-	subject_depictions := make(map[string][]int64)
+	subject_depicted := make(map[string][]int64)
 
-	subject_depictions_lookup.Range(func(k interface{}, v interface{}) bool {
+	subject_depicted_lookup.Range(func(k interface{}, v interface{}) bool {
 		path := k.(string)
 		ids := v.([]int64)
-		subject_depictions[path] = ids
+		subject_depicted[path] = ids
 		return true
 	})
 
-	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)] = subject_depictions
+	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)] = subject_depicted
+
+	// FIX ME...
+	// subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)] = 	
 
 	// Start of derive geometry from geotags and georeferences
 
@@ -1037,18 +1040,18 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Read geotag pointers from subject file
 
-	path_geotag_depictions := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
-	geotag_depictions_rsp := gjson.GetBytes(subject_body, path_geotag_depictions)
+	path_geotag_depicted := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
+	geotag_depicted_rsp := gjson.GetBytes(subject_body, path_geotag_depicted)
 
-	for _, r := range geotag_depictions_rsp.Array() {
+	for _, r := range geotag_depicted_rsp.Array() {
 		id := r.Int()
 		logger.Debug("Add subject geom ID (geotag) to lookup", "id", id)
 		geoms_lookup.Store(id, true)
 	}
 
-	// Read georeference points from subject_depictions (which is compiled above)
+	// Read georeference points from subject_depicted (which is compiled above)
 
-	for _, ids := range subject_depictions {
+	for _, ids := range subject_depicted {
 
 		for _, id := range ids {
 			logger.Debug("Add depiction geom ID (georef) to lookup", "id", id)
