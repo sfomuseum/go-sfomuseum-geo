@@ -1015,7 +1015,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_BELONGSTO)] = subject_wof_references
 
-	// Assign georeference:depictions for subject
+	// Assign georef:depicted for subject
 
 	logger.Debug("Assign georeference:depictions for subject")
 
@@ -1028,10 +1028,32 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
-	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)] = subject_depicted
+	subject_depicted_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)
 
-	// FIX ME...
-	// subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)] = 	
+	// Assign georef:depictions for subject
+
+	logger.Debug("Assign georef:depictions for subject")
+
+	subject_depictions_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+
+	subject_updates[subject_depicted_key] = subject_depicted
+
+	subject_depictions := []int64{
+		depiction_id,
+	}
+
+	subject_depictions_rsp := gjson.GetBytes(subject_body, subject_depictions_key)
+
+	for _, r := range subject_depictions_rsp.Array() {
+
+		r_id := r.Int()
+
+		if r_id > 0 && !slices.Contains(subject_depictions, r_id) {
+			subject_depictions = append(subject_depictions, r_id)
+		}
+	}
+
+	subject_updates[subject_depictions_key] = subject_depictions
 
 	// Start of derive geometry from geotags and georeferences
 
