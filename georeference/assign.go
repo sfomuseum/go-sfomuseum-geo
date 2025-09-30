@@ -47,7 +47,7 @@ type AssignReferencesOptions struct {
 	SubjectWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	WhosOnFirstReader reader.Reader
-	// A valid whosonfirst/go-reader.Reader instance for reading a "default geometry" features.
+	// ...
 	DefaultGeometryFeatureId int64
 	// Author is the name of a person to associate with commit messages if using a `githubapi://` writer
 	Author string
@@ -192,6 +192,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	depiction_reader = opts.DepictionReader
 
+	// THE OLD WAY
+	
 	// Okay, so there's a lot going on here. Given a depiction (image) and (n) references we want to:
 	// * Create or update the list of alt files (one alt file per reference) associated with the depiction
 	// * Update the depiction file with the:
@@ -205,6 +207,17 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	//   * An updated list of `wof:hierarchy` elements derived from `georeference:depictions` and `geotag:depictions` and... SFO (?) derived from all the depictions (images) <-- this is not being done yet
 	//   * An updated MultiPoint geometry derived from all the depictions (images)
 
+	// THE NEW WAY
+	
+	// Okay, so there's a lot going on here. Given a depiction (image) and (n) references we want to:
+	// * Update the depiction file with the:
+	//   * An updated list of references (the `georef:depicted` property)
+	//   * An updated list of `georef:whosonfirst_belongsto` elements derived from `georefs:depicted`
+	//   * An updated MultiPoint geometry derived from the geometries of the pointers in `georef:depicted`
+	// * Update the "subject" file of the depiction (for example the object associated with an image) with the:
+	//   * An updated list of references (`georef:depicted`) derived from the `georeference:depictions` property of all the depictions (images)
+	//   * An updated MultiPoint geometry derived from all the `georef:depictions` (images) geometries
+	
 	// START OF update the depiction record
 
 	logger.Debug("Start updating depiction record")

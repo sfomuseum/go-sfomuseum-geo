@@ -18,7 +18,7 @@ A subject is a "thing" with zero or more depictions. For example an object (subj
 
 | Name | Type | Notes |
 | --- | --- | --- |
-| `georef:depictions` | map[string]float64 | The list of georeferenced labels and Who's On First IDs for this depiction (image) |
+| `georef:depicted` | map[string]float64 | The list of georeferenced labels and Who's On First IDs for this depiction (image) |
 | `georef:whosonfirst_belongsto` | []float64 | The unique set of Who's on First IDs that are parents or ancestors for the set of georeferenced (images) IDs for this subject (object) |
 | `georef:subject` | float64 | The subject (object) that this depiction (image) represents. |
 
@@ -26,7 +26,8 @@ A subject is a "thing" with zero or more depictions. For example an object (subj
 
 | Name | Type | Notes |
 | --- | --- | --- |
-| `georef:depictions` | map[string]float64 | The list of georeferenced labels and Who's On First IDs for this subject (object) for all the depictions (images) of this subject. |
+| `georef:depicted` | map[string]float64 | The list of georeferenced labels and Who's On First IDs for this subject (object) for all the depictions (images) of this subject. |
+| `georef:depictions` | []int64 | The list of georeference depictions (images) IDs for this subject (object) | 
 | `georef:whosonfirst_belongsto` | []float64 | The unique set of Who's on First IDs that are parents or ancestors for the set of georeferenced (images) IDs for this subject (object) |
 
 ## Geometries
