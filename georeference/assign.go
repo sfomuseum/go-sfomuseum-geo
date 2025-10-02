@@ -1055,10 +1055,12 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	subject_updates[subject_depictions_key] = subject_depictions
 
-	// Start of derive geometry from geotags and georeferences
+	// START OF derive geometry from geotags and georeferences in depictions
+	// It would be nice to believe this code could be abstracted out and shared
+	// with equivalent requirements in ../geotag. It probably can but right
+	// now that feels a bit too much like yak-shaving.
 
-	geoms_lookup := new(sync.Map)
-	geom_ids := make([]int64, 0)
+	geom_ids := subject_depictions
 
 	// Read geotag pointers from subject file
 
@@ -1067,35 +1069,12 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	for _, r := range geotag_depicted_rsp.Array() {
 		id := r.Int()
-		logger.Debug("Add subject geom ID (geotag) to lookup", "id", id)
-		geoms_lookup.Store(id, true)
-	}
 
-	// Read georeference points from subject_depicted (which is compiled above)
-
-	for _, ids := range subject_depicted {
-
-		for _, id := range ids {
-			logger.Debug("Add depiction geom ID (georef) to lookup", "id", id)
-			geoms_lookup.Store(id, true)
-		}
-	}
-
-	// De-duplicate geotag and georeference pointers
-
-	geoms_lookup.Range(func(k interface{}, v interface{}) bool {
-		id := k.(int64)
-
-		// Do not try to fetch the geometry for depiction ID from depiction_reader
-		// because it hasn't been written/published yet and we will update things from
-		// memory below
-
-		if id != depiction_id {
+		if !slices.Contains(geom_ids, id) {
+			logger.Debug("Add subject geom ID (geotag) to lookup", "id", id)
 			geom_ids = append(geom_ids, id)
 		}
-
-		return true
-	})
+	}
 
 	logger.Debug("Additional geometries", "count", len(geom_ids))
 
@@ -1133,7 +1112,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		subject_updates["geometry"] = depiction_updates["geometry"]
 	}
 
-	// END OF derive geometry from depictions (media/image files)
+	// END OF derive geometry from geotags and georeferences in depiction(s)
 
 	subject_has_changed, new_subject, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
