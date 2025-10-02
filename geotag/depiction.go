@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-geojson-geotag/v2"
+	"github.com/sfomuseum/go-sfomuseum-geo"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
+	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"
@@ -46,6 +49,8 @@ type GeotagDepictionOptions struct {
 	SubjectWriterURI string
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	ParentReader reader.Reader
+	// A valid whosonfirst/go-reader.Reader instance for reading "georeferenced" features.
+	WhosOnFirstReader reader.Reader
 	// The name of the person (or process) updating a depiction.
 	Author string
 }
@@ -168,13 +173,13 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	// END OF hooks to capture updates/writes so we can parrot them back in the method response
 
-	depiction_f, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
+	depiction_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load depiction record %d, %w", depiction_id, err)
 	}
 
-	parent_rsp := gjson.GetBytes(depiction_f, "properties.wof:parent_id")
+	parent_rsp := gjson.GetBytes(depiction_body, "properties.wof:parent_id")
 
 	if !parent_rsp.Exists() {
 		return nil, fmt.Errorf("Failed to determine wof:parent_id for depiction")
@@ -182,9 +187,9 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	subject_id := parent_rsp.Int()
 
-	// subject_f is the feature that parents the depiction (for example an object that has one or more depictions)
+	// subject_body is the feature that parents the depiction (for example an object that has one or more depictions)
 
-	subject_f, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
+	subject_body, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load subject record %d, %w", subject_id, err)
@@ -251,7 +256,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		depiction_id,
 	}
 
-	depictions_rsp := gjson.GetBytes(subject_f, "properties.geotag:depictions")
+	depictions_rsp := gjson.GetBytes(subject_body, "properties.geotag:depictions")
 
 	for _, r := range depictions_rsp.Array() {
 		id := r.Int()
@@ -287,8 +292,15 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		camera_coords[1],
 	}
 
-	coords := make([][]float64, 0)
-	coords = append(coords, camera_coord)
+	// START OF derive geometry for subject. This is derived from the following:
+	// The unique set of "camera" coordinates for each of the geotagged depictions for the subject
+	// The unique set of principal centroid for each of the Who's On First IDs for georeferenced depictions of the subject
+	// It would be nice to believe this code could be abstracted out and shared
+	// with equivalent requirements in ../georeference. It probably can but right
+	// now that feels a bit too much like yak-shaving.
+
+	depictions_coords := make([][]float64, 0)
+	depictions_coords = append(depictions_coords, camera_coord)
 
 	// Fetch other depictions for a given subject; we do this in order to generate
 	// a MultiPoint geometry of all the depictions for a subject
@@ -326,7 +338,9 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 			lat_rsp.Float(),
 		}
 
-		coords = append(coords, other_coord)
+		// []float64 does not satisfy comparable so live fast...
+		// if !slices.Contains(depictions_coords, other_coord){
+		depictions_coords = append(depictions_coords, other_coord)
 
 		belongsto_rsp := gjson.GetBytes(other_f, "properties.geotag:whosonfirst_belongsto")
 
@@ -361,8 +375,56 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		}
 	}
 
-	subject_updates["geometry.type"] = "MultiPoint"
-	subject_updates["geometry.coordinates"] = coords
+	subject_geom_ids := make([]int64, 0)
+
+	georefs_path := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+	georefs_rsp := gjson.GetBytes(subject_body, georefs_path)
+
+	for _, r := range georefs_rsp.Array() {
+
+		r_id := r.Int()
+
+		if !slices.Contains(subject_geom_ids, r_id) {
+			subject_geom_ids = append(subject_geom_ids, r_id)
+		}
+	}
+
+	// derive subject_geom_ids from georeferernces...
+
+	if len(subject_geom_ids) > 0 {
+
+		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, subject_geom_ids...)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
+		}
+
+		// Now append the geometry for the depiction
+
+		subject_orb_geom := geom.Geometry()
+		subject_points := subject_orb_geom.(orb.MultiPoint)
+
+		for _, coord := range depictions_coords {
+
+			pt := orb.Point(coord)
+
+			if !slices.Contains(subject_points, pt) {
+				subject_points = append(subject_points, pt)
+			}
+		}
+
+		new_mp := orb.MultiPoint(subject_points)
+		new_geom := geojson.NewGeometry(new_mp)
+
+		subject_updates["geometry"] = new_geom
+	} else {
+		// No other geometries so just append the geometry for the depiction
+		// Which might be the "default" geometry if there are no pointers
+		subject_updates["geometry.type"] = "MultiPoint"
+		subject_updates["geometry.coordinates"] = depictions_coords
+	}
+
+	// END OF...
 
 	subject_updates["properties.geotag:whosonfirst_belongsto"] = subject_wof_belongsto
 
@@ -445,7 +507,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		}
 	}
 
-	subject_changed, subject_f, err := export.AssignPropertiesIfChanged(ctx, subject_f, subject_updates)
+	subject_changed, subject_body, err := export.AssignPropertiesIfChanged(ctx, subject_body, subject_updates)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to update subject record %d, %w", subject_id, err)
@@ -453,7 +515,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	if subject_changed {
 
-		_, err := wof_writer.WriteBytes(ctx, subject_mw, subject_f)
+		_, err := wof_writer.WriteBytes(ctx, subject_mw, subject_body)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write subject record %d, %w", subject_id, err)
@@ -482,7 +544,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 		GEOTAG_LABEL,
 	}
 
-	geom_alt_rsp := gjson.GetBytes(depiction_f, "properties.src:geom_alt")
+	geom_alt_rsp := gjson.GetBytes(depiction_body, "properties.src:geom_alt")
 
 	if geom_alt_rsp.Exists() {
 
@@ -498,7 +560,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	depiction_updates["properties.src:geom_alt"] = geom_alt
 
-	depiction_changed, depiction_f, err := export.AssignPropertiesIfChanged(ctx, depiction_f, depiction_updates)
+	depiction_changed, depiction_body, err := export.AssignPropertiesIfChanged(ctx, depiction_body, depiction_updates)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to update depiction record %d, %w", depiction_id, err)
@@ -506,8 +568,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	if depiction_changed {
 
-		// _, err := wof_writer.WriteBytes(ctx, depiction_writer, depiction_f)
-		_, err := wof_writer.WriteBytes(ctx, depiction_mw, depiction_f)
+		_, err := wof_writer.WriteBytes(ctx, depiction_mw, depiction_body)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write depiction record %d, %w", depiction_id, err)
@@ -516,7 +577,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	// Update the alt depiction geometry
 
-	repo_rsp := gjson.GetBytes(depiction_f, "properties.wof:repo")
+	repo_rsp := gjson.GetBytes(depiction_body, "properties.wof:repo")
 
 	alt_props := map[string]interface{}{
 		"wof:id":        depiction_id,
@@ -603,21 +664,21 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	fc := geojson.NewFeatureCollection()
 
-	new_subject_f, err := geojson.UnmarshalFeature(local_subject_buf.Bytes())
+	new_subject_body, err := geojson.UnmarshalFeature(local_subject_buf.Bytes())
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w", err)
 	}
 
-	fc.Append(new_subject_f)
+	fc.Append(new_subject_body)
 
-	new_depiction_f, err := geojson.UnmarshalFeature(local_depiction_buf.Bytes())
+	new_depiction_body, err := geojson.UnmarshalFeature(local_depiction_buf.Bytes())
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w", err)
 	}
 
-	fc.Append(new_depiction_f)
+	fc.Append(new_depiction_body)
 
 	new_alt_f, err := geojson.UnmarshalFeature(alt_body)
 
