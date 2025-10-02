@@ -47,10 +47,9 @@ type GeotagDepictionOptions struct {
 	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
 	SubjectWriter    writer.Writer
 	SubjectWriterURI string
-	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
+	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features. This includes general Who's On First IDs.
+	// This is the equivalent to ../georeference.AssignReferenceOptions.WhosOnFirstReader and should be reconciled one way or the other.
 	ParentReader reader.Reader
-	// A valid whosonfirst/go-reader.Reader instance for reading "georeferenced" features.
-	WhosOnFirstReader reader.Reader
 	// The name of the person (or process) updating a depiction.
 	Author string
 }
@@ -393,7 +392,7 @@ func GeotagDepiction(ctx context.Context, opts *GeotagDepictionOptions, update *
 
 	if len(subject_geom_ids) > 0 {
 
-		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, subject_geom_ids...)
+		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.ParentReader, subject_geom_ids...)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)

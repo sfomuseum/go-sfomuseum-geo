@@ -46,6 +46,7 @@ type AssignReferencesOptions struct {
 	// A valid whosonfirst/go-writer.Writer instance for writing subject features. A subject might be a collection object (rather than any one image (depiction) of that object.
 	SubjectWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
+	// This is the equivalent to ../geotag.GeotagDepictionOptions.ParentReader and should be reconciled one way or the other.
 	WhosOnFirstReader reader.Reader
 	// A valid whosonfirst/go-reader.Reader instance for reading a "default geometry" features.
 	DefaultGeometryFeatureId int64
