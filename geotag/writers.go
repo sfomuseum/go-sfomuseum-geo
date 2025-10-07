@@ -1,5 +1,7 @@
 package geotag
 
+// TBD: Can this be refactored to work for both geotag and georef operations?
+
 import (
 	"bufio"
 	"bytes"

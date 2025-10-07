@@ -3,8 +3,18 @@ package geotag
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
+	"strings"
+	"time"
 
+	"github.com/sfomuseum/go-sfomuseum-geo"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
+	"github.com/whosonfirst/go-whosonfirst-export/v3"
+	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
+	"github.com/whosonfirst/go-whosonfirst-uri"
+	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
 )
 
 /*
@@ -51,8 +61,14 @@ type RemoveGeotagDepictionOptions struct {
 
 func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptions, update *Depiction) ([]byte, error) {
 
+	depiction_id := update.DepictionId
+
+	logger := slog.Default()
+	logger = logger.With("action", "remove geotag")
+	logger = logger.With("depiction id", depiction_id)
+
 	writer_opts := &CreateGeotagWritersOptions{
-		DepictionId:        update.DepictionId,
+		DepictionId:        depiction_id,
 		Author:             opts.Author,
 		SubjectWriterURI:   opts.SubjectWriterURI,
 		DepictionWriterURI: opts.DepictionWriterURI,
@@ -61,10 +77,137 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	writers, err := CreateGeotagWriters(ctx, writer_opts)
 
 	if err != nil {
+		logger.Error("Failed to create writers", "error", err)
 		return nil, fmt.Errorf("Failed to create geotag writers, %w", err)
 	}
 
-	// do remove stuff here
+	// Load depiction
+
+	depiction_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
+
+	if err != nil {
+		logger.Error("Failed to load depiction", "error", err)
+		return nil, fmt.Errorf("Failed to load depiction record, %w", err)
+	}
+
+	// Derive subject (for depiction)
+
+	subject_prop := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_SUBJECT)
+
+	subject_rsp := gjson.GetBytes(depiction_body, subject_prop)
+
+	if !subject_rsp.Exists() {
+		return nil, fmt.Errorf("Depiction is missing %s property", subject_prop)
+	}
+
+	subject_id := subject_rsp.Int()
+	logger = logger.With("subject id", subject_id)
+
+	// Update depiction
+
+	depictions_update := make(map[string]any)
+	depictions_remove := make([]string, 0)
+
+	depiction_props := gjson.GetBytes(depiction_body, "properties")
+
+	for k, _ := range depiction_props.Map() {
+
+		if strings.HasPrefix(k, "geotag:") {
+			path := fmt.Sprintf("properties.%s", k)
+			depictions_remove = append(depictions_remove, path)
+		}
+	}
+
+	alt_rsp := gjson.GetBytes(depiction_body, "properties.geom_alt")
+
+	if !alt_rsp.Exists() {
+		logger.Warn("Depiction is missing geom_alt property")
+	} else {
+
+		// Derive new geom_alt array
+
+		fov_label := "geotag-fov"
+		alt_geoms := make([]string, 0)
+
+		for _, r := range alt_rsp.Array() {
+			geom := r.String()
+
+			if geom != fov_label {
+				alt_geoms = append(alt_geoms, geom)
+			}
+		}
+
+		depictions_update["properties.geom_alt"] = alt_geoms
+
+		// Deprecate alt geom
+		// START OF put me in a function somewhere...
+
+		alt_args, err := uri.NewAlternateURIArgsFromAltLabel(fov_label)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to derive URI args from geotag-fov alt label, %w", err)
+		}
+
+		alt_uri, err := uri.Id2RelPath(depiction_id, alt_args)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to derive alt URI for depiction, %w", err)
+		}
+
+		// START OF whosonfirst/go-whosonfirst-reader doesn't know how to work with alt files
+
+		alt_r, err := opts.DepictionReader.Read(ctx, alt_uri)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to open alt URI for reading, %w", err)
+		}
+
+		defer alt_r.Close()
+
+		alt_body, err := io.ReadAll(alt_r)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to load alt file, %w", err)
+		}
+
+		// END OF whosonfirst/go-whosonfirst-reader doesn't know how to work with alt files
+
+		now := time.Now()
+
+		alt_updates := map[string]any{
+			"properties.edtf:deprecated": now.Format("2006-01-02"),
+		}
+
+		new_alt_body, err := export.AssignProperties(ctx, alt_body, alt_updates)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to assign properties to alt depiction, %w", err)
+		}
+
+		_, new_alt_body, err = export.Export(ctx, new_alt_body)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to export alt depiction, %w", err)
+		}
+
+		_, err = wof_writer.WriteBytes(ctx, writers.DepictionWriter, new_alt_body)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to write changes for alt depiction, %w", err)
+		}
+
+		// END OF put me in a function somewhere...
+	}
+
+	// Update subject
+
+	_, err = wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load subject record, %w", err)
+	}
+
+	// Return GeoJSON FeatureCollection with updated features (depiction, subject)
 
 	fc, err := writers.AsFeatureCollection()
 
