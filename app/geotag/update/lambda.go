@@ -8,11 +8,11 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 )
 
-func runLambda(ctx context.Context, opts *geotag.GeotagDepictionOptions) error {
+func runLambda(ctx context.Context, opts *geotag.AddGeotagDepictionOptions) error {
 
 	handler := func(ctx context.Context, update *geotag.Depiction) error {
 
-		_, err := geotag.GeotagDepiction(ctx, opts, update)
+		_, err := geotag.AddGeotagDepiction(ctx, opts, update)
 
 		if err != nil {
 			return fmt.Errorf("Failed to update depiction %d, %v", update.DepictionId, err)
