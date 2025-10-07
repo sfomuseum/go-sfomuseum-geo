@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/whosonfirst/go-reader/v2"
-	"github.com/whosonfirst/go-writer/v3"
 )
 
 /*
@@ -29,13 +28,11 @@ import (
 type RemoveGeotagDepictionOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
 	DepictionReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
-	DepictionWriter    writer.Writer
+	// A valid whosonfirst/go-writer.Writer URI for writing depiction features.
 	DepictionWriterURI string
 	// A valid whosonfirst/go-reader.Reader instance for reading subject features.
 	SubjectReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
-	SubjectWriter    writer.Writer
+	// A valid whosonfirst/go-writer.Writer URI for writing subject features.
 	SubjectWriterURI string
 	// The name of the person (or process) updating a depiction.
 	Author string
@@ -45,6 +42,11 @@ type RemoveGeotagDepictionOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features. This includes general Who's On First IDs.
 	// This is the equivalent to ../georeference.AssignReferenceOptions.WhosOnFirstReader and should be reconciled one way or the other.
 	// ParentReader reader.Reader
+	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
+	// DepictionWriter    writer.Writer
+	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
+	// SubjectWriter    writer.Writer
+
 }
 
 func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptions, update *Depiction) ([]byte, error) {
@@ -56,11 +58,25 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 		DepictionWriterURI: opts.DepictionWriterURI,
 	}
 
-	_, err := CreateGeotagWriters(ctx, writer_opts)
+	writers, err := CreateGeotagWriters(ctx, writer_opts)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create geotag writers, %w", err)
 	}
 
-	return nil, fmt.Errorf("Not implemented")
+	// do remove stuff here
+
+	fc, err := writers.AsFeatureCollection()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive feature collection, %w", err)
+	}
+
+	fc_body, err := fc.MarshalJSON()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to marshal feature collection, %w", err)
+	}
+
+	return fc_body, nil
 }

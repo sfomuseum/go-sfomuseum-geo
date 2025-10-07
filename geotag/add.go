@@ -1,7 +1,6 @@
 package geotag
 
 import (
-	// "bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -13,7 +12,6 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
-	// "github.com/sfomuseum/go-sfomuseum-geo/github"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader/v2"
@@ -23,26 +21,29 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
-	"github.com/whosonfirst/go-writer/v3"
 )
 
 // AddGeotagDepictionOptions defines a struct for reading/writing options when updating geotagging information in depictions.
 type AddGeotagDepictionOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
 	DepictionReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
-	DepictionWriter    writer.Writer
+	// A valid whosonfirst/go-writer.Writer URI for writing depiction features.
 	DepictionWriterURI string
 	// A valid whosonfirst/go-reader.Reader instance for reading subject features.
 	SubjectReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
-	SubjectWriter    writer.Writer
+	// A valid whosonfirst/go-writer.Writer URI for writing subject features.
 	SubjectWriterURI string
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features. This includes general Who's On First IDs.
 	// This is the equivalent to ../georeference.AssignReferenceOptions.WhosOnFirstReader and should be reconciled one way or the other.
 	ParentReader reader.Reader
 	// The name of the person (or process) updating a depiction.
 	Author string
+
+	// Deprecated?
+	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
+	// DepictionWriter    writer.Writer
+	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
+	// SubjectWriter    writer.Writer
 }
 
 // AddGeotagDepiction will update the geometries and relevant properties for SFOM/WOF records 'depiction_id' and 'subject_id' using

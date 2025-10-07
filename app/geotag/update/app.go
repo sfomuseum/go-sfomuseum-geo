@@ -9,7 +9,7 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"github.com/whosonfirst/go-reader/v2"
 	gh_writer "github.com/whosonfirst/go-writer-github/v3"
-	"github.com/whosonfirst/go-writer/v3"
+	// "github.com/whosonfirst/go-writer/v3"
 )
 
 func Run(ctx context.Context) error {
@@ -45,11 +45,13 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create depiction reader, %v", err)
 	}
 
-	depiction_writer, err := writer.NewWriter(ctx, depiction_writer_uri)
+	/*
+		depiction_writer, err := writer.NewWriter(ctx, depiction_writer_uri)
 
-	if err != nil {
-		return fmt.Errorf("Failed to create depiction writer, %v", err)
-	}
+		if err != nil {
+			return fmt.Errorf("Failed to create depiction writer, %v", err)
+		}
+	*/
 
 	subject_reader, err := reader.NewReader(ctx, subject_reader_uri)
 
@@ -57,11 +59,13 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create subject reader, %v", err)
 	}
 
-	subject_writer, err := writer.NewWriter(ctx, subject_writer_uri)
+	/*
+		subject_writer, err := writer.NewWriter(ctx, subject_writer_uri)
 
-	if err != nil {
-		return fmt.Errorf("Failed to create subject writer, %v", err)
-	}
+		if err != nil {
+			return fmt.Errorf("Failed to create subject writer, %v", err)
+		}
+	*/
 
 	parent_reader, err := reader.NewReader(ctx, parent_reader_uri)
 
@@ -70,10 +74,10 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 	}
 
 	opts := &geotag.AddGeotagDepictionOptions{
-		DepictionReader:    depiction_reader,
-		DepictionWriter:    depiction_writer,
-		SubjectReader:      subject_reader,
-		SubjectWriter:      subject_writer,
+		DepictionReader: depiction_reader,
+		// DepictionWriter:    depiction_writer,
+		SubjectReader: subject_reader,
+		// SubjectWriter:      subject_writer,
 		ParentReader:       parent_reader,
 		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v3 (Clone) release
 		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
