@@ -105,8 +105,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Update depiction
 
-	depictions_update := make(map[string]any)
-	depictions_remove := make([]string, 0)
+	depiction_update := make(map[string]any)
+	depiction_remove := make([]string, 0)
 
 	depiction_props := gjson.GetBytes(depiction_body, "properties")
 
@@ -114,7 +114,7 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 		if strings.HasPrefix(k, "geotag:") {
 			path := fmt.Sprintf("properties.%s", k)
-			depictions_remove = append(depictions_remove, path)
+			depiction_remove = append(depiction_remove, path)
 		}
 	}
 
@@ -137,7 +137,7 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 			}
 		}
 
-		depictions_update["properties.geom_alt"] = alt_geoms
+		depiction_update["properties.geom_alt"] = alt_geoms
 
 		// Deprecate alt geom
 		// START OF put me in a function somewhere...
@@ -199,12 +199,85 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 		// END OF put me in a function somewhere...
 	}
 
-	// Update subject
+	// Update depiction geometry
 
-	_, err = wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
+	// Apply depiction changes
+
+	depiction_body, err = export.RemoveProperties(ctx, depiction_body, depiction_remove)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to remove properties from depiction, %w", err)
+	}
+
+	depiction_body, err = export.AssignProperties(ctx, depiction_body, depiction_update)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to update properties for depiction, %w", err)
+	}
+
+	_, depiction_body, err = export.Export(ctx, depiction_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to export depiction, %w", err)
+	}
+
+	// Load subject
+
+	subject_body, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load subject record, %w", err)
+	}
+
+	// Update subject
+
+	subject_update := make(map[string]any)
+	subject_remove := make([]string, 0)
+
+	subject_props := gjson.GetBytes(subject_body, "properties")
+
+	for k, _ := range subject_props.Map() {
+
+		if strings.HasPrefix(k, "geotag:") {
+			path := fmt.Sprintf("properties.%s", k)
+			subject_remove = append(subject_remove, path)
+		}
+	}
+
+	// Update subject geometry
+
+	// Apply changes for subject
+
+	subject_body, err = export.RemoveProperties(ctx, subject_body, subject_remove)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to remove properties from subject, %w", err)
+	}
+
+	subject_body, err = export.AssignProperties(ctx, subject_body, subject_update)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to update properties for subject, %w", err)
+	}
+
+	_, subject_body, err = export.Export(ctx, subject_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to export subject, %w", err)
+	}
+
+	// Write changes (for depiction and subject)
+
+	_, err = wof_writer.WriteBytes(ctx, writers.DepictionMultiWriter, depiction_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to write changes for depiction, %w", err)
+	}
+
+	_, err = wof_writer.WriteBytes(ctx, writers.SubjectMultiWriter, subject_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to write changes for subject, %w", err)
 	}
 
 	// Return GeoJSON FeatureCollection with updated features (depiction, subject)
