@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sfomuseum/go-sfomuseum-geo"
+	"github.com/paulmach/orb/geojson"	
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-export/v3"
@@ -46,6 +47,9 @@ type RemoveGeotagDepictionOptions struct {
 	SubjectWriterURI string
 	// The name of the person (or process) updating a depiction.
 	Author string
+	// A default or "fallback" geometry to use for depictions and subjects if no other
+	// geometry can be derived
+	DefaultGeometry *geojson.Geometry
 
 	// TBD: are these necessary...
 
@@ -201,6 +205,11 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Update depiction geometry
 
+	// Rebuild geometry from any existing georef: properties
+	// Otherwise use opts.DefaultGeomtry
+
+	depiction_update["geometry"] = opts.DefaultGeometry
+
 	// Apply depiction changes
 
 	depiction_body, err = export.RemoveProperties(ctx, depiction_body, depiction_remove)
@@ -245,6 +254,11 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	}
 
 	// Update subject geometry
+
+	// Rebuild geometry from any existing georef: properties
+	// Otherwise use opts.DefaultGeomtry
+
+	subject_update["geometry"] = opts.DefaultGeometry
 
 	// Apply changes for subject
 
