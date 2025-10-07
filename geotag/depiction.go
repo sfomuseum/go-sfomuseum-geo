@@ -11,4 +11,3 @@ type Depiction struct {
 	// The GeoJSON Feature containing geotagging information
 	Feature *geotag.GeotagFeature `json:"feature"`
 }
-
