@@ -337,6 +337,23 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 		return nil, fmt.Errorf("Failed to write changes for subject, %w", err)
 	}
 
+	// Close the depiction and subject writers - this is a no-op for many writer but
+	// required for things like the githubapi-tree:// and githubapi-pr:// writers.
+
+	err = writers.DepictionMultiWriter.Close(ctx)
+
+	if err != nil {
+		logger.Error("Failed to close depiction writer", "error", err)
+		return nil, fmt.Errorf("Failed to close depiction writer, %w", err)
+	}
+
+	err = writers.SubjectMultiWriter.Close(ctx)
+
+	if err != nil {
+		logger.Error("Failed to close subject writer", "error", err)
+		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
+	}
+
 	// Return GeoJSON FeatureCollection with updated features (depiction, subject)
 
 	fc, err := writers.AsFeatureCollection()

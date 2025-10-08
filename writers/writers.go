@@ -12,11 +12,25 @@ import (
 	"github.com/whosonfirst/go-writer/v3"
 )
 
+// Writers is a struct which encapsulates a pair of `whosonfirst/go-writer/v3.Writer` instances for
+// writing data to depictions and subjects respectively. One is a simple Writer instance where data
+// is expected to be persisted to. The second is a `writer.MultiWriter` instance which writes to both
+// the default writer and a local in-memory `writer.IOWriter` instance. This allows the `Writers` struct
+// to expose an `AsFeatureCollection` methods which can be invoked to return the update depiction and
+// subject data (to the calling application) without having to query for that data from source. The
+// reason that both the solitary writer and the multi writer are exposed is because there is often the
+// need to write "alternate geometry" files is because the 'whosonfirst/go-whosonfirstwriter/v3.WriteBytes`
+// function which is typically used to wrap writing data does not support alternate geometies. It should
+// and eventually will but for the time being it doesn't.
 type Writers struct {
-	DepictionWriter      writer.Writer
+	// A `whosonfirst/go-writer/v3.Writer` instance for writing depiction data to.
+	DepictionWriter writer.Writer
+	// A `whosonfirst/go-writer/v3.MultiWriter` instance wrapping both the principal `DepictionWriter` instance and an in-memory `writer.IOWriter` instance for writing depiction data to.
 	DepictionMultiWriter writer.Writer
-	SubjectWriter        writer.Writer
-	SubjectMultiWriter   writer.Writer
+	// A `whosonfirst/go-writer/v3.Writer` instance for writing subject data to.
+	SubjectWriter writer.Writer
+	// A `whosonfirst/go-writer/v3.MultiWriter` instance wrapping both the principal `SubjectWriter` instance and an in-memory `writer.IOWriter` instance for writing subject data to.
+	SubjectMultiWriter writer.Writer
 
 	depictionBuf       *bytes.Buffer
 	depictionBufWriter *bufio.Writer
@@ -24,12 +38,17 @@ type Writers struct {
 	subjectBufWriter   *bufio.Writer
 }
 
+// CreateWritersOptions is a struct containing configuration details for the `CreateWriters` method.
 type CreateWritersOptions struct {
-	DepictionWriterURI  string
-	SubjectWriterURI    string
+	// A registered `whosonfirst/go-writer/v3.Writer` URI describing where depiction data will be written to.
+	DepictionWriterURI string
+	// A registered `whosonfirst/go-writer/v3.Writer` URI describing where subject data will be written to.
+	SubjectWriterURI string
+	// An option `github.UpdateWriterURIOptions` struct used to append GitHub API / PR specific data to writers.
 	GithubWriterOptions *github.UpdateWriterURIOptions
 }
 
+// CreateWriters will returns a new `Writers` instance derived from 'opts'.
 func CreateWriters(ctx context.Context, opts *CreateWritersOptions) (*Writers, error) {
 
 	depiction_writer_uri := opts.DepictionWriterURI

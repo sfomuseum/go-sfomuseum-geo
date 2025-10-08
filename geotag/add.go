@@ -587,15 +587,20 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 		return nil, fmt.Errorf("Failed to write alt file %s, %w", alt_uri, err)
 	}
 
-	err = writers.DepictionWriter.Close(ctx)
+	// Close the depiction and subject writers - this is a no-op for many writer but
+	// required for things like the githubapi-tree:// and githubapi-pr:// writers.
+
+	err = writers.DepictionMultiWriter.Close(ctx)
 
 	if err != nil {
+		logger.Error("Failed to close depiction writer", "error", err)
 		return nil, fmt.Errorf("Failed to close depiction writer, %w", err)
 	}
 
-	err = writers.SubjectWriter.Close(ctx)
+	err = writers.SubjectMultiWriter.Close(ctx)
 
 	if err != nil {
+		logger.Error("Failed to close subject writer", "error", err)
 		return nil, fmt.Errorf("Failed to close subject writer, %w", err)
 	}
 
