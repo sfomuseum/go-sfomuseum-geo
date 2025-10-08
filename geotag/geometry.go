@@ -87,14 +87,18 @@ func DeriveGeometryForDepiction(ctx context.Context, opts *DeriveGeometryForDepi
 		}
 	}
 
-	if len(coords) == 0 {
+	switch len(coords) {
+	case 0:
 		return nil, nil
+	case 1:
+		new_pt := orb.Point(coords[0])
+		new_geom := geojson.NewGeometry(new_pt)
+		return new_geom, nil
+	default:
+		new_mp := orb.MultiPoint(coords)
+		new_geom := geojson.NewGeometry(new_mp)
+		return new_geom, nil
 	}
-
-	new_mp := orb.MultiPoint(coords)
-	new_geom := geojson.NewGeometry(new_mp)
-
-	return new_geom, nil
 }
 
 func DeriveGeometryForSubject(ctx context.Context, opts *DeriveGeometryForSubjectOptions, body []byte) (*geojson.Geometry, error) {
@@ -137,12 +141,16 @@ func DeriveGeometryForSubject(ctx context.Context, opts *DeriveGeometryForSubjec
 		}
 	}
 
-	if len(coords) == 0 {
+	switch len(coords) {
+	case 0:
 		return nil, nil
+	case 1:
+		new_pt := orb.Point(coords[0])
+		new_geom := geojson.NewGeometry(new_pt)
+		return new_geom, nil
+	default:
+		new_mp := orb.MultiPoint(coords)
+		new_geom := geojson.NewGeometry(new_mp)
+		return new_geom, nil
 	}
-
-	new_mp := orb.MultiPoint(coords)
-	new_geom := geojson.NewGeometry(new_mp)
-
-	return new_geom, nil
 }

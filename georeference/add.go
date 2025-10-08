@@ -93,6 +93,7 @@ func AddReferences(ctx context.Context, opts *AddReferencesOptions, depiction_id
 		GithubWriterOptions: github_opts,
 	}
 
+	// See notes in writers/writers.go for why this returns both "Writer" and "MultiWriter" instances (for now)
 	writers, err := geo_writers.CreateWriters(ctx, writers_opts)
 
 	if err != nil {

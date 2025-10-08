@@ -103,6 +103,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 		GithubWriterOptions: github_opts,
 	}
 
+	// See notes in writers/writers.go for why this returns both "Writer" and "MultiWriter" instances (for now)
 	writers, err := geo_writers.CreateWriters(ctx, writers_opts)
 
 	if err != nil {
@@ -110,7 +111,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 		return nil, fmt.Errorf("Failed to create geotag writers, %w", err)
 	}
 
-	// END OF hooks to capture updates/writes so we can parrot them back in the method response
+	logger.Debug("Load depiction")
 
 	depiction_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
