@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo"
-	"github.com/paulmach/orb/geojson"	
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-export/v3"
@@ -50,6 +50,8 @@ type RemoveGeotagDepictionOptions struct {
 	// A default or "fallback" geometry to use for depictions and subjects if no other
 	// geometry can be derived
 	DefaultGeometry *geojson.Geometry
+
+	WhosOnFirstReader reader.Reader
 
 	// TBD: are these necessary...
 
@@ -205,10 +207,21 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Update depiction geometry
 
-	// Rebuild geometry from any existing georef: properties
-	// Otherwise use opts.DefaultGeomtry
+	depiction_geom_opts := &DeriveGeometryForDepictionOptions{
+		WhosOnFirstReader: opts.WhosOnFirstReader,
+	}
 
-	depiction_update["geometry"] = opts.DefaultGeometry
+	depiction_geom, err := DeriveGeometryForDepiction(ctx, depiction_geom_opts, depiction_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive geometry for depiction, %w", err)
+	}
+
+	if depiction_geom == nil {
+		depiction_geom = opts.DefaultGeometry
+	}
+
+	depiction_update["geometry"] = depiction_geom
 
 	// Apply depiction changes
 
@@ -255,10 +268,22 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Update subject geometry
 
-	// Rebuild geometry from any existing georef: properties
-	// Otherwise use opts.DefaultGeomtry
+	subject_geom_opts := &DeriveGeometryForSubjectOptions{
+		WhosOnFirstReader: opts.WhosOnFirstReader,
+		DepictionReader:   opts.DepictionReader,
+	}
 
-	subject_update["geometry"] = opts.DefaultGeometry
+	subject_geom, err := DeriveGeometryForSubject(ctx, subject_geom_opts, subject_body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive geometry for subject, %w", err)
+	}
+
+	if subject_geom == nil {
+		subject_geom = opts.DefaultGeometry
+	}
+
+	subject_update["geometry"] = subject_geom
 
 	// Apply changes for subject
 
