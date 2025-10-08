@@ -84,7 +84,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 	target_parent_id := geotag_props.Target.ParentId
 
 	logger := slog.Default()
-	logger = logger.With("action", "add geotag")	
+	logger = logger.With("action", "add geotag")
 	logger = logger.With("depiction id", depiction_id)
 	logger = logger.With("camera", camera_parent_id)
 	logger = logger.With("target", target_parent_id)

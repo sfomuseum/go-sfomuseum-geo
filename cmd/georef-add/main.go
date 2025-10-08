@@ -10,16 +10,16 @@ import (
 	_ "gocloud.dev/runtimevar/constantvar"
 	_ "gocloud.dev/runtimevar/filevar"
 
-	"github.com/sfomuseum/go-sfomuseum-geo/app/georeference/assign"
+	"github.com/sfomuseum/go-sfomuseum-geo/app/georeference/add"
 )
 
 func main() {
 
 	ctx := context.Background()
 
-	err := assign.Run(ctx)
+	err := add.Run(ctx)
 
 	if err != nil {
-		log.Fatalf("Failed to assign references, %v", err)
+		log.Fatalf("Failed to add georeferences, %v", err)
 	}
 }
