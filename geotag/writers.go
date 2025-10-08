@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
@@ -19,9 +20,9 @@ type GeotagWriters struct {
 	SubjectWriter        writer.Writer
 	SubjectMultiWriter   writer.Writer
 
-	depictionBuf       bytes.Buffer
+	depictionBuf       *bytes.Buffer
 	depictionBufWriter *bufio.Writer
-	subjectBuf         bytes.Buffer
+	subjectBuf         *bytes.Buffer
 	subjectBufWriter   *bufio.Writer
 }
 
@@ -97,7 +98,8 @@ func CreateGeotagWriters(ctx context.Context, opts *CreateGeotagWritersOptions) 
 		return nil, fmt.Errorf("Failed to create IOWriter for subject, %w", err)
 	}
 
-	// The writer.MultiWriter where we will write updated Feature information
+	// The writer.MultiWriter(s) where we will write updated Feature information
+
 	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_writer)
 
 	if err != nil {
@@ -114,13 +116,15 @@ func CreateGeotagWriters(ctx context.Context, opts *CreateGeotagWritersOptions) 
 
 	geotag_writers := &GeotagWriters{
 		DepictionWriter:      depiction_writer,
-		DepictionMultiWriter: depiction_mw,
 		SubjectWriter:        subject_writer,
+		DepictionMultiWriter: depiction_mw,
 		SubjectMultiWriter:   subject_mw,
-		depictionBuf:         local_depiction_buf,
 		depictionBufWriter:   local_depiction_buf_writer,
-		subjectBuf:           local_subject_buf,
 		subjectBufWriter:     local_subject_buf_writer,
+		// See the part where we're storing points to local_*_buf?
+		// That is important so we can read them later in AsFeatureCollection
+		depictionBuf: &local_depiction_buf,
+		subjectBuf:   &local_subject_buf,
 	}
 
 	return geotag_writers, nil
@@ -136,6 +140,7 @@ func (writers *GeotagWriters) AsFeatureCollection() (*geojson.FeatureCollection,
 	new_subject_body, err := geojson.UnmarshalFeature(writers.subjectBuf.Bytes())
 
 	if err != nil {
+		slog.Error("Bad subject buffer", "body", string(writers.subjectBuf.Bytes()))
 		return nil, fmt.Errorf("Failed to unmarshal feature from subject buffer, %w", err)
 	}
 

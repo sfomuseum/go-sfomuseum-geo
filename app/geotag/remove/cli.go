@@ -15,11 +15,13 @@ func runCommandLine(ctx context.Context, opts *geotag.RemoveGeotagDepictionOptio
 			DepictionId: depiction_id,
 		}
 
-		_, err := geotag.RemoveGeotagDepiction(ctx, opts, update)
+		rsp, err := geotag.RemoveGeotagDepiction(ctx, opts, update)
 
 		if err != nil {
 			return fmt.Errorf("Failed to remove geotag depiction %d, %v", depiction_id, err)
 		}
+
+		fmt.Println(string(rsp))
 	}
 
 	return nil
