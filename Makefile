@@ -8,7 +8,8 @@ vuln:
 
 cli:
 	rm -f bin/*
-	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/update-depiction cmd/update-depiction/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/geotag-add-depiction cmd/geotag-add-depiction/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/geotag-remove-depiction cmd/geotag-remove-depiction/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/build-depiction-update cmd/build-depiction-update/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/assign-georeferences cmd/assign-georeferences/main.go
 
