@@ -4,7 +4,6 @@ package georeference
 // but not today...
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/md5"
@@ -22,6 +21,7 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
 	"github.com/sfomuseum/go-sfomuseum-geo/github"
+	geo_writers "github.com/sfomuseum/go-sfomuseum-geo/writers"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-export/v3"
@@ -29,22 +29,16 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
-	"github.com/whosonfirst/go-writer-featurecollection/v3"
-	"github.com/whosonfirst/go-writer/v3"
 )
 
-// AssignReferencesOptions defines a struct for reading/writing options when updating geo-related information in depictions.
+// AddReferencesOptions defines a struct for reading/writing options when updating geo-related information in depictions.
 // A depiction is assumed to be the record for an image or some other piece of media. A subject is assumed to be
 // the record for an object.
-type AssignReferencesOptions struct {
+type AddReferencesOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading depiction features. A depiction might be an image of a collection object.
 	DepictionReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing depiction features. A depiction might be an image of a collection object.
-	DepictionWriter writer.Writer
-	// A valid whosonfirst/go-reader.Reader instance for reading subject features. A subject might be a collection object (rather than any one image (depiction) of that object)
+	// A valid whosonfirst/go-reader.Reader instance for reading subject features. A subject might be a collection object (rather than any one image (depiction) of that objec)
 	SubjectReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing subject features. A subject might be a collection object (rather than any one image (depiction) of that object.
-	SubjectWriter writer.Writer
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
 	// This is the equivalent to ../geotag.GeotagDepictionOptions.ParentReader and should be reconciled one way or the other.
 	WhosOnFirstReader reader.Reader
@@ -62,15 +56,16 @@ type AssignReferencesOptions struct {
 	SFOMuseumReader reader.Reader
 }
 
-// AssignReferences updates records associated with 'depiction_id' (that is the depiction record itself and it's "parent" object record)
+// AddReferences updates records associated with 'depiction_id' (that is the depiction record itself and it's "parent" object record)
 // and 'refs'. An alternate geometry file will be created for each element in 'ref' and a multi-point geometry (derived from 'refs') will
 // be assigned to the depiction and parent (subject) record.
-func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
+func AddReferences(ctx context.Context, opts *AddReferencesOptions, depiction_id int64, refs ...*Reference) ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	logger := slog.Default()
+	logger = logger.With("action", "add georeference")
 	logger = logger.With("depiction id", depiction_id)
 
 	if len(refs) == 0 {
@@ -84,17 +79,45 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		logger.Debug("Automatically assign source geom suffix", "suffix", src_geom)
 	}
 
+	logger.Debug("Set up writers")
+
+	github_opts := &github.UpdateWriterURIOptions{
+		Author:        opts.Author,
+		WhosOnFirstId: depiction_id,
+		Action:        github.GeoreferenceAction,
+	}
+
+	writers_opts := &geo_writers.CreateWritersOptions{
+		SubjectWriterURI:    opts.SubjectWriterURI,
+		DepictionWriterURI:  opts.DepictionWriterURI,
+		GithubWriterOptions: github_opts,
+	}
+
+	// See notes in writers/writers.go for why this returns both "Writer" and "MultiWriter" instances (for now)
+	writers, err := geo_writers.CreateWriters(ctx, writers_opts)
+
+	if err != nil {
+		logger.Error("Failed to create writers", "error", err)
+		return nil, fmt.Errorf("Failed to create geotag writers, %w", err)
+	}
+
+	logger.Debug("Load depiction")
+
 	depiction_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create depiction reader, %w", err)
 	}
 
+	logger.Debug("Derive repo for depiction")
+
 	depiction_repo, err := properties.Repo(depiction_body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Unable to derive wof:repo for depiction %d, %w", depiction_id, err)
 	}
+
+	logger.Debug("Derive parent (subject) for depiction")
 
 	subject_id, err := properties.ParentId(depiction_body)
 
@@ -103,88 +126,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	logger = logger.With("subject id", subject_id)
-
-	// START OF to be removed once the go-writer/v4 (Clone) interface is complete
-
-	update_opts := &github.UpdateWriterURIOptions{
-		WhosOnFirstId: depiction_id,
-		Author:        opts.Author,
-		Action:        github.GeoreferenceAction,
-	}
-
-	depiction_wr_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.DepictionWriterURI)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to update depiction writer URI, %w", err)
-	}
-
-	depiction_writer, err := writer.NewWriter(ctx, depiction_wr_uri)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create new depiction writer, %w", err)
-	}
-
-	subject_wr_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.SubjectWriterURI)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to update subject writer URI, %w", err)
-	}
-
-	subject_writer, err := writer.NewWriter(ctx, subject_wr_uri)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create new subject writer, %w", err)
-	}
-
-	// END OF to be removed once the go-writer/v4 (Clone) interface is complete
-
-	// START OF hooks to capture updates/writes so we can parrot them back in the method response
-	// We're doing it this way because the code, as written, relies on sfomuseum/go-sfomuseum-writer
-	// which hides the format-and-export stages and modifies the document being written. To account
-	// for this we'll just keep local copies of those updates in *_buf and reference them at the end.
-	// Note that we are not doing this for the alternate geometry feature (alt_body) since are manually
-	// formatting, exporting and writing a byte slice in advance of better support for alternate
-	// geometries in the tooling.
-
-	// The buffers where we will write updated Feature information
-	var local_depiction_buf bytes.Buffer
-	var local_subject_buf bytes.Buffer
-
-	// The io.Writers where we will write updated Feature information
-	local_depiction_buf_writer := bufio.NewWriter(&local_depiction_buf)
-	local_subject_buf_writer := bufio.NewWriter(&local_subject_buf)
-
-	// Note that we are writing to a writer.FeatureCollectionWriter instead of a writer.IOWriter
-	// instance. This is because we end writing (potentially) multiple alternate geometries (as
-	// well as the depiction (image)) below. A FeatureCollectionWriter allows us to iterate over
-	// the results when we are constructing the final response body at the end of this function.
-
-	local_depiction_wr, err := featurecollection.NewFeatureCollectionWriterWithWriter(ctx, local_depiction_buf_writer)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create FeatureCollection writer, %w", err)
-	}
-
-	local_subject_wr, err := writer.NewIOWriterWithWriter(ctx, local_subject_buf_writer)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create IOWriter for subject, %w", err)
-	}
-
-	// The writer.MultiWriter where we will write updated Feature information
-	depiction_mw, err := writer.NewMultiWriter(ctx, depiction_writer, local_depiction_wr)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create multi writer for depiction, %w", err)
-	}
-
-	subject_mw, err := writer.NewMultiWriter(ctx, subject_writer, local_subject_wr)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create multi writer for subject, %w", err)
-	}
-
-	// END OF hooks to capture updates/writes so we can parrot them back in the method response
 
 	// TBD: use of https://github.com/whosonfirst/go-reader-cachereader for reading depictions
 	// Maybe check for non-nil opts.DepictionCache and update depiction_reader accordingly?
@@ -688,7 +629,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		// Note how we're invoking depiction_wr directly because sfom_writer doesn't
 		// know how to work with alt files yet.
 
-		_, err = depiction_mw.Write(ctx, alt_uri, r)
+		_, err = writers.DepictionWriter.Write(ctx, alt_uri, r)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write new alt feature %s, %w", alt_uri, err)
@@ -760,7 +701,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		// Note how we're invoking depiction_wr directly because sfom_writer doesn't
 		// know how to work with alt files yet.
 
-		_, err = depiction_mw.Write(ctx, alt_uri, r)
+		_, err = writers.DepictionMultiWriter.Write(ctx, alt_uri, r)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write deprecate alt feature %s, %w", alt_uri, err)
@@ -805,7 +746,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if depiction_has_changed {
 
-		_, err = wof_writer.WriteBytes(ctx, depiction_mw, new_body)
+		_, err = wof_writer.WriteBytes(ctx, writers.DepictionMultiWriter, new_body)
 
 		if err != nil {
 			logger.Error("Failed to write depiction", "error", err)
@@ -1124,7 +1065,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if subject_has_changed {
 
-		_, err = wof_writer.WriteBytes(ctx, subject_mw, new_subject)
+		_, err = wof_writer.WriteBytes(ctx, writers.SubjectMultiWriter, new_subject)
 
 		if err != nil {
 			logger.Error("Failed to write subject record", "error", err)
@@ -1137,14 +1078,14 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// Close the depiction and subject writers - this is a no-op for many writer but
 	// required for things like the githubapi-tree:// and githubapi-pr:// writers.
 
-	err = depiction_mw.Close(ctx)
+	err = writers.DepictionMultiWriter.Close(ctx)
 
 	if err != nil {
 		logger.Error("Failed to close depiction writer", "error", err)
 		return nil, fmt.Errorf("Failed to close depiction writer, %w", err)
 	}
 
-	err = subject_mw.Close(ctx)
+	err = writers.SubjectMultiWriter.Close(ctx)
 
 	if err != nil {
 		logger.Error("Failed to close subject writer", "error", err)
@@ -1153,40 +1094,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// Now write the subject (object) being depicted
 
-	local_depiction_buf_writer.Flush()
-	local_subject_buf_writer.Flush()
-
-	fc := geojson.NewFeatureCollection()
-
-	var new_subject_b []byte
-
-	if subject_has_changed {
-		new_subject_b = local_subject_buf.Bytes()
-	} else {
-		new_subject_b = subject_body
-	}
-
-	new_subject_f, err := geojson.UnmarshalFeature(new_subject_b)
+	fc, err := writers.AsFeatureCollection()
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w", err)
-	}
-
-	fc.Append(new_subject_f)
-
-	if depiction_has_changed {
-
-		new_depiction_b := local_depiction_buf.Bytes()
-
-		new_depiction_fc, err := geojson.UnmarshalFeatureCollection(new_depiction_b)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to unmarshal feature from depiction buffer, %w '%s'", err, string(new_depiction_b))
-		}
-
-		for _, f := range new_depiction_fc.Features {
-			fc.Append(f)
-		}
+		return nil, err
 	}
 
 	fc_body, err := fc.MarshalJSON()

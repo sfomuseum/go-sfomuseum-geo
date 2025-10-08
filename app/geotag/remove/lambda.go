@@ -1,4 +1,4 @@
-package update
+package remove
 
 import (
 	"context"
@@ -8,14 +8,14 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 )
 
-func runLambda(ctx context.Context, opts *geotag.GeotagDepictionOptions) error {
+func runLambda(ctx context.Context, opts *geotag.RemoveGeotagDepictionOptions) error {
 
 	handler := func(ctx context.Context, update *geotag.Depiction) error {
 
-		_, err := geotag.GeotagDepiction(ctx, opts, update)
+		_, err := geotag.RemoveGeotagDepiction(ctx, opts, update)
 
 		if err != nil {
-			return fmt.Errorf("Failed to update depiction %d, %v", update.DepictionId, err)
+			return fmt.Errorf("Failed to remove depiction %d, %v", update.DepictionId, err)
 		}
 
 		return nil

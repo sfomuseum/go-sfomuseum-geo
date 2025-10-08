@@ -1,4 +1,4 @@
-package update
+package add
 
 import (
 	"context"
@@ -24,6 +24,8 @@ var access_token_uri string
 
 var depictions multi.MultiInt64
 
+var verbose bool
+
 func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
 	fs := flagset.NewFlagSet("geotag")
@@ -41,6 +43,8 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
 	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
+
+	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "update-depiction is a command-tool for applying geotagging updates to one or more depictions.\n")

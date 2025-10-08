@@ -1,4 +1,4 @@
-package assign
+package add
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/georeference"
 	"github.com/whosonfirst/go-reader/v2"
 	gh_writer "github.com/whosonfirst/go-writer-github/v3"
-	"github.com/whosonfirst/go-writer/v3"
 )
 
 // Run executes the "assign flight cover georeferences" application with a default `flag.FlagSet` instance.
@@ -57,22 +56,10 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		return fmt.Errorf("Failed to create depiction reader, %v", err)
 	}
 
-	depiction_writer, err := writer.NewWriter(ctx, opts.DepictionWriterURI)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create depiction writer, %v", err)
-	}
-
 	subject_reader, err := reader.NewReader(ctx, opts.SubjectReaderURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create subject reader, %v", err)
-	}
-
-	subject_writer, err := writer.NewWriter(ctx, opts.SubjectWriterURI)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create subject writer, %v", err)
 	}
 
 	whosonfirst_reader, err := reader.NewReader(ctx, opts.WhosOnFirstReaderURI)
@@ -87,15 +74,13 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		return fmt.Errorf("Failed to create architecture reader, %v", err)
 	}
 
-	assign_opts := &georeference.AssignReferencesOptions{
+	assign_opts := &georeference.AddReferencesOptions{
 		DepictionReader:    depiction_reader,
-		DepictionWriter:    depiction_writer,
 		SubjectReader:      subject_reader,
-		SubjectWriter:      subject_writer,
 		WhosOnFirstReader:  whosonfirst_reader,
 		SFOMuseumReader:    sfomuseum_reader,
-		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v4 (Clone) release
-		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v4 (Clone) release
+		DepictionWriterURI: depiction_writer_uri,
+		SubjectWriterURI:   subject_writer_uri,
 	}
 
 	switch mode {
@@ -103,7 +88,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 		for _, id := range opts.Depictions {
 
-			_, err := georeference.AssignReferences(ctx, assign_opts, id, opts.References...)
+			_, err := georeference.AddReferences(ctx, assign_opts, id, opts.References...)
 
 			if err != nil {
 				return fmt.Errorf("Failed to georeference depiction %d, %w", id, err)

@@ -2,6 +2,8 @@ package geo
 
 const RESERVED_GEOTAG_DEPICTIONS string = "geotag:depicts"
 
+const RESERVED_GEOTAG_SUBJECT string = "geotag:subject"
+
 const RESERVED_GEOTAG_BELONGSTO string = "geotag:whosonfirst_belongsto"
 
 const RESERVED_GEOREFERENCE_BELONGSTO string = "georef:whosonfirst_belongsto"

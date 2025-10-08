@@ -1,4 +1,4 @@
-package update
+package add
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 )
 
-func runCommandLine(ctx context.Context, opts *geotag.GeotagDepictionOptions) error {
+func runCommandLine(ctx context.Context, opts *geotag.AddGeotagDepictionOptions) error {
 
 	var f *geojson.GeotagFeature
 
@@ -28,7 +28,7 @@ func runCommandLine(ctx context.Context, opts *geotag.GeotagDepictionOptions) er
 			Feature:     f,
 		}
 
-		_, err := geotag.GeotagDepiction(ctx, opts, update)
+		_, err := geotag.AddGeotagDepiction(ctx, opts, update)
 
 		if err != nil {
 			return fmt.Errorf("Failed to geotag depiction %d, %v", depiction_id, err)

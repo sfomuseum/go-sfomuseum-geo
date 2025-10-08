@@ -1,15 +1,17 @@
-package update
+package remove
 
 import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 
+	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"github.com/whosonfirst/go-reader/v2"
+	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 	gh_writer "github.com/whosonfirst/go-writer-github/v3"
-	"github.com/whosonfirst/go-writer/v3"
 )
 
 func Run(ctx context.Context) error {
@@ -25,6 +27,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	if err != nil {
 		return fmt.Errorf("Failed to set flags from environment variables, %w", err)
+	}
+
+	if verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.Debug("Verbose logging enabled")
 	}
 
 	depiction_writer_uri, err = gh_writer.EnsureGitHubAccessToken(ctx, depiction_writer_uri, access_token_uri)
@@ -45,38 +52,40 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create depiction reader, %v", err)
 	}
 
-	depiction_writer, err := writer.NewWriter(ctx, depiction_writer_uri)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create depiction writer, %v", err)
-	}
-
 	subject_reader, err := reader.NewReader(ctx, subject_reader_uri)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create subject reader, %v", err)
 	}
 
-	subject_writer, err := writer.NewWriter(ctx, subject_writer_uri)
+	whosonfirst_reader, err := reader.NewReader(ctx, wof_reader_uri)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create subject writer, %v", err)
+		return fmt.Errorf("Failed to create whosonfirst reader, %v", err)
 	}
 
-	parent_reader, err := reader.NewReader(ctx, parent_reader_uri)
+	default_geom_record, err := wof_reader.LoadBytes(ctx, whosonfirst_reader, default_geometry_id)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create architecture reader, %v", err)
+		return fmt.Errorf("Failed to load feature for default geometry ID, %w", err)
 	}
 
-	opts := &geotag.GeotagDepictionOptions{
+	default_geom_f, err := geojson.UnmarshalFeature(default_geom_record)
+
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal feature for default geometry, %w", err)
+	}
+
+	default_geom := geojson.NewGeometry(default_geom_f.Geometry)
+
+	opts := &geotag.RemoveGeotagDepictionOptions{
 		DepictionReader:    depiction_reader,
-		DepictionWriter:    depiction_writer,
+		DepictionWriterURI: depiction_writer_uri,
 		SubjectReader:      subject_reader,
-		SubjectWriter:      subject_writer,
-		ParentReader:       parent_reader,
-		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v3 (Clone) release
-		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
+		SubjectWriterURI:   subject_writer_uri,
+		WhosOnFirstReader:  whosonfirst_reader,
+		DefaultGeometry:    default_geom,
+		Author:             "",
 	}
 
 	switch mode {
