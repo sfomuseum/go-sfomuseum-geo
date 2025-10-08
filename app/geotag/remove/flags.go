@@ -18,11 +18,12 @@ var depiction_writer_uri string
 var subject_reader_uri string
 var subject_writer_uri string
 
-var parent_reader_uri string
+var wof_reader_uri string
 
 var access_token_uri string
 
 var depictions multi.MultiInt64
+var verbose bool
 
 func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
@@ -36,11 +37,13 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 	fs.StringVar(&subject_reader_uri, "subject-reader-uri", "", "A valid whosonfirst/go-reader URI.")
 	fs.StringVar(&subject_writer_uri, "subject-writer-uri", "", "A valid whosonfirst/go-writer URI.")
 
-	fs.StringVar(&parent_reader_uri, "parent-reader-uri", "", "A valid whosonfirst/go-reader URI.")
+	fs.StringVar(&wof_reader_uri, "whosonfirst-reader-uri", "", "A valid whosonfirst/go-reader URI.")
 
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
 	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
+
+	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "update-depiction is a command-tool for applying geotagging updates to one or more depictions.\n")

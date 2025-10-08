@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
@@ -25,6 +26,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	if err != nil {
 		return fmt.Errorf("Failed to set flags from environment variables, %w", err)
+	}
+
+	if verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.Debug("Verbose logging enabled")
 	}
 
 	depiction_writer_uri, err = gh_writer.EnsureGitHubAccessToken(ctx, depiction_writer_uri, access_token_uri)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
@@ -24,6 +25,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	if err != nil {
 		return fmt.Errorf("Failed to set flags from environment variables, %w", err)
+	}
+
+	if verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.Debug("Verbose logging enabled")
 	}
 
 	depiction_writer_uri, err = gh_writer.EnsureGitHubAccessToken(ctx, depiction_writer_uri, access_token_uri)
@@ -66,10 +72,10 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		}
 	*/
 
-	parent_reader, err := reader.NewReader(ctx, parent_reader_uri)
+	wof_reader, err := reader.NewReader(ctx, wof_reader_uri)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create architecture reader, %v", err)
+		return fmt.Errorf("Failed to create whosonfirst reader, %v", err)
 	}
 
 	opts := &geotag.RemoveGeotagDepictionOptions{
@@ -77,7 +83,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		// DepictionWriter:    depiction_writer,
 		SubjectReader: subject_reader,
 		// SubjectWriter:      subject_writer,
-		WhosOnFirstReader:  parent_reader,
+		WhosOnFirstReader:  wof_reader,
 		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v3 (Clone) release
 		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
 	}
