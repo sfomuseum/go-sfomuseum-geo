@@ -18,24 +18,6 @@ import (
 	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
 )
 
-/*
-
-- depiction (image)
-  - remove geotag: properties
-  - remove (deprecate) geotag-fov alt file; update src:geom_alt
-  - reset geometry
-    - remove centroid for geotag-fov alt file
-    - if no remaining coordinates then reset to ... what?
-
-- subject (object)
-  - remove geotag: properties
-  - reset geometry, tricky:
-    - specifically only remove the coordinates associated with the geotag:depictions property
-      - what to do about decimal differences...
-    - if no remaining coordinates then reset to ... what?
-
-*/
-
 type RemoveGeotagDepictionOptions struct {
 	// A valid whosonfirst/go-reader.Reader instance for reading depiction features.
 	DepictionReader reader.Reader
@@ -47,22 +29,10 @@ type RemoveGeotagDepictionOptions struct {
 	SubjectWriterURI string
 	// The name of the person (or process) updating a depiction.
 	Author string
-	// A default or "fallback" geometry to use for depictions and subjects if no other
-	// geometry can be derived
+	// A default or "fallback" geometry to use for depictions and subjects if no other geometry can be derived
 	DefaultGeometry *geojson.Geometry
-
-	WhosOnFirstReader reader.Reader
-
-	// TBD: are these necessary...
-
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features. This includes general Who's On First IDs.
-	// This is the equivalent to ../georeference.AssignReferenceOptions.WhosOnFirstReader and should be reconciled one way or the other.
-	// ParentReader reader.Reader
-	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
-	// DepictionWriter    writer.Writer
-	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
-	// SubjectWriter    writer.Writer
-
+	WhosOnFirstReader reader.Reader
 }
 
 func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptions, update *Depiction) ([]byte, error) {
@@ -234,6 +204,11 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	}
 
 	if depiction_geom == nil {
+
+		if opts.DefaultGeometry == nil {
+			return nil, fmt.Errorf("Default geometry is not defined")
+		}
+
 		depiction_geom = opts.DefaultGeometry
 	}
 
@@ -305,6 +280,11 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	}
 
 	if subject_geom == nil {
+
+		if opts.DefaultGeometry == nil {
+			return nil, fmt.Errorf("Default geometry is not defined")
+		}
+
 		subject_geom = opts.DefaultGeometry
 	}
 

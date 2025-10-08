@@ -20,6 +20,8 @@ var subject_writer_uri string
 
 var wof_reader_uri string
 
+var default_geometry_id int64
+
 var access_token_uri string
 
 var depictions multi.MultiInt64
@@ -42,6 +44,8 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
 	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted.")
+
+	fs.Int64Var(&default_geometry_id, "default-geometry-id", 1, "A valid Who's On First (or equivalent) ID whose geometry will be used as default geometry for records, if necessary")
 
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 
