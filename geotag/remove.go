@@ -73,6 +73,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	logger = logger.With("action", "remove geotag")
 	logger = logger.With("depiction id", depiction_id)
 
+	logger.Debug("Set up writers")
+
 	writer_opts := &CreateGeotagWritersOptions{
 		DepictionId:        depiction_id,
 		Author:             opts.Author,
@@ -89,6 +91,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Load depiction
 
+	logger.Debug("Load depiction")
+
 	depiction_body, err := wof_reader.LoadBytes(ctx, opts.DepictionReader, depiction_id)
 
 	if err != nil {
@@ -97,6 +101,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	}
 
 	// Derive subject (for depiction)
+
+	logger.Debug("Derive subject")
 
 	subject_prop := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_SUBJECT)
 
@@ -111,6 +117,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Update depiction
 
+	logger.Debug("Update depiction")
+
 	depiction_update := make(map[string]any)
 	depiction_remove := make([]string, 0)
 
@@ -120,15 +128,18 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 		if strings.HasPrefix(k, "geotag:") {
 			path := fmt.Sprintf("properties.%s", k)
+			logger.Debug("Remove depiction property", "path", path)
 			depiction_remove = append(depiction_remove, path)
 		}
 	}
 
-	alt_rsp := gjson.GetBytes(depiction_body, "properties.geom_alt")
+	alt_rsp := gjson.GetBytes(depiction_body, "properties.src:geom_alt")
 
 	if !alt_rsp.Exists() {
 		logger.Warn("Depiction is missing geom_alt property")
 	} else {
+
+		logger.Debug("Update alt geom(s)")
 
 		// Derive new geom_alt array
 
@@ -136,17 +147,20 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 		alt_geoms := make([]string, 0)
 
 		for _, r := range alt_rsp.Array() {
-			geom := r.String()
+			label := r.String()
 
-			if geom != fov_label {
-				alt_geoms = append(alt_geoms, geom)
+			if label != fov_label {
+				logger.Debug("Append alt geom", "label", label)
+				alt_geoms = append(alt_geoms, label)
 			}
 		}
 
-		depiction_update["properties.geom_alt"] = alt_geoms
+		depiction_update["properties.src:geom_alt"] = alt_geoms
 
 		// Deprecate alt geom
 		// START OF put me in a function somewhere...
+
+		logger.Debug("Deprecated alt geom", "label", fov_label)
 
 		alt_args, err := uri.NewAlternateURIArgsFromAltLabel(fov_label)
 
@@ -207,6 +221,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Update depiction geometry
 
+	logger.Debug("Update depiction geometry")
+
 	depiction_geom_opts := &DeriveGeometryForDepictionOptions{
 		WhosOnFirstReader: opts.WhosOnFirstReader,
 	}
@@ -224,6 +240,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	depiction_update["geometry"] = depiction_geom
 
 	// Apply depiction changes
+
+	logger.Debug("Apply changes for depiction")
 
 	depiction_body, err = export.RemoveProperties(ctx, depiction_body, depiction_remove)
 
@@ -245,6 +263,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Load subject
 
+	logger.Debug("Load subject")
+
 	subject_body, err := wof_reader.LoadBytes(ctx, opts.SubjectReader, subject_id)
 
 	if err != nil {
@@ -252,6 +272,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	}
 
 	// Update subject
+
+	logger.Debug("Update subject")
 
 	subject_update := make(map[string]any)
 	subject_remove := make([]string, 0)
@@ -262,11 +284,14 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 		if strings.HasPrefix(k, "geotag:") {
 			path := fmt.Sprintf("properties.%s", k)
+			logger.Debug("Remove subject property", "path", path)
 			subject_remove = append(subject_remove, path)
 		}
 	}
 
 	// Update subject geometry
+
+	logger.Debug("Update subject geometry")
 
 	subject_geom_opts := &DeriveGeometryForSubjectOptions{
 		WhosOnFirstReader: opts.WhosOnFirstReader,
@@ -286,6 +311,8 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 	subject_update["geometry"] = subject_geom
 
 	// Apply changes for subject
+
+	logger.Debug("Apply changes for subject")
 
 	subject_body, err = export.RemoveProperties(ctx, subject_body, subject_remove)
 
@@ -307,11 +334,15 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	// Write changes (for depiction and subject)
 
+	logger.Debug("Write changes for depiction")
+
 	_, err = wof_writer.WriteBytes(ctx, writers.DepictionMultiWriter, depiction_body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to write changes for depiction, %w", err)
 	}
+
+	logger.Debug("Write changes for subject")
 
 	_, err = wof_writer.WriteBytes(ctx, writers.SubjectMultiWriter, subject_body)
 
