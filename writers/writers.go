@@ -1,6 +1,4 @@
-package geotag
-
-// TBD: Can this be refactored to work for both geotag and georef operations?
+package writers
 
 import (
 	"bufio"
@@ -14,7 +12,7 @@ import (
 	"github.com/whosonfirst/go-writer/v3"
 )
 
-type GeotagWriters struct {
+type Writers struct {
 	DepictionWriter      writer.Writer
 	DepictionMultiWriter writer.Writer
 	SubjectWriter        writer.Writer
@@ -26,33 +24,32 @@ type GeotagWriters struct {
 	subjectBufWriter   *bufio.Writer
 }
 
-type CreateGeotagWritersOptions struct {
-	DepictionId        int64
-	Author             string
-	DepictionWriterURI string
-	SubjectWriterURI   string
+type CreateWritersOptions struct {
+	DepictionWriterURI  string
+	SubjectWriterURI    string
+	GithubWriterOptions *github.UpdateWriterURIOptions
 }
 
-func CreateGeotagWriters(ctx context.Context, opts *CreateGeotagWritersOptions) (*GeotagWriters, error) {
+func CreateWriters(ctx context.Context, opts *CreateWritersOptions) (*Writers, error) {
 
-	// START OF to refactor with go-writer/v4 (clone) release
+	depiction_writer_uri := opts.DepictionWriterURI
+	subject_writer_uri := opts.SubjectWriterURI
 
-	update_opts := &github.UpdateWriterURIOptions{
-		WhosOnFirstId: opts.DepictionId,
-		Author:        opts.Author,
-		Action:        github.GeotagAction,
-	}
+	if opts.GithubWriterOptions != nil {
 
-	depiction_writer_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.DepictionWriterURI)
+		var err error
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to update depiction writer URI, %w", err)
-	}
+		depiction_writer_uri, err = github.UpdateWriterURI(ctx, opts.GithubWriterOptions, depiction_writer_uri)
 
-	subject_writer_uri, err := github.UpdateWriterURI(ctx, update_opts, opts.SubjectWriterURI)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to update depiction writer URI, %w", err)
+		}
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to update subject writer URI, %w", err)
+		subject_writer_uri, err = github.UpdateWriterURI(ctx, opts.GithubWriterOptions, subject_writer_uri)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to update subject writer URI, %w", err)
+		}
 	}
 
 	depiction_writer, err := writer.NewWriter(ctx, depiction_writer_uri)
@@ -66,8 +63,6 @@ func CreateGeotagWriters(ctx context.Context, opts *CreateGeotagWritersOptions) 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create new subject writer for '%s', %w", subject_writer_uri, err)
 	}
-
-	// END OF to refactor with go-writer/v4 (clone) release
 
 	// START OF hooks to capture updates/writes so we can parrot them back in the method response
 	// We're doing it this way because the code, as written, relies on sfomuseum/go-sfomuseum-writer
@@ -114,7 +109,7 @@ func CreateGeotagWriters(ctx context.Context, opts *CreateGeotagWritersOptions) 
 
 	// END OF hooks to capture updates/writes so we can parrot them back in the method response
 
-	geotag_writers := &GeotagWriters{
+	all_writers := &Writers{
 		DepictionWriter:      depiction_writer,
 		SubjectWriter:        subject_writer,
 		DepictionMultiWriter: depiction_mw,
@@ -127,10 +122,10 @@ func CreateGeotagWriters(ctx context.Context, opts *CreateGeotagWritersOptions) 
 		subjectBuf:   &local_subject_buf,
 	}
 
-	return geotag_writers, nil
+	return all_writers, nil
 }
 
-func (writers *GeotagWriters) AsFeatureCollection() (*geojson.FeatureCollection, error) {
+func (writers *Writers) AsFeatureCollection() (*geojson.FeatureCollection, error) {
 
 	writers.depictionBufWriter.Flush()
 	writers.subjectBufWriter.Flush()

@@ -52,27 +52,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create depiction reader, %v", err)
 	}
 
-	/*
-		depiction_writer, err := writer.NewWriter(ctx, depiction_writer_uri)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create depiction writer, %v", err)
-		}
-	*/
-
 	subject_reader, err := reader.NewReader(ctx, subject_reader_uri)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create subject reader, %v", err)
 	}
-
-	/*
-		subject_writer, err := writer.NewWriter(ctx, subject_writer_uri)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create subject writer, %v", err)
-		}
-	*/
 
 	whosonfirst_reader, err := reader.NewReader(ctx, wof_reader_uri)
 
@@ -95,14 +79,13 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 	default_geom := geojson.NewGeometry(default_geom_f.Geometry)
 
 	opts := &geotag.RemoveGeotagDepictionOptions{
-		DepictionReader: depiction_reader,
-		// DepictionWriter:    depiction_writer,
-		SubjectReader: subject_reader,
-		// SubjectWriter:      subject_writer,
+		DepictionReader:    depiction_reader,
+		DepictionWriterURI: depiction_writer_uri,
+		SubjectReader:      subject_reader,
+		SubjectWriterURI:   subject_writer_uri,
 		WhosOnFirstReader:  whosonfirst_reader,
-		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v3 (Clone) release
-		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
 		DefaultGeometry:    default_geom,
+		Author:             "",
 	}
 
 	switch mode {

@@ -10,6 +10,8 @@ import (
 
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo"
+	"github.com/sfomuseum/go-sfomuseum-geo/github"
+	geo_writers "github.com/sfomuseum/go-sfomuseum-geo/writers"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-export/v3"
@@ -45,14 +47,19 @@ func RemoveGeotagDepiction(ctx context.Context, opts *RemoveGeotagDepictionOptio
 
 	logger.Debug("Set up writers")
 
-	writer_opts := &CreateGeotagWritersOptions{
-		DepictionId:        depiction_id,
-		Author:             opts.Author,
-		SubjectWriterURI:   opts.SubjectWriterURI,
-		DepictionWriterURI: opts.DepictionWriterURI,
+	github_opts := &github.UpdateWriterURIOptions{
+		Author:        opts.Author,
+		WhosOnFirstId: depiction_id,
+		Action:        github.GeotagAction,
 	}
 
-	writers, err := CreateGeotagWriters(ctx, writer_opts)
+	writers_opts := &geo_writers.CreateWritersOptions{
+		SubjectWriterURI:    opts.SubjectWriterURI,
+		DepictionWriterURI:  opts.DepictionWriterURI,
+		GithubWriterOptions: github_opts,
+	}
+
+	writers, err := geo_writers.CreateWriters(ctx, writers_opts)
 
 	if err != nil {
 		logger.Error("Failed to create writers", "error", err)

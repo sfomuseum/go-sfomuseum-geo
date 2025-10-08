@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"slices"
 
 	"github.com/paulmach/orb"
@@ -12,6 +13,8 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo"
 	"github.com/sfomuseum/go-sfomuseum-geo/alt"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
+	"github.com/sfomuseum/go-sfomuseum-geo/github"
+	geo_writers "github.com/sfomuseum/go-sfomuseum-geo/writers"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader/v2"
@@ -38,12 +41,6 @@ type AddGeotagDepictionOptions struct {
 	ParentReader reader.Reader
 	// The name of the person (or process) updating a depiction.
 	Author string
-
-	// Deprecated?
-	// A valid whosonfirst/go-writer.Writer instance for writing depiction features.
-	// DepictionWriter    writer.Writer
-	// A valid whosonfirst/go-writer.Writer instance for writing subject features.
-	// SubjectWriter    writer.Writer
 }
 
 // AddGeotagDepiction will update the geometries and relevant properties for SFOM/WOF records 'depiction_id' and 'subject_id' using
@@ -86,16 +83,30 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 	camera_parent_id := geotag_props.Camera.ParentId
 	target_parent_id := geotag_props.Target.ParentId
 
-	writer_opts := &CreateGeotagWritersOptions{
-		DepictionId:        update.DepictionId,
-		Author:             opts.Author,
-		SubjectWriterURI:   opts.SubjectWriterURI,
-		DepictionWriterURI: opts.DepictionWriterURI,
+	logger := slog.Default()
+	logger = logger.With("action", "add geotag")	
+	logger = logger.With("depiction id", depiction_id)
+	logger = logger.With("camera", camera_parent_id)
+	logger = logger.With("target", target_parent_id)
+
+	logger.Debug("Set up writers")
+
+	github_opts := &github.UpdateWriterURIOptions{
+		Author:        opts.Author,
+		WhosOnFirstId: depiction_id,
+		Action:        github.GeotagAction,
 	}
 
-	writers, err := CreateGeotagWriters(ctx, writer_opts)
+	writers_opts := &geo_writers.CreateWritersOptions{
+		SubjectWriterURI:    opts.SubjectWriterURI,
+		DepictionWriterURI:  opts.DepictionWriterURI,
+		GithubWriterOptions: github_opts,
+	}
+
+	writers, err := geo_writers.CreateWriters(ctx, writers_opts)
 
 	if err != nil {
+		logger.Error("Failed to create writers", "error", err)
 		return nil, fmt.Errorf("Failed to create geotag writers, %w", err)
 	}
 
