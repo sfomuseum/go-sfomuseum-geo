@@ -1,4 +1,4 @@
-package update
+package remove
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"github.com/sfomuseum/go-sfomuseum-geo/geotag"
 	"github.com/whosonfirst/go-reader/v2"
 	gh_writer "github.com/whosonfirst/go-writer-github/v3"
-	// "github.com/whosonfirst/go-writer/v3"
 )
 
 func Run(ctx context.Context) error {
@@ -73,12 +72,12 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create architecture reader, %v", err)
 	}
 
-	opts := &geotag.AddGeotagDepictionOptions{
+	opts := &geotag.RemoveGeotagDepictionOptions{
 		DepictionReader: depiction_reader,
 		// DepictionWriter:    depiction_writer,
 		SubjectReader: subject_reader,
 		// SubjectWriter:      subject_writer,
-		ParentReader:       parent_reader,
+		WhosOnFirstReader:  parent_reader,
 		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v3 (Clone) release
 		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
 	}

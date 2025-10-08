@@ -35,16 +35,16 @@ import (
 	_ "gocloud.dev/runtimevar/constantvar"
 	_ "gocloud.dev/runtimevar/filevar"
 
-	"github.com/sfomuseum/go-sfomuseum-geo/app/geotag/update"
+	"github.com/sfomuseum/go-sfomuseum-geo/app/geotag/add"
 )
 
 func main() {
 
 	ctx := context.Background()
 
-	err := update.Run(ctx)
+	err := add.Run(ctx)
 
 	if err != nil {
-		log.Fatalf("Failed to update depiction, %v", err)
+		log.Fatalf("Failed to add depiction, %v", err)
 	}
 }
