@@ -4,6 +4,6 @@ import (
 	"testing"
 )
 
-func TestAddReferences(t *testing.T) {
+func TestAssignReferences(t *testing.T) {
 	t.Skip()
 }

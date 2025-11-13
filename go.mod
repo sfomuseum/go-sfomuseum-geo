@@ -3,9 +3,9 @@ module github.com/sfomuseum/go-sfomuseum-geo
 go 1.25.0
 
 require (
-	github.com/aws/aws-lambda-go v1.49.0
+	github.com/aws/aws-lambda-go v1.50.0
 	github.com/paulmach/orb v0.12.0
-	github.com/sfomuseum/go-flags v0.11.0
+	github.com/sfomuseum/go-flags v0.12.1
 	github.com/sfomuseum/go-geojson-geotag/v2 v2.0.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
@@ -13,15 +13,14 @@ require (
 	github.com/whosonfirst/go-reader-findingaid/v2 v2.1.1
 	github.com/whosonfirst/go-reader-github/v2 v2.0.1
 	github.com/whosonfirst/go-reader/v2 v2.1.0
-	github.com/whosonfirst/go-whosonfirst-export/v3 v3.2.0
+	github.com/whosonfirst/go-whosonfirst-export/v3 v3.3.0
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.29
 	github.com/whosonfirst/go-whosonfirst-format v1.1.0
 	github.com/whosonfirst/go-whosonfirst-id v1.3.1
 	github.com/whosonfirst/go-whosonfirst-reader/v2 v2.0.0
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.7
-	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.2
-	github.com/whosonfirst/go-writer-github/v3 v3.1.1
+	github.com/whosonfirst/go-writer-github/v3 v3.1.2
 	github.com/whosonfirst/go-writer/v3 v3.1.1
 	gocloud.dev v0.43.0
 )
@@ -97,7 +96,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-names v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-placetypes v0.8.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
-	github.com/whosonfirst/go-whosonfirst-validate v0.6.2 // indirect
+	github.com/whosonfirst/go-whosonfirst-validate v0.7.0 // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.37.0 // indirect
@@ -107,7 +106,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.uber.org/ratelimit v0.3.1 // indirect
 	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/oauth2 v0.31.0 // indirect
+	golang.org/x/oauth2 v0.32.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect

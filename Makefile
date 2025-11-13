@@ -10,8 +10,9 @@ cli:
 	rm -f bin/*
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/geotag-add cmd/geotag-add/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/geotag-remove cmd/geotag-remove/main.go
-	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/build-depiction-update cmd/build-depiction-update/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/geotag-build-update cmd/geotag-build-update/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/georef-add cmd/georef-add/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/georef-remove cmd/georef-remove/main.go
 
 # subject (object):
 # https://collection.sfomuseum.org/objects/1897902471/

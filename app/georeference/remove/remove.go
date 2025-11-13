@@ -1,4 +1,4 @@
-package add
+package remove
 
 import (
 	"context"
@@ -75,12 +75,13 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	}
 
 	assign_opts := &georeference.AssignReferencesOptions{
-		DepictionReader:    depiction_reader,
-		SubjectReader:      subject_reader,
-		WhosOnFirstReader:  whosonfirst_reader,
-		SFOMuseumReader:    sfomuseum_reader,
-		DepictionWriterURI: depiction_writer_uri,
-		SubjectWriterURI:   subject_writer_uri,
+		DepictionReader:          depiction_reader,
+		SubjectReader:            subject_reader,
+		WhosOnFirstReader:        whosonfirst_reader,
+		SFOMuseumReader:          sfomuseum_reader,
+		DepictionWriterURI:       opts.DepictionWriterURI,
+		SubjectWriterURI:         opts.SubjectWriterURI,
+		DefaultGeometryFeatureId: opts.DefaultGeometryFeatureId,
 	}
 
 	switch mode {
@@ -88,7 +89,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 		for _, id := range opts.Depictions {
 
-			_, err := georeference.AddReferences(ctx, assign_opts, id, opts.References...)
+			_, err := georeference.RemoveAllReferences(ctx, assign_opts, id)
 
 			if err != nil {
 				return fmt.Errorf("Failed to georeference depiction %d, %w", id, err)
