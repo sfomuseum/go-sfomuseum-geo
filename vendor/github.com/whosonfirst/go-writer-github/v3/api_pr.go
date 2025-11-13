@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/url"
 	"path/filepath"
 	"strconv"
@@ -154,7 +155,8 @@ func NewGitHubAPIPullRequestWriter(ctx context.Context, uri string) (wof_writer.
 	}
 
 	if pr_email == "" {
-		return nil, fmt.Errorf("Invalid pr-email argument")
+		slog.Debug(fmt.Sprintf("Unable to derive email address for PR, using %s @localhost", pr_author))
+		pr_email = fmt.Sprintf("%s@localhost", pr_author)
 	}
 
 	str_ensure_repo := q.Get("ensure-repo")

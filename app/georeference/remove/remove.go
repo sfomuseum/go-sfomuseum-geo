@@ -1,4 +1,4 @@
-package add
+package remove
 
 import (
 	"context"
@@ -88,7 +88,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 		for _, id := range opts.Depictions {
 
-			_, err := georeference.AddReferences(ctx, assign_opts, id, opts.References...)
+			_, err := georeference.RemoveAllReferences(ctx, assign_opts, id)
 
 			if err != nil {
 				return fmt.Errorf("Failed to georeference depiction %d, %w", id, err)
