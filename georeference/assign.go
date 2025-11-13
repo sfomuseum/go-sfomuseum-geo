@@ -1024,7 +1024,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		logger.Debug("Derive multipoint from geometries (with WOF reader)", "count", len(geom_ids))
 
-		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, geom_ids...)
+		// should we just make a "multi" reader here?
+		// geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, geom_ids...)
+		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.SFOMuseumReader, geom_ids...)		
 
 		if err != nil {
 			logger.Error("Failed to derive multipoint from geometries (with WOF reader)", "error", err)
@@ -1038,10 +1040,25 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		depiction_geom := depiction_updates["geometry"].(*geojson.Geometry)
 		depiction_orb_geom := depiction_geom.Geometry()
-		depiction_points := depiction_orb_geom.(orb.MultiPoint)
 
-		for _, pt := range depiction_points {
-			subject_points = append(subject_points, pt)
+		switch depiction_orb_geom.GeoJSONType(){
+		case "Point":
+
+			// Note: It's just easier to mint a new Point than to faff around
+			// with pointer syntax...
+			
+			pt := depiction_orb_geom.(*orb.Point)
+			subject_points = append(subject_points, orb.Point{ pt.X(), pt.Y() })
+			
+		case "MultiPoint":
+			
+			depiction_points := depiction_orb_geom.(orb.MultiPoint)
+			
+			for _, pt := range depiction_points {
+				subject_points = append(subject_points, pt)
+			}
+		default:
+			logger.Error("Unsupported geometry type for depiction", "type", depiction_orb_geom.GeoJSONType())
 		}
 
 		new_mp := orb.MultiPoint(subject_points)
