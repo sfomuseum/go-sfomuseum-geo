@@ -556,14 +556,14 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, fmt.Errorf("Failed to read default geometry record, %w", err)
 		}
 
-		default_f, err := geojson.UnmarshalFeature(body)
+		centroid, _, err := properties.Centroid(body)
 
 		if err != nil {
-			logger.Error("Failed to unmarshal default geometry record", "id", opts.DefaultGeometryFeatureId, "error", err)
+			logger.Error("Failed to derive centroid for default geometry record", "id", opts.DefaultGeometryFeatureId, "error", err)
 			return nil, fmt.Errorf("Failed to unmarshal default geometry record, %w", err)
 		}
 
-		depiction_updates["geometry"] = geojson.NewGeometry(default_f.Geometry)
+		depiction_updates["geometry"] = geojson.NewGeometry(centroid)
 
 		// hierarchies are actually assigned below
 

@@ -12,16 +12,17 @@ import (
 // depiction: an image of a collection object, for example
 
 type RunOptions struct {
-	Mode                 string
-	Verbose              bool
-	SubjectReaderURI     string
-	SubjectWriterURI     string
-	DepictionReaderURI   string
-	DepictionWriterURI   string
-	WhosOnFirstReaderURI string
-	SFOMuseumReaderURI   string
-	GitHubAccessTokenURI string
-	Depictions           []int64
+	Mode                     string
+	Verbose                  bool
+	SubjectReaderURI         string
+	SubjectWriterURI         string
+	DepictionReaderURI       string
+	DepictionWriterURI       string
+	WhosOnFirstReaderURI     string
+	SFOMuseumReaderURI       string
+	GitHubAccessTokenURI     string
+	DefaultGeometryFeatureId int64
+	Depictions               []int64
 }
 
 func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, error) {
@@ -35,16 +36,17 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 	}
 
 	opts := &RunOptions{
-		Mode:                 mode,
-		Verbose:              verbose,
-		SubjectReaderURI:     subject_reader_uri,
-		SubjectWriterURI:     subject_writer_uri,
-		DepictionReaderURI:   depiction_reader_uri,
-		DepictionWriterURI:   depiction_writer_uri,
-		WhosOnFirstReaderURI: whosonfirst_reader_uri,
-		SFOMuseumReaderURI:   sfomuseum_reader_uri,
-		GitHubAccessTokenURI: access_token_uri,
-		Depictions:           depictions,
+		Mode:                     mode,
+		Verbose:                  verbose,
+		SubjectReaderURI:         subject_reader_uri,
+		SubjectWriterURI:         subject_writer_uri,
+		DepictionReaderURI:       depiction_reader_uri,
+		DepictionWriterURI:       depiction_writer_uri,
+		WhosOnFirstReaderURI:     whosonfirst_reader_uri,
+		SFOMuseumReaderURI:       sfomuseum_reader_uri,
+		GitHubAccessTokenURI:     access_token_uri,
+		DefaultGeometryFeatureId: default_geometry_feature_id,
+		Depictions:               depictions,
 	}
 
 	return opts, nil

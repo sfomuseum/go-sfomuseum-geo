@@ -26,6 +26,8 @@ var access_token_uri string
 
 var depictions multi.MultiInt64
 
+var default_geometry_feature_id int64
+
 func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
 	fs := flagset.NewFlagSet("reference")
@@ -50,6 +52,8 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 	fs.StringVar(&sfomuseum_reader_uri, "sfomuseum-reader-uri", "https://static.sfomuseum.org/geojson/", "A valid whosonfirst/go-reader URI.")
 
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
+
+	fs.Int64Var(&default_geometry_feature_id, "default-geometry-feature-id", 1729828959, "The WOF ID for the Feature whose centroid will be used as a default absent any references.")
 
 	fs.Var(&depictions, "depiction-id", "One or more valid Who's On First IDs for the records being depicted (for example an object image).")
 
