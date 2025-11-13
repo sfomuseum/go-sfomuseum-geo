@@ -65,7 +65,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	defer cancel()
 
 	logger := slog.Default()
-	logger = logger.With("action", "add georeference")
+	logger = logger.With("action", "assign georeferences")
 	logger = logger.With("depiction id", depiction_id)
 
 	if len(refs) == 0 {
