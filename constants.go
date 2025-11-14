@@ -6,6 +6,8 @@ const RESERVED_GEOTAG_SUBJECT string = "geotag:subject"
 
 const RESERVED_GEOTAG_BELONGSTO string = "geotag:whosonfirst_belongsto"
 
+const RESERVED_GEOTAG_LASTMODIFIED string = "geotag:lastmodified"
+
 const RESERVED_GEOREFERENCE_BELONGSTO string = "georef:whosonfirst_belongsto"
 
 const RESERVED_GEOREFERENCE_DEPICTED string = "georef:depicted"
@@ -13,5 +15,7 @@ const RESERVED_GEOREFERENCE_DEPICTED string = "georef:depicted"
 const RESERVED_GEOREFERENCE_DEPICTIONS string = "georef:depictions"
 
 const RESERVED_GEOREFERENCE_LABEL string = "georef:label"
+
+const RESERVED_GEOREFERENCE_LASTMODIFIED string = "georef:lastmodified"
 
 const RESERVED_WOF_DEPICTS string = "wof:depicts"

@@ -1,3 +1,3 @@
 # go-sfomuseum-geo
 
-Work in progress. There are still bugs.
+Work in progress. There may still be bugs.

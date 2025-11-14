@@ -12,7 +12,6 @@ import (
 	geojson "github.com/sfomuseum/go-geojson-geotag/v2"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
-	"github.com/whosonfirst/go-writer/v3"
 )
 
 func TestUpdateDepiction(t *testing.T) {
@@ -70,22 +69,10 @@ func TestUpdateDepiction(t *testing.T) {
 		t.Fatalf("Failed to create depiction reader, %v", err)
 	}
 
-	img_writer, err := writer.NewWriter(ctx, img_writer_uri)
-
-	if err != nil {
-		t.Fatalf("Failed to create depiction writer, %v", err)
-	}
-
 	obj_reader, err := reader.NewReader(ctx, obj_reader_uri)
 
 	if err != nil {
 		t.Fatalf("Failed to create subject reader, %v", err)
-	}
-
-	obj_writer, err := writer.NewWriter(ctx, obj_writer_uri)
-
-	if err != nil {
-		t.Fatalf("Failed to create subject writer, %v", err)
 	}
 
 	arch_reader, err := reader.NewReader(ctx, arch_reader_uri)
@@ -94,17 +81,15 @@ func TestUpdateDepiction(t *testing.T) {
 		t.Fatalf("Failed to create architecture reader, %v", err)
 	}
 
-	opts := &GeotagDepictionOptions{
+	opts := &AddGeotagDepictionOptions{
 		DepictionReader:    img_reader,
-		DepictionWriter:    img_writer,
 		SubjectReader:      obj_reader,
-		SubjectWriter:      obj_writer,
 		ParentReader:       arch_reader,
 		DepictionWriterURI: img_writer_uri,
 		SubjectWriterURI:   obj_writer_uri,
 	}
 
-	body, err := GeotagDepiction(ctx, opts, update)
+	body, err := AddGeotagDepiction(ctx, opts, update)
 
 	if err != nil {
 		t.Fatalf("Failed to update depiction, %v", err)

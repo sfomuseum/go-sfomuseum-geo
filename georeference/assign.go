@@ -746,6 +746,20 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	if depiction_has_changed {
 
+		lastmod_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_LASTMODIFIED)
+		lastmod := time.Now()
+
+		lastmod_updates := map[string]any{
+			lastmod_key: lastmod.Unix(),
+		}
+
+		new_body, err := export.AssignProperties(ctx, new_body, lastmod_updates)
+
+		if err != nil {
+			logger.Error("Failed to assign last mod properties for subject record", "error", err)
+			return nil, fmt.Errorf("Failed to assign last mod properties for subject record, %w", err)
+		}
+
 		_, err = wof_writer.WriteBytes(ctx, writers.DepictionMultiWriter, new_body)
 
 		if err != nil {
@@ -838,31 +852,6 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	subject_references_lookup := new(sync.Map)
 	subject_depicted_lookup := new(sync.Map)
 
-	// START OF aren't we doing this below...
-	// START OF update wof:references and georeference:depictions for subject
-	/*
-
-		subject_depicted_rsp := gjson.GetBytes(subject_body, "properties.georef:depicted")
-
-		for label, ids_rsp := range subject_depicted_rsp.Map() {
-
-			ids_list := ids_rsp.Array()
-
-			ids := make([]int64, len(ids_list))
-
-			for idx, i := range ids_list {
-				ids[idx] = i.Int()
-			}
-
-			for _, id := range ids {
-				subject_references_lookup.Store(id, true)
-			}
-
-			subject_depicted_lookup.Store(label, ids)
-		}
-	*/
-	// END OF aren't we doing this below...
-
 	// Add the references assigned to the depiction being updated
 
 	for _, r := range refs {
@@ -873,8 +862,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	type image_ref struct {
-		path string
-		id   int64
+		label string
+		id    int64
 	}
 
 	im_done_ch := make(chan bool)
@@ -923,11 +912,16 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			georefs_path := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)
 			georefs_rsp := gjson.GetBytes(image_body, georefs_path)
 
-			for k, ids := range georefs_rsp.Map() {
+			logger.Debug("Depictions for image", "image_id", image_id, "key", geo.RESERVED_GEOREFERENCE_DEPICTED, "count", len(georefs_rsp.Array()))
 
-				for _, r := range ids.Array() {
-					logger.Debug("Dispatch image", "image", image_id, "key", k, "depiction", r.Int())
-					im_ref_ch <- image_ref{path: k, id: r.Int()}
+			for _, r := range georefs_rsp.Array() {
+
+				label := r.Get("georef:label").String()
+				ids := r.Get("wof:depicts")
+
+				for _, i := range ids.Array() {
+					logger.Debug("Dispatch image", "image", image_id, "key", label, "depiction", i.Int())
+					im_ref_ch <- image_ref{label: label, id: i.Int()}
 				}
 			}
 
@@ -944,10 +938,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, fmt.Errorf("Failed to denormalize georeference properties, %w", err)
 		case ref := <-im_ref_ch:
 
-			path := ref.path
+			label := ref.label
 			id := ref.id
 
-			logger.Debug("Update subject (geo)refs for image", "id", id, "path", path)
+			logger.Debug("Update subject (geo)refs for image", "id", id, "label", label)
 
 			// Update wof:references for subject
 			subject_references_lookup.Store(id, true)
@@ -955,9 +949,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			// Update georeference:depictions for subject
 			var ids []int64
 
-			v, exists := subject_depicted_lookup.Load(path)
+			v, exists := subject_depicted_lookup.Load(label)
 
-			logger.Debug("Depicted for path", "id", id, "path", path, "exists", exists, "depicted", v)
+			logger.Debug("Depicted for label", "id", id, "label", label, "exists", exists, "depicted", v)
 
 			if exists {
 				ids = v.([]int64)
@@ -967,8 +961,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 			if !slices.Contains(ids, id) {
 				ids = append(ids, id)
-				subject_depicted_lookup.Store(path, ids)
-				logger.Debug("Append ID for path", "id", id, "path", path, "ids", id)
+				subject_depicted_lookup.Store(label, ids)
+				logger.Debug("Append ID for label", "id", id, "label", label, "ids", id)
 			}
 
 		}
@@ -1115,6 +1109,20 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	if subject_has_changed {
+
+		lastmod_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_LASTMODIFIED)
+		lastmod := time.Now()
+
+		lastmod_updates := map[string]any{
+			lastmod_key: lastmod.Unix(),
+		}
+
+		new_subject, err := export.AssignProperties(ctx, new_subject, lastmod_updates)
+
+		if err != nil {
+			logger.Error("Failed to assign last mod properties for subject record", "error", err)
+			return nil, fmt.Errorf("Failed to assign last mod properties for subject record, %w", err)
+		}
 
 		_, err = wof_writer.WriteBytes(ctx, writers.SubjectMultiWriter, new_subject)
 

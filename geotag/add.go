@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"time"
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
@@ -455,7 +456,21 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 
 	if subject_changed {
 
-		_, err := wof_writer.WriteBytes(ctx, writers.SubjectMultiWriter, subject_body)
+		lastmod_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_LASTMODIFIED)
+		lastmod := time.Now()
+
+		lastmod_updates := map[string]any{
+			lastmod_key: lastmod.Unix(),
+		}
+
+		subject_body, err := export.AssignProperties(ctx, subject_body, lastmod_updates)
+
+		if err != nil {
+			logger.Error("Failed to assign last mod properties for subject record", "error", err)
+			return nil, fmt.Errorf("Failed to assign last mod properties for subject record, %w", err)
+		}
+
+		_, err = wof_writer.WriteBytes(ctx, writers.SubjectMultiWriter, subject_body)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write subject record %d, %w", subject_id, err)
@@ -508,7 +523,21 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 
 	if depiction_changed {
 
-		_, err := wof_writer.WriteBytes(ctx, writers.DepictionMultiWriter, depiction_body)
+		lastmod_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_LASTMODIFIED)
+		lastmod := time.Now()
+
+		lastmod_updates := map[string]any{
+			lastmod_key: lastmod.Unix(),
+		}
+
+		depiction_body, err := export.AssignProperties(ctx, depiction_body, lastmod_updates)
+
+		if err != nil {
+			logger.Error("Failed to assign last mod properties for depiction record", "error", err)
+			return nil, fmt.Errorf("Failed to assign last mod properties for depiction record, %w", err)
+		}
+
+		_, err = wof_writer.WriteBytes(ctx, writers.DepictionMultiWriter, depiction_body)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write depiction record %d, %w", depiction_id, err)
