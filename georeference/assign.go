@@ -835,10 +835,33 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	// START OF denormalize all the georeferenced properties from all the images (depictions) in to the object record
 
-	// START OF update wof:references and georeference:depictions for subject
-
 	subject_references_lookup := new(sync.Map)
 	subject_depicted_lookup := new(sync.Map)
+
+	// START OF aren't we doing this below...
+	// START OF update wof:references and georeference:depictions for subject
+	/*
+
+		subject_depicted_rsp := gjson.GetBytes(subject_body, "properties.georef:depicted")
+
+		for label, ids_rsp := range subject_depicted_rsp.Map() {
+
+			ids_list := ids_rsp.Array()
+
+			ids := make([]int64, len(ids_list))
+
+			for idx, i := range ids_list {
+				ids[idx] = i.Int()
+			}
+
+			for _, id := range ids {
+				subject_references_lookup.Store(id, true)
+			}
+
+			subject_depicted_lookup.Store(label, ids)
+		}
+	*/
+	// END OF aren't we doing this below...
 
 	// Add the references assigned to the depiction being updated
 
@@ -879,6 +902,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 
 		im_remaining += 1
+
+		logger.Debug("Derive georef details from image", "id", image_id)
 
 		go func(image_id int64) {
 
@@ -922,6 +947,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			path := ref.path
 			id := ref.id
 
+			logger.Debug("Update subject (geo)refs for image", "id", id, "path", path)
+
 			// Update wof:references for subject
 			subject_references_lookup.Store(id, true)
 
@@ -929,6 +956,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			var ids []int64
 
 			v, exists := subject_depicted_lookup.Load(path)
+
+			logger.Debug("Depicted for path", "id", id, "path", path, "exists", exists, "depicted", v)
 
 			if exists {
 				ids = v.([]int64)
@@ -939,14 +968,15 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			if !slices.Contains(ids, id) {
 				ids = append(ids, id)
 				subject_depicted_lookup.Store(path, ids)
+				logger.Debug("Append ID for path", "id", id, "path", path, "ids", id)
 			}
 
 		}
 	}
 
-	// Assign wof:references for subject
+	// Assign wof:references (belongs to) for subject
 
-	logger.Debug("Assign wof:references for subject")
+	logger.Debug("Assign georef belongsto for subject")
 
 	subject_wof_references := make([]int64, 0)
 
@@ -955,7 +985,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return true
 	})
 
-	subject_updates[fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_BELONGSTO)] = subject_wof_references
+	subject_belongsto_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_BELONGSTO)
+	subject_updates[subject_belongsto_key] = subject_wof_references
+
+	logger.Debug("Assign subject belongs to", "key", geo.RESERVED_GEOREFERENCE_BELONGSTO, "data", subject_wof_references)
 
 	// Assign georef:depicted for subject
 
@@ -971,14 +1004,14 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	})
 
 	subject_depicted_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)
+	subject_updates[subject_depicted_key] = subject_depicted
+
+	logger.Debug("Assign depicted for subject", "key", geo.RESERVED_GEOREFERENCE_DEPICTED, "data", subject_depicted)
 
 	// Assign georef:depictions for subject
 
 	logger.Debug("Assign georef:depictions for subject")
-
 	subject_depictions_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
-
-	subject_updates[subject_depicted_key] = subject_depicted
 
 	subject_depictions := []int64{
 		depiction_id,
@@ -996,6 +1029,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	}
 
 	subject_updates[subject_depictions_key] = subject_depictions
+	logger.Debug("Assign depictions for subject", "key", geo.RESERVED_GEOREFERENCE_DEPICTIONS, "data", subject_depictions)
 
 	// START OF derive geometry from geotags and georeferences in depictions
 	// It would be nice to believe this code could be abstracted out and shared
@@ -1026,7 +1060,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 		// should we just make a "multi" reader here?
 		// geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, geom_ids...)
-		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.SFOMuseumReader, geom_ids...)		
+		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.SFOMuseumReader, geom_ids...)
 
 		if err != nil {
 			logger.Error("Failed to derive multipoint from geometries (with WOF reader)", "error", err)
@@ -1041,19 +1075,19 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		depiction_geom := depiction_updates["geometry"].(*geojson.Geometry)
 		depiction_orb_geom := depiction_geom.Geometry()
 
-		switch depiction_orb_geom.GeoJSONType(){
+		switch depiction_orb_geom.GeoJSONType() {
 		case "Point":
 
 			// Note: It's just easier to mint a new Point than to faff around
 			// with pointer syntax...
-			
+
 			pt := depiction_orb_geom.(*orb.Point)
-			subject_points = append(subject_points, orb.Point{ pt.X(), pt.Y() })
-			
+			subject_points = append(subject_points, orb.Point{pt.X(), pt.Y()})
+
 		case "MultiPoint":
-			
+
 			depiction_points := depiction_orb_geom.(orb.MultiPoint)
-			
+
 			for _, pt := range depiction_points {
 				subject_points = append(subject_points, pt)
 			}
