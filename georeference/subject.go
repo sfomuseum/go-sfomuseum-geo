@@ -8,24 +8,29 @@ import (
 	"sync"
 	"time"
 
-	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-export/v3"
-	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
+	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 )
 
 type RecompileGeorefencesForSubjectOptions struct {
-	DepictionReader reader.Reader
-	SFOMuseumReader reader.Reader
-	Skip            []int64
+	DepictionReader          reader.Reader
+	SFOMuseumReader          reader.Reader
+	DefaultGeometryFeatureId int64
 }
 
-func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefencesForSubjectOptions, subject_body []byte) ([]byte, error) {
+func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefencesForSubjectOptions, subject_body []byte) (bool, []byte, error) {
+
+	subject_depicted_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)
+	subject_depictions_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+	geotag_depicted_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
+
+	// IMPORTANT: THIS DOES NOT ACCOUNT FOR DEPICTIONS THAT ARE BEING UPDATED AT THE SAME TIME YET
 
 	logger := slog.Default()
 
@@ -33,17 +38,6 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	subject_references_lookup := new(sync.Map)
 	subject_depicted_lookup := new(sync.Map)
-
-	// Add the references assigned to the depiction being updated
-
-	/*
-		for _, r := range refs {
-			for _, i := range r.Ids {
-				subject_references_lookup.Store(i, true)
-			}
-			subject_depicted_lookup.Store(r.Label, r.Ids)
-		}
-	*/
 
 	type image_ref struct {
 		label string
@@ -66,13 +60,6 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 	for _, r := range images_list {
 
 		image_id := r.Int()
-
-		// Remember these have been assigned above
-
-		if slices.Contains(opts.Skip, image_id) {
-			logger.Debug("Skip current depiction", "id", image_id)
-			continue
-		}
 
 		im_remaining += 1
 
@@ -119,7 +106,7 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 		case <-im_done_ch:
 			im_remaining -= 1
 		case err := <-im_err_ch:
-			return nil, fmt.Errorf("Failed to denormalize georeference properties, %w", err)
+			return false, nil, fmt.Errorf("Failed to denormalize georeference properties, %w", err)
 		case ref := <-im_ref_ch:
 
 			label := ref.label
@@ -181,19 +168,15 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 		return true
 	})
 
-	subject_depicted_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)
 	subject_updates[subject_depicted_key] = subject_depicted
 
 	logger.Debug("Assign depicted for subject", "key", geo.RESERVED_GEOREFERENCE_DEPICTED, "data", subject_depicted)
 
 	// Assign georef:depictions for subject
 
-	logger.Debug("Assign georef:depictions for subject")
-	subject_depictions_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTIONS)
+	logger.Debug("Assign georef:depictions for subject", "key", subject_depictions_key)
 
-	subject_depictions := []int64{
-		depiction_id,
-	}
+	subject_depictions := make([]int64, 0)
 
 	subject_depictions_rsp := gjson.GetBytes(subject_body, subject_depictions_key)
 
@@ -207,7 +190,7 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 	}
 
 	subject_updates[subject_depictions_key] = subject_depictions
-	logger.Debug("Assign depictions for subject", "key", geo.RESERVED_GEOREFERENCE_DEPICTIONS, "data", subject_depictions)
+	logger.Debug("Assign depictions for subject", "key", subject_depictions_key, "data", subject_depictions)
 
 	// START OF derive geometry from geotags and georeferences in depictions
 	// It would be nice to believe this code could be abstracted out and shared
@@ -218,8 +201,7 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	// Read geotag pointers from subject file
 
-	path_geotag_depicted := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
-	geotag_depicted_rsp := gjson.GetBytes(subject_body, path_geotag_depicted)
+	geotag_depicted_rsp := gjson.GetBytes(subject_body, geotag_depicted_key)
 
 	for _, r := range geotag_depicted_rsp.Array() {
 		id := r.Int()
@@ -232,52 +214,38 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	logger.Debug("Additional geometries", "count", len(geom_ids))
 
-	if len(geom_ids) > 0 {
+	if len(geom_ids) == 0 {
+
+		logger.Debug("No geometries (WEIRD), assign geometry and hierarchies from default geometry record", "id", opts.DefaultGeometryFeatureId)
+
+		body, err := wof_reader.LoadBytes(ctx, opts.SFOMuseumReader, opts.DefaultGeometryFeatureId)
+
+		if err != nil {
+			logger.Error("Failed to read default geometry record", "id", opts.DefaultGeometryFeatureId, "error", err)
+			return false, nil, fmt.Errorf("Failed to read default geometry record, %w", err)
+		}
+
+		centroid, _, err := properties.Centroid(body)
+
+		if err != nil {
+			logger.Error("Failed to derive centroid for default geometry record", "id", opts.DefaultGeometryFeatureId, "error", err)
+			return false, nil, fmt.Errorf("Failed to unmarshal default geometry record, %w", err)
+		}
+
+		subject_updates["geometry"] = geojson.NewGeometry(centroid)
+
+	} else {
 
 		logger.Debug("Derive multipoint from geometries (with WOF reader)", "count", len(geom_ids))
 
-		// should we just make a "multi" reader here?
-		// geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, geom_ids...)
 		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.SFOMuseumReader, geom_ids...)
 
 		if err != nil {
 			logger.Error("Failed to derive multipoint from geometries (with WOF reader)", "error", err)
-			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
+			return false, nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
 		}
 
-		// Now append the geometry for the depiction
-
-		subject_orb_geom := geom.Geometry()
-		subject_points := subject_orb_geom.(orb.MultiPoint)
-
-		switch depiction_orb_geom.GeoJSONType() {
-		case "Point":
-
-			// Note: It's just easier to mint a new Point than to faff around
-			// with pointer syntax...
-
-			pt := depiction_orb_geom.(*orb.Point)
-			subject_points = append(subject_points, orb.Point{pt.X(), pt.Y()})
-
-		case "MultiPoint":
-
-			depiction_points := depiction_orb_geom.(orb.MultiPoint)
-
-			for _, pt := range depiction_points {
-				subject_points = append(subject_points, pt)
-			}
-		default:
-			logger.Error("Unsupported geometry type for depiction", "type", depiction_orb_geom.GeoJSONType())
-		}
-
-		new_mp := orb.MultiPoint(subject_points)
-		new_geom := geojson.NewGeometry(new_mp)
-
-		subject_updates["geometry"] = new_geom
-	} else {
-		// No other geometries so just append the geometry for the depiction
-		// Which might be the "default" geometry if there are no pointers
-		subject_updates["geometry"] = depiction_updates["geometry"]
+		subject_updates["geometry"] = geom
 	}
 
 	// END OF derive geometry from geotags and georeferences in depiction(s)
@@ -286,7 +254,7 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	if err != nil {
 		logger.Error("Failed to assign properties for subject record", "error", err)
-		return nil, fmt.Errorf("Failed to assign subject properties, %w", err)
+		return false, nil, fmt.Errorf("Failed to assign subject properties, %w", err)
 	}
 
 	if subject_has_changed {
@@ -302,9 +270,9 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 		if err != nil {
 			logger.Error("Failed to assign last mod properties for subject record", "error", err)
-			return nil, fmt.Errorf("Failed to assign last mod properties for subject record, %w", err)
+			return false, nil, fmt.Errorf("Failed to assign last mod properties for subject record, %w", err)
 		}
 	}
 
-	return new_subject, nil
+	return subject_has_changed, new_subject, nil
 }
