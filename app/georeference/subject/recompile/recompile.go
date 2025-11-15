@@ -80,8 +80,9 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	}
 
 	recompile_opts := &georeference.RecompileGeorefencesForSubjectOptions{
-		DepictionReader: depiction_reader,
-		SFOMuseumReader: sfomuseum_reader,
+		DepictionReader:          depiction_reader,
+		SFOMuseumReader:          sfomuseum_reader,
+		DefaultGeometryFeatureId: opts.DefaultGeometryFeatureId,
 	}
 
 	for _, id := range opts.SubjectIds {
