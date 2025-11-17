@@ -53,13 +53,11 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		return fmt.Errorf("Failed to create depiction reader, %w", err)
 	}
 
-	/*
-		whosonfirst_reader, err := reader.NewReader(ctx, opts.WhosOnFirstReaderURI)
+	whosonfirst_reader, err := reader.NewReader(ctx, opts.WhosOnFirstReaderURI)
 
-		if err != nil {
-			return fmt.Errorf("Failed to create whosonfirst reader, %w", err)
-		}
-	*/
+	if err != nil {
+		return fmt.Errorf("Failed to create whosonfirst reader, %w", err)
+	}
 
 	sfomuseum_reader, err := reader.NewReader(ctx, opts.SFOMuseumReaderURI)
 
@@ -82,6 +80,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	recompile_opts := &georeference.RecompileGeorefencesForSubjectOptions{
 		DepictionReader:          depiction_reader,
 		SFOMuseumReader:          sfomuseum_reader,
+		WhosOnFirstReader:        whosonfirst_reader,
 		DefaultGeometryFeatureId: opts.DefaultGeometryFeatureId,
 	}
 

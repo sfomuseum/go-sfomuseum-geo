@@ -32,7 +32,7 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 	// Assumed to be something in sfomuseum-data-media-collection
 
 	fs.StringVar(&depiction_reader_uri, "depiction-reader-uri", "repo:///usr/local/data/sfomuseum-data-media-collection", "A valid whosonfirst/go-reader URI.")
-	fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "https://data.whosonfirst.org/geojson/", "A valid whosonfirst/go-reader URI.")
+	fs.StringVar(&whosonfirst_reader_uri, "whosonfirst-reader-uri", "https://static.sfomuseum.org/geojson/", "A valid whosonfirst/go-reader URI.")
 	fs.StringVar(&sfomuseum_reader_uri, "sfomuseum-reader-uri", "https://static.sfomuseum.org/geojson/", "A valid whosonfirst/go-reader URI.")
 
 	fs.StringVar(&subject_reader_uri, "subject-reader-uri", "repo:///usr/local/data/sfomuseum-data-collection", "A valid whosonfirst/go-reader URI.")
