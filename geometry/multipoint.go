@@ -129,6 +129,10 @@ func DeriveMultiPointFromGeoms(ctx context.Context, geoms ...orb.Geometry) (orb.
 
 		go func(orb_geom orb.Geometry) {
 
+			defer func() {
+				done_ch <- true
+			}()
+
 			switch orb_geom.GeoJSONType() {
 			case "MultiPoint":
 
@@ -157,6 +161,7 @@ func DeriveMultiPointFromGeoms(ctx context.Context, geoms ...orb.Geometry) (orb.
 		case err := <-err_ch:
 			return nil, fmt.Errorf("Failed to derive geometry for subject, %w", err)
 		case pt := <-centroid_ch:
+			logger.Debug("Add point if not exist", "point", pt)
 			points = AddPointIfNotExist(points, pt)
 		}
 	}

@@ -229,6 +229,8 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 				done_ch <- true
 			}()
 
+			logger.Debug("Inflate belongs and derive hierarchy for georeference", "belongsto id", id)
+
 			belongsto_body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
 
 			if err != nil {
