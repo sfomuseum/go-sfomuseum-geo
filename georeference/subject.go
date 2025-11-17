@@ -20,7 +20,7 @@ import (
 
 type SkipListItem struct {
 	Geometry orb.Geometry
-	Depicted map[string][]int64
+	Depicted []map[string]any
 }
 
 type RecompileGeorefencesForSubjectOptions struct {
@@ -96,7 +96,10 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 			// belongs to and depicted here...
 
-			for label, ids := range skiplist_item.Depicted {
+			for _, d := range skiplist_item.Depicted {
+
+				label := d[geo.RESERVED_GEOREFERENCE_LABEL].(string)
+				ids := d[geo.RESERVED_WOF_DEPICTS].([]int64)
 
 				for _, place_id := range ids {
 
@@ -143,8 +146,8 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 			for _, r := range georefs_rsp.Array() {
 
-				label := r.Get("georef:label").String()
-				ids := r.Get("wof:depicts")
+				label := r.Get(geo.RESERVED_GEOREFERENCE_LABEL).String()
+				ids := r.Get(geo.RESERVED_WOF_DEPICTS)
 
 				for _, i := range ids.Array() {
 					place_id := i.Int()

@@ -857,7 +857,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		SkipList: map[int64]*SkipListItem{
 			depiction_id: &SkipListItem{
 				// Please make this better...
-				// Geometry: depiction_updates["geometry"].(*geojson.Geometry).Geometry(),
+				Geometry: depiction_updates["geometry"].(*geojson.Geometry).Geometry(),
 				Depicted: new_depicted,
 			},
 		},
