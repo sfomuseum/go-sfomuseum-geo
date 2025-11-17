@@ -54,7 +54,7 @@ func DeriveGeoreferenceCoords(ctx context.Context, opts *DeriveGeoreferenceCoord
 			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
 		}
 
-		coords = geom.Geometry().(orb.MultiPoint)
+		coords = geom.(orb.MultiPoint)
 	}
 
 	return coords, nil

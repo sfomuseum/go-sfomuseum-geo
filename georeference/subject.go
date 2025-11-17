@@ -18,11 +18,16 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 )
 
+type SkipListItem struct {
+	Geometry orb.Geometry
+	Depicted map[string][]int64
+}
+
 type RecompileGeorefencesForSubjectOptions struct {
 	DepictionReader          reader.Reader
 	SFOMuseumReader          reader.Reader // just settle on WhosOnFirstReader and assume it's a MultiReader... maybe?
 	DefaultGeometryFeatureId int64
-	SkipList                 map[int64]orb.Geometry
+	SkipList                 map[int64]*SkipListItem
 }
 
 func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefencesForSubjectOptions, subject_body []byte) (bool, []byte, error) {
@@ -41,7 +46,9 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	logger := slog.Default()
 
-	subject_updates := make(map[string]any)
+	subject_updates := map[string]any{
+		"properties.src:geom": "sfomuseum",
+	}
 
 	// The new new
 	subject_depicted := make(map[string][]int64)
@@ -77,10 +84,40 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 		logger.Debug("Derive georef details from image", "id", image_id)
 
-		_, exists := opts.SkipList[image_id]
+		skiplist_item, exists := opts.SkipList[image_id]
 
 		if exists {
-			logger.Debug("Image is in skip list so... skipping", "id", image_id)
+
+			logger.Debug("Image is listed in skip list, process now", "id", image_id)
+
+			if !slices.Contains(subject_depictions, image_id) {
+				subject_depictions = append(subject_depictions, image_id)
+			}
+
+			// belongs to and depicted here...
+
+			for label, ids := range skiplist_item.Depicted {
+
+				for _, place_id := range ids {
+
+					depicted_ids, exists := subject_depicted[label]
+
+					if !exists {
+						depicted_ids = make([]int64, 0)
+					}
+
+					if !slices.Contains(depicted_ids, place_id) {
+						depicted_ids = append(depicted_ids, place_id)
+					}
+
+					subject_depicted[label] = depicted_ids
+
+					if !slices.Contains(subject_belongsto, place_id) {
+						subject_belongsto = append(subject_belongsto, place_id)
+					}
+				}
+			}
+
 			continue
 		}
 
@@ -210,7 +247,7 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 			return false, nil, fmt.Errorf("Failed to unmarshal default geometry record, %w", err)
 		}
 
-		subject_geom = centoid
+		subject_geom = centroid
 
 	} else {
 
@@ -230,11 +267,13 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	skip_geoms := make([]orb.Geometry, 0)
 
-	for _, geom := range opts.SkipList {
-		skip_geoms = append(skip_geoms, geom)
+	for _, skiplist_item := range opts.SkipList {
+		skip_geoms = append(skip_geoms, skiplist_item.Geometry)
 	}
 
 	if len(skip_geoms) > 0 {
+
+		logger.Debug("Derive combined geometry from skip list", "count", len(skip_geoms))
 
 		combined_geom, err := geometry.DeriveMultiPointFromGeoms(ctx, skip_geoms...)
 
