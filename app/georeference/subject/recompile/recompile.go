@@ -90,7 +90,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		body, err := wof_reader.LoadBytes(ctx, subject_reader, id)
 
 		if err != nil {
-			return fmt.Errorf("Failed to read body for %s, %w", id, err)
+			return fmt.Errorf("Failed to read body for %d, %w", id, err)
 		}
 
 		has_changed, new_body, err := georeference.RecompileGeorefencesForSubject(ctx, recompile_opts, body)

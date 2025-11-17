@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/go-sfomuseum-geo"
 	"github.com/sfomuseum/go-sfomuseum-geo/geometry"
@@ -21,6 +22,7 @@ type RecompileGeorefencesForSubjectOptions struct {
 	DepictionReader          reader.Reader
 	SFOMuseumReader          reader.Reader // just settle on WhosOnFirstReader and assume it's a MultiReader... maybe?
 	DefaultGeometryFeatureId int64
+	SkipList                 map[int64]orb.Geometry
 }
 
 func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefencesForSubjectOptions, subject_body []byte) (bool, []byte, error) {
@@ -74,6 +76,13 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 		im_remaining += 1
 
 		logger.Debug("Derive georef details from image", "id", image_id)
+
+		_, exists := opts.SkipList[image_id]
+
+		if exists {
+			logger.Debug("Image is in skip list so... skipping", "id", image_id)
+			continue
+		}
 
 		go func(image_id int64) {
 
@@ -181,6 +190,8 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	logger.Debug("Additional geometries", "count", len(geom_ids))
 
+	var subject_geom orb.Geometry
+
 	if len(geom_ids) == 0 {
 
 		logger.Debug("No geometries (WEIRD), assign geometry and hierarchies from default geometry record", "id", opts.DefaultGeometryFeatureId)
@@ -199,7 +210,7 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 			return false, nil, fmt.Errorf("Failed to unmarshal default geometry record, %w", err)
 		}
 
-		subject_updates["geometry"] = geojson.NewGeometry(centroid)
+		subject_geom = centoid
 
 	} else {
 
@@ -212,8 +223,30 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 			return false, nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
 		}
 
-		subject_updates["geometry"] = geom
+		subject_geom = geom
 	}
+
+	// Merge subject geom with any geoms explicitly defined in the "skip geom" list
+
+	skip_geoms := make([]orb.Geometry, 0)
+
+	for _, geom := range opts.SkipList {
+		skip_geoms = append(skip_geoms, geom)
+	}
+
+	if len(skip_geoms) > 0 {
+
+		combined_geom, err := geometry.DeriveMultiPointFromGeoms(ctx, skip_geoms...)
+
+		if err != nil {
+			logger.Error("Failed to derive multipoint from combined subject and skip geoms", "error", err)
+			return false, nil, fmt.Errorf("Failed to derive multipoint from combined subject and skip geoms, %w", err)
+		}
+
+		subject_geom = combined_geom
+	}
+
+	subject_updates["geometry"] = geojson.NewGeometry(subject_geom)
 
 	// END OF derive geometry from geotags and georeferences in depiction(s)
 
