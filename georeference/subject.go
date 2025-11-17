@@ -2,9 +2,12 @@ package georeference
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/paulmach/orb"
@@ -20,11 +23,13 @@ import (
 
 type SkipListItem struct {
 	Geometry orb.Geometry
+	// Sad-face pending a properly typed thing in assign.go
 	Depicted []map[string]any
 }
 
 type RecompileGeorefencesForSubjectOptions struct {
 	DepictionReader          reader.Reader
+	WhosOnFirstReader        reader.Reader
 	SFOMuseumReader          reader.Reader // just settle on WhosOnFirstReader and assume it's a MultiReader... maybe?
 	DefaultGeometryFeatureId int64
 	SkipList                 map[int64]*SkipListItem
@@ -32,11 +37,6 @@ type RecompileGeorefencesForSubjectOptions struct {
 
 func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefencesForSubjectOptions, subject_body []byte) (bool, []byte, error) {
 
-	// IMPORTANT: THIS DOES NOT ACCOUNT FOR DEPICTIONS THAT ARE BEING UPDATED AT THE SAME TIME YET
-	// Specifically, we need to be able to pass in both:
-	// image IDs to skip
-	// geometries to include when deriving the final subject geom
-	//
 	// The point is to be able to call this code directly from AssignGeoreferences (replacing code that is already there)
 
 	subject_depicted_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOREFERENCE_DEPICTED)
@@ -45,6 +45,15 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 	geotag_depicted_key := fmt.Sprintf("properties.%s", geo.RESERVED_GEOTAG_DEPICTIONS)
 
 	logger := slog.Default()
+
+	subject_id, err := properties.Id(subject_body)
+
+	if err != nil {
+		return false, nil, fmt.Errorf("Failed to derive subject ID")
+	}
+
+	logger = logger.With("subject id", subject_id)
+	logger.Debug("Recompile georeferences for subject")
 
 	subject_updates := map[string]any{
 		"properties.src:geom": "sfomuseum",
@@ -98,6 +107,7 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 			for _, d := range skiplist_item.Depicted {
 
+				// Sad-face type assertions pending a properly typed thing in assign.go
 				label := d[geo.RESERVED_GEOREFERENCE_LABEL].(string)
 				ids := d[geo.RESERVED_WOF_DEPICTS].([]int64)
 
@@ -203,8 +213,80 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 	subject_updates[subject_depicted_key] = subject_depicted
 	subject_updates[subject_depictions_key] = subject_depictions
 
-	// INFLATE BELONGS TO HERE
+	// START OF inflate belongs to array to include ancestors and derived deduplicated hierarchies
 
+	combined_belongsto_map := new(sync.Map)
+	combined_hiers_map := new(sync.Map)
+
+	done_ch := make(chan bool)
+	err_ch := make(chan error)
+
+	for _, id := range subject_belongsto {
+
+		go func(id int64) {
+
+			defer func() {
+				done_ch <- true
+			}()
+
+			belongsto_body, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, id)
+
+			if err != nil {
+				combined_belongsto_map.Store(id, true)
+				err_ch <- fmt.Errorf("Failed to load record for %d, %w", id, err)
+				return
+			}
+
+			belongsto_hiers := properties.Hierarchies(belongsto_body)
+
+			for _, h := range belongsto_hiers {
+
+				enc_h, err := json.Marshal(h)
+
+				if err != nil {
+					logger.Error("Failed to marshal hierarchy", "error", err)
+				} else {
+					md5_h := fmt.Sprintf("%x", md5.Sum(enc_h))
+					combined_hiers_map.Store(md5_h, h)
+				}
+
+				for _, h_id := range h {
+					combined_belongsto_map.Store(h_id, true)
+				}
+			}
+
+		}(id)
+	}
+
+	remaining := len(subject_belongsto)
+
+	for remaining > 0 {
+		select {
+		case <-done_ch:
+			remaining -= 1
+		case err := <-err_ch:
+			logger.Warn("Failed to inflate belongs to", "error", err)
+		}
+	}
+
+	combined_hiers := make([]map[string]int64, 0)
+	combined_belongsto := make([]int64, 0)
+
+	combined_hiers_map.Range(func(k, v any) bool {
+		h := v.(map[string]int64)
+		combined_hiers = append(combined_hiers, h)
+		return true
+	})
+
+	combined_belongsto_map.Range(func(k, v any) bool {
+		id := k.(int64)
+		combined_belongsto = append(combined_belongsto, id)
+		return true
+	})
+
+	// END OF inflate belongs to array to include ancestors and derived deduplicated hierarchies
+
+	subject_updates["properties.wof:hierarchy"] = combined_hiers
 	subject_updates[subject_belongsto_key] = subject_belongsto
 
 	// START OF derive geometry from geotags and georeferences in depictions

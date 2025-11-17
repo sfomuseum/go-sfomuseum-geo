@@ -366,6 +366,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		label := k.(string)
 		ids := v.([]int64)
 
+		// TO DO: Make this a properly typed thing
+
 		d := map[string]any{
 			geo.RESERVED_GEOREFERENCE_LABEL: label,
 			geo.RESERVED_WOF_DEPICTS:        ids,
@@ -852,8 +854,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// START OF denormalize all the georeferenced properties from all the images (depictions) in to the object record
 
 	recompile_opts := &RecompileGeorefencesForSubjectOptions{
-		DepictionReader: depiction_reader,
-		SFOMuseumReader: opts.WhosOnFirstReader,
+		DepictionReader:   depiction_reader,
+		SFOMuseumReader:   opts.SFOMuseumReader,
+		WhosOnFirstReader: opts.WhosOnFirstReader,
 		SkipList: map[int64]*SkipListItem{
 			depiction_id: &SkipListItem{
 				// Please make this better...
