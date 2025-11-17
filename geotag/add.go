@@ -334,15 +334,14 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 
 	if len(subject_geom_ids) > 0 {
 
-		geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.ParentReader, subject_geom_ids...)
+		subject_orb_geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.ParentReader, subject_geom_ids...)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)
 		}
 
 		// Now append the geometry for the depiction
-
-		subject_orb_geom := geom.Geometry()
+		// This extra step is necessary to satisfy Golang generics wah-wah for slices.Contains below
 		subject_points := subject_orb_geom.(orb.MultiPoint)
 
 		for _, coord := range depictions_coords {

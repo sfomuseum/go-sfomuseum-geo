@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/paulmach/orb"
-	"github.com/paulmach/orb/geojson"
+	// "github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/planar"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"
@@ -22,11 +22,11 @@ import (
 //
 // If a feature associated with an ID has either "lbl:" or "geotag:" latitude and longitude properties those
 // will be used in place of a centroid derived from the features geometry.
-func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64) (*geojson.Geometry, error) {
+func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64) (orb.Geometry, error) {
 
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
-	centroid_ch := make(chan orb.Point)
+	geom_ch := make(chan orb.Geometry)
 
 	for _, id := range ids {
 
@@ -73,7 +73,7 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 
 					logger.Debug("Return centroid", "prefix", prefix)
 					pt := orb.Point{lon, lat}
-					centroid_ch <- pt
+					geom_ch <- pt
 					return
 				}
 			}
@@ -89,6 +89,49 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 			}
 
 			orb_geom := geom.Geometry()
+			geom_ch <- orb_geom
+			return
+		}(id)
+
+	}
+
+	remaining := len(ids)
+	geoms := make([]orb.Geometry, 0)
+
+	for remaining > 0 {
+		select {
+		case <-done_ch:
+			remaining -= 1
+		case err := <-err_ch:
+			return nil, fmt.Errorf("Failed to derive geometry for subject, %w", err)
+		case geom := <-geom_ch:
+			geoms = append(geoms, geom)
+		}
+	}
+
+	return DeriveMultiPointFromGeoms(ctx, geoms...)
+}
+
+// DeriveMultiPointFromGeoms generates a new `geojson.Geometry` MultiPoint instance derived from the (planar)
+// centroids of the geometries associated with 'geoms'.
+//
+// If a feature associated with an ID has a 'MultiPoint' geometry each of those points will be assign to the
+// final geometry (rather than deriving a centroid).
+func DeriveMultiPointFromGeoms(ctx context.Context, geoms ...orb.Geometry) (orb.Geometry, error) {
+
+	done_ch := make(chan bool)
+	err_ch := make(chan error)
+	centroid_ch := make(chan orb.Point)
+
+	logger := slog.Default()
+
+	for _, geom := range geoms {
+
+		go func(orb_geom orb.Geometry) {
+
+			defer func() {
+				done_ch <- true
+			}()
 
 			switch orb_geom.GeoJSONType() {
 			case "MultiPoint":
@@ -105,12 +148,10 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 				centroid_ch <- pt
 			}
 
-			return
-		}(id)
-
+		}(geom)
 	}
 
-	remaining := len(ids)
+	remaining := len(geoms)
 	points := make([]orb.Point, 0)
 
 	for remaining > 0 {
@@ -120,12 +161,11 @@ func DeriveMultiPointFromIds(ctx context.Context, r reader.Reader, ids ...int64)
 		case err := <-err_ch:
 			return nil, fmt.Errorf("Failed to derive geometry for subject, %w", err)
 		case pt := <-centroid_ch:
+			logger.Debug("Add point if not exist", "point", pt)
 			points = AddPointIfNotExist(points, pt)
 		}
 	}
 
 	mp := orb.MultiPoint(points)
-	geom := geojson.NewGeometry(mp)
-
-	return geom, nil
+	return mp, nil
 }

@@ -8,11 +8,18 @@ vuln:
 
 cli:
 	rm -f bin/*
+	@make cli-geotag
+	@make cli-georef
+
+cli-geotag:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/geotag-add cmd/geotag-add/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/geotag-remove cmd/geotag-remove/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/geotag-build-update cmd/geotag-build-update/main.go
+
+cli-georef:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/georef-add cmd/georef-add/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/georef-remove cmd/georef-remove/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/georef-recompile-subject cmd/georef-recompile-subject/main.go
 
 # subject (object):
 # https://collection.sfomuseum.org/objects/1897902471/
