@@ -89,7 +89,6 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 	for _, r := range images_list {
 
 		image_id := r.Int()
-		im_remaining += 1
 
 		logger.Debug("Derive georef details from image", "id", image_id)
 
@@ -134,6 +133,9 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 			continue
 		}
 
+		im_remaining += 1
+		logger.Debug("Schedule image for processing", "image id", image_id, "count", im_remaining)
+
 		go func(image_id int64) {
 
 			defer func() {
@@ -171,41 +173,47 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	// Wait...
 
-	for im_remaining > 0 {
-		select {
-		case <-im_done_ch:
-			im_remaining -= 1
-		case err := <-im_err_ch:
-			return false, nil, fmt.Errorf("Failed to denormalize georeference properties, %w", err)
-		case ref := <-im_ref_ch:
+	if im_remaining > 0 {
 
-			label := ref.label
-			depiction_id := ref.depiction
-			place_id := ref.place_id
+		logger.Debug("Waiting for image processing to complete", "remaining", im_remaining)
 
-			logger.Debug("Update subject (geo)refs for image", "id", place_id, "label", label)
+		for im_remaining > 0 {
+			select {
+			case <-im_done_ch:
+				im_remaining -= 1
+				logger.Debug("Image processing completed", "remaining", im_remaining)
+			case err := <-im_err_ch:
+				return false, nil, fmt.Errorf("Failed to denormalize georeference properties, %w", err)
+			case ref := <-im_ref_ch:
 
-			if !slices.Contains(subject_depictions, depiction_id) {
-				subject_depictions = append(subject_depictions, depiction_id)
-			}
+				label := ref.label
+				depiction_id := ref.depiction
+				place_id := ref.place_id
 
-			// Update wof:references for subject
-			// subject_belongsto_lookup.Store(id, true)
+				logger.Debug("Update subject (geo)refs for image", "id", place_id, "label", label)
 
-			depicted_ids, exists := subject_depicted[label]
+				if !slices.Contains(subject_depictions, depiction_id) {
+					subject_depictions = append(subject_depictions, depiction_id)
+				}
 
-			if !exists {
-				depicted_ids = make([]int64, 0)
-			}
+				// Update wof:references for subject
+				// subject_belongsto_lookup.Store(id, true)
 
-			if !slices.Contains(depicted_ids, place_id) {
-				depicted_ids = append(depicted_ids, place_id)
-			}
+				depicted_ids, exists := subject_depicted[label]
 
-			subject_depicted[label] = depicted_ids
+				if !exists {
+					depicted_ids = make([]int64, 0)
+				}
 
-			if !slices.Contains(subject_belongsto, place_id) {
-				subject_belongsto = append(subject_belongsto, place_id)
+				if !slices.Contains(depicted_ids, place_id) {
+					depicted_ids = append(depicted_ids, place_id)
+				}
+
+				subject_depicted[label] = depicted_ids
+
+				if !slices.Contains(subject_belongsto, place_id) {
+					subject_belongsto = append(subject_belongsto, place_id)
+				}
 			}
 		}
 	}
@@ -214,6 +222,8 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 	subject_updates[subject_depictions_key] = subject_depictions
 
 	// START OF inflate belongs to array to include ancestors and derived deduplicated hierarchies
+
+	logger.Debug("Inflate belongs to and derive hierarchies")
 
 	combined_belongsto_map := new(sync.Map)
 	combined_hiers_map := new(sync.Map)
