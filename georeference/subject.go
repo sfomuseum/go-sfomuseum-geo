@@ -21,20 +21,33 @@ import (
 	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 )
 
+// SkipListItem defines a depiction (image) with predetermined georeferencing information
+// to be used when recompiling georeferences for a subject.
 type SkipListItem struct {
+	// The geometry of the depiction
 	Geometry orb.Geometry
+	// The georef:depicted map for the depiction
 	// Sad-face pending a properly typed thing in assign.go
 	Depicted []map[string]any
 }
 
+// RecompileGeorefencesForSubjectOptions defines configuration options for invoking
+// the RecompileGeorefencesForSubject method
 type RecompileGeorefencesForSubjectOptions struct {
-	DepictionReader          reader.Reader
-	WhosOnFirstReader        reader.Reader
-	SFOMuseumReader          reader.Reader // just settle on WhosOnFirstReader and assume it's a MultiReader... maybe?
+	// A valid whosonfirst/go-reader/v2.Reader instance used to load depiction records.
+	DepictionReader reader.Reader
+	// A valid whosonfirst/go-reader/v2.Reader instance used to load general Who's On First records.
+	WhosOnFirstReader reader.Reader
+	// A valid whosonfirst/go-reader/v2.Reader instance used to load SFO Museum records.
+	SFOMuseumReader reader.Reader // just settle on WhosOnFirstReader and assume it's a MultiReader... maybe?
+	// DefaultGeometryFeatureId is the Who's On First ID to use for deriving a default geometry when none are defined by georeferences (or geotags.)
 	DefaultGeometryFeatureId int64
-	SkipList                 map[int64]*SkipListItem
+	// SkipList is a dicitionary of pre-determined georeferencing information keyed by the depiction (image) ID in question.
+	SkipList map[int64]*SkipListItem
 }
 
+// RecompileGeorefencesForSubject rebuilds all the revelent "georef:" properties for a subject (object) derived
+// from its depictions (images).
 func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefencesForSubjectOptions, subject_body []byte) (bool, []byte, error) {
 
 	// The point is to be able to call this code directly from AssignGeoreferences (replacing code that is already there)

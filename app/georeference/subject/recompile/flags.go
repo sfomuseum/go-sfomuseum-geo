@@ -24,6 +24,8 @@ var subject_ids multi.MultiInt64
 
 var default_geometry_feature_id int64
 
+var iterator_uri string
+
 func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 
 	fs := flagset.NewFlagSet("reference")
@@ -41,7 +43,9 @@ func DefaultFlagSet(ctx context.Context) *flag.FlagSet {
 	fs.StringVar(&access_token_uri, "access-token", "", "A valid gocloud.dev/runtimevar URI")
 
 	fs.Int64Var(&default_geometry_feature_id, "default-geometry-feature-id", 1729828959, "The WOF ID for the Feature whose centroid will be used as a default absent any references.")
-	fs.Var(&subject_ids, "subject-id", "...")
+	fs.Var(&subject_ids, "subject-id", "One or more subject (object) IDs to recompile georeference data for.")
+
+	fs.StringVar(&iterator_uri, "iterator-uri", "repo://?include=properties.georef:depicted=.*", "A valid whosonfirst/go-whosonfirst-iterate/v3.Iterator URI used to derive records whose georeference data should be recompiled.")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "...\n")

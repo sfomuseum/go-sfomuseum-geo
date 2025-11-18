@@ -32,6 +32,8 @@ github.com/aaronland/go-aws/v3 v3.0.2 h1:Lrg6lIDe7W+wobpxnWVpV2cFAvkAOakYMfe4IlE
 github.com/aaronland/go-aws/v3 v3.0.2/go.mod h1:sNmNX9lR/Kau0hVtYj0k1ltJNL0d+oGrsp8xLs9D39I=
 github.com/aaronland/go-brooklynintegers-api v1.2.10 h1:1X6VOECYIEes1dKkBc/pq4R6/utUHM6JWhFzBlY8j7E=
 github.com/aaronland/go-brooklynintegers-api v1.2.10/go.mod h1:pDa3IIC5BUZ03ga8ER6IpiDSZpvfokyBXDtEv8NpJKQ=
+github.com/aaronland/go-json-query v0.1.6 h1:i4HHIFeZr6jguE/TFWYSJmDZDH2PyrI5MH1YSqJ2F80=
+github.com/aaronland/go-json-query v0.1.6/go.mod h1:acIgF0MbnW5fp/oGaVJAFs692X8ZQTsRoDlklXV3w9Q=
 github.com/aaronland/go-pool/v2 v2.0.0 h1:3nYPErb875nXxrEGKhSNFqxR7rt9bMmeusbU8RuEksg=
 github.com/aaronland/go-pool/v2 v2.0.0/go.mod h1:2Yx7B3wLvg4qjxMDvDRseob7p0pgf/btsLfZ3NnIDlg=
 github.com/aaronland/go-roster v1.0.0 h1:FRDGrTqsYySKjWnAhbBGXyeGlI/o5/t9FZYCbUmyQtI=
@@ -121,6 +123,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dominikbraun/graph v0.23.0 h1:TdZB4pPqCLFxYhdyMFb1TBdFxp8XLcJfTTBQucVPgCo=
 github.com/dominikbraun/graph v0.23.0/go.mod h1:yOjYyogZLY1LSG9E33JWZJiq5k83Qy2C6POAuiViluc=
+github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
+github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/envoyproxy/go-control-plane v0.13.4 h1:zEqyPVyku6IvWCFwux4x9RxkLOMUL+1vC9xUFv5l2/M=
 github.com/envoyproxy/go-control-plane/envoy v1.32.4 h1:jb83lalDRZSpPWW2Z7Mck/8kXZ5CQAFYVjQcdVIr83A=
 github.com/envoyproxy/go-control-plane/envoy v1.32.4/go.mod h1:Gzjc5k8JcJswLjAx1Zm+wSYE20UrLtt7JZMWiWQXQEw=
@@ -261,6 +265,8 @@ github.com/whosonfirst/go-whosonfirst-format v1.1.0 h1:0cmY4gowtbnMnUmdcRKbpNshD
 github.com/whosonfirst/go-whosonfirst-format v1.1.0/go.mod h1:8oHpebJhOCDOmudDAeBphtIo7Ti7+o8HZNsYwaiEFXM=
 github.com/whosonfirst/go-whosonfirst-id v1.3.1 h1:AecFe96MRpu/gLy8D/lyJCrNCLywgYuRDY7yLWlybXk=
 github.com/whosonfirst/go-whosonfirst-id v1.3.1/go.mod h1:CCW9ym7BVTEhWA7hk8zM09zPCr0VzOBd6hYTPaxmpdQ=
+github.com/whosonfirst/go-whosonfirst-iterate/v3 v3.2.0 h1:tYnvMEJu/0a2q/QGOnuZ2eQ94wOybcddxQWVNSvYa2A=
+github.com/whosonfirst/go-whosonfirst-iterate/v3 v3.2.0/go.mod h1:rQ7v8x2o4klGsWRneUxvZXAVJZUrDPvNl6ubxRBVq7c=
 github.com/whosonfirst/go-whosonfirst-names v0.1.0 h1:uXop/DwQqH60uDBZvHCPg1yRSQLScbm6VZyqcaED2KE=
 github.com/whosonfirst/go-whosonfirst-names v0.1.0/go.mod h1:0z86/nedM9T/5C8cAdbCMfRuBrkc33oEQ6vdJ6WybSg=
 github.com/whosonfirst/go-whosonfirst-placetypes v0.8.0 h1:H0scSA+UoglzTdKYFHbx38B0m+FgfYymr7p/rIKKAn4=

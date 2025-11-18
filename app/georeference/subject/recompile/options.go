@@ -20,6 +20,8 @@ type RunOptions struct {
 	SFOMuseumReaderURI       string
 	GitHubAccessTokenURI     string
 	SubjectIds               []int64
+	IteratorURI              string
+	IteratorSources          []string
 	DefaultGeometryFeatureId int64
 }
 
@@ -33,6 +35,8 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 		return nil, fmt.Errorf("Failed to set flags from environment variables, %w", err)
 	}
 
+	iterator_sources := fs.Args()
+
 	opts := &RunOptions{
 		Verbose:                  verbose,
 		SubjectReaderURI:         subject_reader_uri,
@@ -43,6 +47,8 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 		GitHubAccessTokenURI:     access_token_uri,
 		SubjectIds:               subject_ids,
 		DefaultGeometryFeatureId: default_geometry_feature_id,
+		IteratorURI:              iterator_uri,
+		IteratorSources:          iterator_sources,
 	}
 
 	return opts, nil
