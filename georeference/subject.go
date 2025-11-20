@@ -70,7 +70,10 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 	count_skiplist := 0
 
 	if opts.SkipList != nil {
-		count_skiplist = len(opts.SkipList)
+
+		for range opts.SkipList {
+			count_skiplist += 1
+		}
 	}
 
 	logger = logger.With("skip list", count_skiplist)
@@ -390,8 +393,8 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 		skip_geoms := make([]orb.Geometry, count_skiplist)
 
-		for idx, skiplist_item := range opts.SkipList {
-			skip_geoms[idx] = skiplist_item.Geometry
+		for _, skiplist_item := range opts.SkipList {
+			skip_geoms = append(skip_geoms, skiplist_item.Geometry)
 		}
 
 		combined_geom, err := geometry.DeriveMultiPointFromGeoms(ctx, skip_geoms...)
