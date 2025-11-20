@@ -547,6 +547,10 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 	// Derive geometry for depiction. This is either a MultiPoint geometry
 	// of all the (not-deprecated) alt files OR the geometry of the "default" feature
 
+	// Declare a separate variable which can be passed to the RecompileGeorefencesForSubjectOptions method below
+
+	var depiction_geom orb.Geometry
+
 	if len(alt_features) == 0 {
 
 		logger.Debug("No alt features, assign geometry and hierarchies from default geometry record", "id", opts.DefaultGeometryFeatureId)
@@ -565,6 +569,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			return nil, fmt.Errorf("Failed to unmarshal default geometry record, %w", err)
 		}
 
+		depiction_geom = centroid
 		depiction_updates["geometry"] = geojson.NewGeometry(centroid)
 
 		// hierarchies are actually assigned below
@@ -588,6 +593,8 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			logger.Error("Failed to derive multi point geometry from alt files", "error", err)
 			return nil, fmt.Errorf("Failed to derive multi point geometry, %w", err)
 		}
+
+		depiction_geom = mp_geom
 
 		mp_geojson_geom := geojson.NewGeometry(mp_geom)
 		depiction_updates["geometry"] = mp_geojson_geom
@@ -783,75 +790,9 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		return nil, fmt.Errorf("Failed to load subject (parent) for depiction, %w", err)
 	}
 
-	/*
-		subject_hierarchies := make([]map[string]int64, 0)
-
-		// As in: Aviation Museum, Library, etc.
-		collection_id, err := properties.ParentId(subject_body)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to load parent record for subject %d, %w", subject_id, err)
-		}
-
-		logger = logger.With("collection", collection_id)
-
-		col_body, err := wof_reader.LoadBytes(ctx, opts.SFOMuseumReader, collection_id)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to load collection (%d) record, %w", collection_id, err)
-		}
-
-		logger.Debug("Derive hierarchies for collection")
-
-		hiers := properties.Hierarchies(col_body)
-
-		for _, h := range hiers {
-
-			for _, h_id := range h {
-				references_map.Store(h_id, true)
-			}
-
-			enc_h, err := json.Marshal(h)
-
-			if err != nil {
-				return nil, fmt.Errorf("Failed to marshal hierarchy for %d, %w", collection_id, err)
-			}
-
-			md5_h := fmt.Sprintf("%x", md5.Sum(enc_h))
-			hierarchies_hash_map.Store(md5_h, h)
-
-			hier_mu.Lock()
-
-			if !slices.Contains(hier_hashes, md5_h) {
-				hier_hashes = append(hier_hashes, md5_h)
-			}
-
-			hier_mu.Unlock()
-		}
-
-		for _, md5_h := range hier_hashes {
-
-			v, exists := hierarchies_hash_map.Load(md5_h)
-
-			if !exists {
-				return nil, fmt.Errorf("Failed to load hashed hierarchy (%s) for %d", md5_h, depiction_id)
-			}
-
-			h := v.(map[string]int64)
-			subject_hierarchies = append(subject_hierarchies, h)
-		}
-
-		logger.Debug("Subject hierarchies", "count", len(subject_hierarchies))
-
-		// Things to update in the subject (object) record
-
-		subject_updates := map[string]interface{}{
-			"properties.src:geom":      depiction_updates["properties.src:geom"],
-			"properties.wof:hierarchy": subject_hierarchies,
-		}
-	*/
-
 	// START OF denormalize all the georeferenced properties from all the images (depictions) in to the object record
+
+	logger.Debug("Update subject with depiction geom", "geom", depiction_geom)
 
 	recompile_opts := &RecompileGeorefencesForSubjectOptions{
 		DepictionReader:   depiction_reader,
@@ -859,8 +800,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		WhosOnFirstReader: opts.WhosOnFirstReader,
 		SkipList: map[int64]*SkipListItem{
 			depiction_id: &SkipListItem{
-				// Please make this better...
-				Geometry: depiction_updates["geometry"].(*geojson.Geometry).Geometry(),
+				Geometry: depiction_geom,
 				Depicted: new_depicted,
 			},
 		},

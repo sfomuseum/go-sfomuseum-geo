@@ -66,6 +66,15 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 	}
 
 	logger = logger.With("subject id", subject_id)
+
+	count_skiplist := 0
+
+	if opts.SkipList != nil {
+		count_skiplist = len(opts.SkipList)
+	}
+
+	logger = logger.With("skip list", count_skiplist)
+
 	logger.Debug("Recompile georeferences for subject")
 
 	subject_updates := map[string]any{
@@ -375,15 +384,15 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 	// Merge subject geom with any geoms explicitly defined in the "skip geom" list
 
-	skip_geoms := make([]orb.Geometry, 0)
+	if count_skiplist > 0 {
 
-	for _, skiplist_item := range opts.SkipList {
-		skip_geoms = append(skip_geoms, skiplist_item.Geometry)
-	}
+		logger.Debug("Derive combined geometry from skip list", "count", count_skiplist)
 
-	if len(skip_geoms) > 0 {
+		skip_geoms := make([]orb.Geometry, count_skiplist)
 
-		logger.Debug("Derive combined geometry from skip list", "count", len(skip_geoms))
+		for idx, skiplist_item := range opts.SkipList {
+			skip_geoms[idx] = skiplist_item.Geometry
+		}
 
 		combined_geom, err := geometry.DeriveMultiPointFromGeoms(ctx, skip_geoms...)
 
@@ -394,6 +403,8 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 		subject_geom = combined_geom
 	}
+
+	logger.Debug("Assign subject geometry", "geometry", subject_geom)
 
 	subject_updates["geometry"] = geojson.NewGeometry(subject_geom)
 
