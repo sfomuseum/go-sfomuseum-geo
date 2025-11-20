@@ -391,7 +391,7 @@ func RecompileGeorefencesForSubject(ctx context.Context, opts *RecompileGeorefen
 
 		logger.Debug("Derive combined geometry from skip list", "count", count_skiplist)
 
-		skip_geoms := make([]orb.Geometry, count_skiplist)
+		skip_geoms := make([]orb.Geometry, 0)
 
 		for _, skiplist_item := range opts.SkipList {
 			skip_geoms = append(skip_geoms, skiplist_item.Geometry)
