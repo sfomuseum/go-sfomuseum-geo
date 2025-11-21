@@ -39,8 +39,7 @@ type AssignReferencesOptions struct {
 	DepictionReader reader.Reader
 	// A valid whosonfirst/go-reader.Reader instance for reading subject features. A subject might be a collection object (rather than any one image (depiction) of that objec)
 	SubjectReader reader.Reader
-	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features.
-	// This is the equivalent to ../geotag.GeotagDepictionOptions.ParentReader and should be reconciled one way or the other.
+	// A valid whosonfirst/go-reader.Reader instance for reading Who's On First features.
 	WhosOnFirstReader reader.Reader
 	// A valid whosonfirst/go-reader.Reader instance for reading a "default geometry" features.
 	DefaultGeometryFeatureId int64

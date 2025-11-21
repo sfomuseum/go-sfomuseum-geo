@@ -84,7 +84,7 @@ func TestUpdateDepiction(t *testing.T) {
 	opts := &AddGeotagDepictionOptions{
 		DepictionReader:    img_reader,
 		SubjectReader:      obj_reader,
-		ParentReader:       arch_reader,
+		WhosOnFirstReader:  arch_reader,
 		DepictionWriterURI: img_writer_uri,
 		SubjectWriterURI:   obj_writer_uri,
 	}

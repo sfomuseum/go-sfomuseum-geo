@@ -39,7 +39,7 @@ type AddGeotagDepictionOptions struct {
 	SubjectWriterURI string
 	// A valid whosonfirst/go-reader.Reader instance for reading "parent" features. This includes general Who's On First IDs.
 	// This is the equivalent to ../georeference.AssignReferenceOptions.WhosOnFirstReader and should be reconciled one way or the other.
-	ParentReader reader.Reader
+	WhosOnFirstReader reader.Reader
 	// The name of the person (or process) updating a depiction.
 	Author string
 }
@@ -144,7 +144,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 
 	if camera_parent_id != -1 {
 
-		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, camera_parent_id)
+		f, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, camera_parent_id)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to load parent record for camera %d, %w", camera_parent_id, err)
@@ -155,7 +155,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 
 	if target_parent_id != -1 {
 
-		f, err := wof_reader.LoadBytes(ctx, opts.ParentReader, target_parent_id)
+		f, err := wof_reader.LoadBytes(ctx, opts.WhosOnFirstReader, target_parent_id)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to load parent record for target %d, %w", target_parent_id, err)
@@ -334,7 +334,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 
 	if len(subject_geom_ids) > 0 {
 
-		subject_orb_geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.ParentReader, subject_geom_ids...)
+		subject_orb_geom, err := geometry.DeriveMultiPointFromIds(ctx, opts.WhosOnFirstReader, subject_geom_ids...)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to derive multipoint geometry for subject, %w", err)

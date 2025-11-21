@@ -51,40 +51,22 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create depiction reader, %v", err)
 	}
 
-	/*
-		depiction_writer, err := writer.NewWriter(ctx, depiction_writer_uri)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create depiction writer, %v", err)
-		}
-	*/
-
 	subject_reader, err := reader.NewReader(ctx, subject_reader_uri)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create subject reader, %v", err)
 	}
 
-	/*
-		subject_writer, err := writer.NewWriter(ctx, subject_writer_uri)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create subject writer, %v", err)
-		}
-	*/
-
-	parent_reader, err := reader.NewReader(ctx, parent_reader_uri)
+	whosonfirst_reader, err := reader.NewReader(ctx, whosonfirst_reader_uri)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create architecture reader, %v", err)
 	}
 
 	opts := &geotag.AddGeotagDepictionOptions{
-		DepictionReader: depiction_reader,
-		// DepictionWriter:    depiction_writer,
-		SubjectReader: subject_reader,
-		// SubjectWriter:      subject_writer,
-		ParentReader:       parent_reader,
+		DepictionReader:    depiction_reader,
+		SubjectReader:      subject_reader,
+		WhosOnFirstReader:  whosonfirst_reader,
 		DepictionWriterURI: depiction_writer_uri, // to be remove post writer/v3 (Clone) release
 		SubjectWriterURI:   subject_writer_uri,   // to be remove post writer/v3 (Clone) release
 	}
