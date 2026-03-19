@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/paulmach/orb"
-	// "github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/planar"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-reader/v2"

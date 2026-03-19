@@ -46,6 +46,7 @@ func FormatAltFeature(f *WhosOnFirstAltFeature) ([]byte, error) {
 	return body, nil
 }
 
+// DeriveMultiPointGeometry returns an `orb.MultiPoint` instance derived from the geometry in 'features'. 
 func DeriveMultiPointGeometry(ctx context.Context, features ...*WhosOnFirstAltFeature) (orb.MultiPoint, error) {
 
 	points := make([]orb.Point, 0)
