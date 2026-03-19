@@ -169,7 +169,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 	// FIX ME: account for multitple camera/target properties (as in multiple images (depictions)
 	// with different geotagging properties
 
-	subject_updates := map[string]interface{}{
+	subject_updates := map[string]any{
 		"properties.src:geom": "sfomuseum#geotagged",
 	}
 
@@ -478,7 +478,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 
 	// Update the depiction
 
-	depiction_updates := map[string]interface{}{
+	depiction_updates := map[string]any{
 		"geometry":                                pov,
 		"properties.src:geom":                     "sfomuseum",
 		"properties.geotag:angle":                 geotag_f.Properties.Angle,
@@ -547,7 +547,7 @@ func AddGeotagDepiction(ctx context.Context, opts *AddGeotagDepictionOptions, up
 
 	repo_rsp := gjson.GetBytes(depiction_body, "properties.wof:repo")
 
-	alt_props := map[string]interface{}{
+	alt_props := map[string]any{
 		"wof:id":        depiction_id,
 		"wof:repo":      repo_rsp.String(),
 		"src:alt_label": GEOTAG_LABEL,

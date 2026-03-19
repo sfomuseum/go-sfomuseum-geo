@@ -15,10 +15,10 @@ import (
 
 // WhosOnFirstAltFeature is a struct defining a GeoJSON Feature for alternate geometries.
 type WhosOnFirstAltFeature struct {
-	Id         int64                  `json:"id"`
-	Type       string                 `json:"type"`
-	Properties map[string]interface{} `json:"properties"`
-	Geometry   *geojson.Geometry      `json:"geometry"`
+	Id         int64             `json:"id"`
+	Type       string            `json:"type"`
+	Properties map[string]any    `json:"properties"`
+	Geometry   *geojson.Geometry `json:"geometry"`
 }
 
 // FormatAltFeature formats 'f' and removes any top-level `bbox` properties.
@@ -46,7 +46,7 @@ func FormatAltFeature(f *WhosOnFirstAltFeature) ([]byte, error) {
 	return body, nil
 }
 
-// DeriveMultiPointGeometry returns an `orb.MultiPoint` instance derived from the geometry in 'features'. 
+// DeriveMultiPointGeometry returns an `orb.MultiPoint` instance derived from the geometry in 'features'.
 func DeriveMultiPointGeometry(ctx context.Context, features ...*WhosOnFirstAltFeature) (orb.MultiPoint, error) {
 
 	points := make([]orb.Point, 0)

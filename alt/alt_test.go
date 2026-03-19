@@ -53,7 +53,7 @@ func TestFormatAltFeature(t *testing.T) {
 		t.Fatalf("Failed to format %s, %v", rel_path, err)
 	}
 
-	var tmp interface{}
+	var tmp any
 
 	err = json.Unmarshal(body, &tmp)
 

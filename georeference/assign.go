@@ -286,7 +286,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 			mp := orb.MultiPoint(points)
 			alt_geom := geojson.NewGeometry(mp)
 
-			alt_props := map[string]interface{}{
+			alt_props := map[string]any{
 				"wof:id":        depiction_id,
 				"wof:repo":      depiction_repo,
 				"src:alt_label": alt_label,
@@ -330,7 +330,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	logger.Debug("Create/update alt files for references")
 
-	depiction_updates := map[string]interface{}{
+	depiction_updates := map[string]any{
 		"properties.src:geom": src_geom,
 	}
 
@@ -344,7 +344,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		}
 	}
 
-	references_map.Range(func(k interface{}, v interface{}) bool {
+	references_map.Range(func(k any, v any) bool {
 		id := k.(int64)
 		georef_belongsto = append(georef_belongsto, id)
 		return true
@@ -360,7 +360,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 
 	new_depicted := make([]map[string]any, 0)
 
-	updates_map.Range(func(k interface{}, v interface{}) bool {
+	updates_map.Range(func(k any, v any) bool {
 
 		label := k.(string)
 		ids := v.([]int64)
@@ -680,7 +680,7 @@ func AssignReferences(ctx context.Context, opts *AssignReferencesOptions, depict
 		now := time.Now()
 		deprecated := now.Format("2006-01-02")
 
-		alt_props := map[string]interface{}{
+		alt_props := map[string]any{
 			"edtf:deprecated": deprecated,
 			"src:alt_label":   ref.AltLabel,
 			"src:geom":        "sfomuseum#georeference",

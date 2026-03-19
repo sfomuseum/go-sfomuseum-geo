@@ -132,7 +132,7 @@ func TestUpdateDepiction(t *testing.T) {
 		}
 	}
 
-	var tmp map[string]interface{}
+	var tmp map[string]any
 	err = json.Unmarshal(body, &tmp)
 
 	if err != nil {
